@@ -659,6 +659,7 @@ const bundleIdAlreadyGraded = ref(false)
 const polling = ref(false)
 const pollCount = ref(0)
 const appId = ref('')
+const taskId = ref(null)
 let pollTimer = null
 let timerMsg = ref('')
 let timerInterval = null
@@ -767,6 +768,7 @@ async function fetchData() {
       downloadUrl.value = json.data.downloadUrl || ''
       bundleId.value = json.data.bundleId || ''
       appId.value = json.data.appId || ''
+      taskId.value = json.data.id ?? null
       originalCurrentTargetNum.value = json.data.currentTargetNum ?? null
       isSubmit=false;
       if(originalCurrentTargetNum.value<=1||originalCurrentTargetNum.value===0){
@@ -795,6 +797,7 @@ async function retestFlow() {
       showRetestModal.value = false
       downloadUrl.value = json.data.downloadUrl || ''
       bundleId.value = json.data.bundleId || ''
+      taskId.value = json.data.id ?? null
       const jsons = await fetchEvent(bundleId.value)
       try{
       if (jsons.success) {
@@ -950,6 +953,7 @@ function resetState() {
   attributions.value = []
   eventId.value = null;
   frozenMsg.value = '';
+  taskId.value = null;
   duplicateTip.value = '';
   saveMsg.value = ''
   lastReportTime.value = ''
@@ -968,10 +972,10 @@ function resetState() {
 }
 
 async function doFrozen() {
-  if (!eventId.value) return
+  if (!taskId.value) return
   frozenLoading.value = true; emit('error', '')
   try {
-    const json = await fetchFrozen(eventId.value)
+    const json = await fetchFrozen(taskId.value)
     if (json.success) {
       frozenMsg.value = json.resultMsg || '操作完成'
       isFrozen.value=',已冻结'
@@ -1002,11 +1006,11 @@ async function saveToMySQL() {
   if (newCurrentTargetNum.value > 0 && attributions.value.length === 0) {
     finalRemark += ',无事件归因'
   }
-   const finalRecordData = form.record_data.includes('T')
-    ? form.record_data
-    : form.record_data.includes('/')
+  const finalRecordData = form.record_data.includes('T')
       ? form.record_data
-      : toStorageDate(form.record_data)
+      : form.record_data.includes('/')
+          ? form.record_data
+          : toStorageDate(form.record_data)
   try {
     const json = await insertRecord({
       URL: downloadUrl.value,
