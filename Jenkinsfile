@@ -144,8 +144,8 @@ ENVEOF
     }
 
     post {
-        always {
-            echo '>>> 清理 Docker 资源...'
+    always {
+        echo '>>> 清理 Docker 资源...'
         sh '''
             docker container prune -f || true
             docker image prune -f || true
@@ -153,12 +153,12 @@ ENVEOF
         '''
         echo '>>> 清理工作区...'
         cleanWs()
-        }
-        failure {
-            echo '❌ 流水线执行失败！'
-        }
-        success {
-            echo "✅ 部署成功！镜像标签: ${GIT_COMMIT_SHORT}"
-        }
     }
+    failure {
+        echo '❌ 流水线执行失败！'
+    }
+    success {
+        echo "✅ 部署成功！镜像标签: ${env.GIT_COMMIT_SHORT}"
+    }
+}
 }
