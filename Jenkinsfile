@@ -139,10 +139,10 @@ ENVEOF
                         rm -rf persistent-data/nginx-logs/*
 
                         if [ "${params.DEPLOY_SCOPE}" = "frontend" ] || [ "${params.DEPLOY_SCOPE}" = "all" ]; then
-                            docker compose -f ${COMPOSE_FILE} up -d --build --no-deps tds-nginx
+                            docker compose -f ${COMPOSE_FILE} up -d --build --no-deps nginx
                         fi
                         if [ "${params.DEPLOY_SCOPE}" = "backend" ] || [ "${params.DEPLOY_SCOPE}" = "all" ]; then
-                            docker compose -f ${COMPOSE_FILE} up -d --build --no-deps tds-backend
+                            docker compose -f ${COMPOSE_FILE} up -d --build --no-deps backend
                         fi
                     """
                 }
