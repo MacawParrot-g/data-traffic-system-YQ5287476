@@ -49,9 +49,8 @@ pipeline {
 
                             echo '>>> 构建 Docker 镜像（标签: ${GIT_COMMIT_SHORT}）...'
                             sh """
-                                docker build --force-rm \\
-                                    --cache-from myapp-backend:latest \\
-                                    -t ${BACKEND_IMAGE} \\
+                                docker build --force-rm \
+                                    -t ${BACKEND_IMAGE} \
                                     -t myapp-backend:latest .
                             """
                             // 同时打 latest 标签方便 Compose 引用，但保留 Commit 标签用于追溯
@@ -119,10 +118,9 @@ ENVEOF
 
                 echo '>>> 构建 Nginx 镜像...'
                 sh """
-                    docker build --force-rm \\
-                        --cache-from tds-nginx:latest \\
-                        -f nginx/Dockerfile \\
-                        -t tds-nginx:${GIT_COMMIT_SHORT} \\
+                    docker build --force-rm \
+                        -f nginx/Dockerfile \
+                        -t tds-nginx:${GIT_COMMIT_SHORT} \
                         -t tds-nginx:latest .
                 """
 
