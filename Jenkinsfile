@@ -4,7 +4,7 @@ pipeline {
     environment {
         // === 后端配置（用 Commit SHA 做标签，避免覆盖产生悬空） ===
         GIT_COMMIT_SHORT = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
-        BACKEND_IMAGE = "myapp-backend:${GIT_COMMIT_SHORT}"
+        BACKEND_IMAGE = "myapp-backend:${env.GIT_COMMIT?.take(7) ?: 'unknown'}"
         JAR_NAME = 'Automatic_test_script-1.0-SNAPSHOT.jar'
 
         // === 部署配置 ===
