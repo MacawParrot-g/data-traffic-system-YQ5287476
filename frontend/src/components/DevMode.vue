@@ -487,6 +487,7 @@ const eventResult = ref('')
 const newCurrentTargetNum = ref(null)
 const attributions = ref([])
 const eventId = ref(null)
+const taskId = ref(null)
 const frozenMsg = ref('')
 const duplicateTip = ref('')
 const loading = ref(false)
@@ -629,6 +630,7 @@ async function fetchData() {
       downloadUrl.value = json.data.downloadUrl || ''
       bundleId.value = json.data.bundleId || ''
       appIds.value = json.data.appId || ''
+      taskId.value = json.data.id ?? null
       originalCurrentTargetNum.value = json.data.currentTargetNum ?? null
       isSubmit = false
       fillAttrBundleIds(bundleId.value)
@@ -731,6 +733,7 @@ async function retestFlow() {
       downloadUrl.value = json.data.downloadUrl || ''
       bundleId.value = json.data.bundleId || ''
       appIds.value = json.data.appId || '复测数据，暂无appid'
+      taskId.value = json.data.id ?? null
       fillAttrBundleIds(bundleId.value)
       try {
         const jsons = await fetchEvent(bundleId.value)
@@ -871,20 +874,21 @@ function toStorageDate(isoDate) {
 }
 
 async function doFrozen() {
-  if (!eventId.value) return
-  frozenLoading.value = true
-  emit('error', '')
+  if (!taskId.value) return
+  frozenLoading.value = true; emit('error', '')
   try {
-    const json = await fetchFrozen(eventId.value)
+    const json = await fetchFrozen(taskId.value)
     if (json.success) {
       frozenMsg.value = json.resultMsg || '操作完成'
-      isFrozen.value = ',已冻结'
-    } else {
+      isFrozen.value=',已冻结'
+    }
+    else {
       emit('error', '冻结接口返回异常：' + (json.resultMsg || '未知错误'))
     }
   } catch (e) {
     emit('error', '冻结请求失败：' + e.message)
-  } finally {
+  }
+  finally {
     frozenLoading.value = false
   }
 }
@@ -1000,6 +1004,7 @@ function resetTaskState() {
   duplicateTip.value = ''
   saveMsg.value = ''
   isFrozen.value = ''
+  taskId.value = null;
   lastReportTime.value = ''
   dateSource.value = 'lastReport'
   form.exception_type = ''
