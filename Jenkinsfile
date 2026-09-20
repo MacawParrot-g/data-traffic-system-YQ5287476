@@ -104,26 +104,24 @@ pipeline {
     cp -rf mysql ${DEPLOY_DIR}/ 2>/dev/null || true
     cp -rf redis ${DEPLOY_DIR}/ 2>/dev/null || true
 """
-
                 echo '>>> 生成 .env...'
-                withCredentials([
-                    string(credentialsId: 'tds-mysql-root-pwd',  variable: 'MYSQL_ROOT_PWD'),
-                    string(credentialsId: 'tds-mysql-user-pwd',  variable: 'MYSQL_USER_PWD'),
-                    string(credentialsId: 'tds-rabbitmq-user',   variable: 'RABBITMQ_USER_VAL'),
-                    string(credentialsId: 'tds-rabbitmq-pwd',    variable: 'RABBITMQ_PWD')
-                ]) {
-                    sh """
-                        cat > ${DEPLOY_DIR}/.env << ENVEOF
-MYSQL_ROOT_PASSWORD=\\${MYSQL_ROOT_PWD}
+withCredentials([
+    string(credentialsId: 'tds-mysql-root-pwd',  variable: 'MYSQL_ROOT_PWD'),
+    string(credentialsId: 'tds-mysql-user-pwd',  variable: 'MYSQL_USER_PWD'),
+    string(credentialsId: 'tds-rabbitmq-user',   variable: 'RABBITMQ_USER_VAL'),
+    string(credentialsId: 'tds-rabbitmq-pwd',    variable: 'RABBITMQ_PWD')
+]) {
+    sh """
+        cat > ${DEPLOY_DIR}/.env << ENVEOF
+MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PWD}
 MYSQL_USER=remote_user
-MYSQL_PASSWORD=\\${MYSQL_USER_PWD}
-RABBITMQ_USER=\\${RABBITMQ_USER_VAL}
-RABBITMQ_PASSWORD=\\${RABBITMQ_PWD}
+MYSQL_PASSWORD=${MYSQL_USER_PWD}
+RABBITMQ_USER=${RABBITMQ_USER_VAL}
+RABBITMQ_PASSWORD=${RABBITMQ_PWD}
 ENVEOF
-                        chmod 600 ${DEPLOY_DIR}/.env
-                    """
-                }
-
+        chmod 600 ${DEPLOY_DIR}/.env
+    """
+}
 
                 echo ">>> 部署范围: [${params.DEPLOY_SCOPE}]..."
 dir("${DEPLOY_DIR}") {
