@@ -155,7 +155,8 @@
       <div v-if="bundleIdAlreadyGraded" class="graded-warning">⚠️ 该应用已存在评级记录，<strong>无法评分</strong></div>
       <div class="form-group">
         <label>异常类型</label>
-        <select v-model="form.exception_type">
+        <span v-if="eventResult === 'has_event'" class="auto-normal-tag">正常</span>
+        <select v-else v-model="form.exception_type">
           <option value="" disabled>请选择异常类型</option>
           <option v-for="opt in exceptionOptions" :key="opt" :value="opt" :disabled="opt === '正常' && eventResult === 'no_event'">{{ opt }}</option>
         </select>
@@ -605,6 +606,8 @@
 .date-source-btn.active { background: #667eea; color: #fff; border-color: #667eea; }
 .date-source-btn:hover:not(.active) { background: #f3f4f6; }
 .date-readonly { width: 100%; box-sizing: border-box; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 13px; background: #f0fdf4; color: #166534; font-weight: 600; }
+.graded-warning { background: #fef3c7; border: 1px solid #fde68a; border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; font-size: 13px; color: #92400e; }
+.auto-normal-tag { display: inline-block; padding: 6px 18px; background: #dcfce7; color: #166534; border-radius: 8px; font-size: 14px; font-weight: 600; border: 1px solid #86efac; }
 </style>
 <script setup>import { ref, reactive, onMounted, watch, nextTick, onUnmounted } from 'vue'
 import QRCode from 'qrcode'
@@ -894,12 +897,18 @@ async function queryEvent() {
         if (newCurrent !== originalCurrentTargetNum.value) {
           eventResult.value = 'has_event'
           newCurrentTargetNum.value = newCurrent
+          form.exception_type = '正常'
         } else {
           eventResult.value = 'no_event'
         }
       } else {
         newCurrentTargetNum.value = newCurrent
-        eventResult.value = newCurrent != null && newCurrent > 0 ? 'has_event' : 'no_event'
+        if (newCurrent != null && newCurrent > 0) {
+          eventResult.value = 'has_event'
+          form.exception_type = '正常'
+        } else {
+          eventResult.value = 'no_event'
+        }
       }
     } else {
       emit('error', '事件接口返回异常：' + (eventJson.resultMsg || '未知错误'))
