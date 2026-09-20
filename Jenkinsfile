@@ -97,14 +97,13 @@ pipeline {
             steps {
                 echo '>>> 准备部署目录...'
                 sh """
-                    mkdir -p ${DEPLOY_DIR}/persistent-data/{mysql,redis,rabbitmq,export,nginx-logs}
-                    mkdir -p ${DEPLOY_DIR}/mysql/initsql
-                    cp -f docker-compose.cicd.yml ${DEPLOY_DIR}/
-                    cp -rf nginx/conf.d ${DEPLOY_DIR}/nginx/ 2>/dev/null || true
-                    cp -f nginx/nginx.conf ${DEPLOY_DIR}/nginx/ 2>/dev/null || true
-                    cp -rf mysql ${DEPLOY_DIR}/ 2>/dev/null || true
-                    cp -rf redis ${DEPLOY_DIR}/ 2>/dev/null || true
-                """
+    mkdir -p ${DEPLOY_DIR}/persistent-data/{mysql,redis,rabbitmq,export,nginx-logs}
+    mkdir -p ${DEPLOY_DIR}/mysql/initsql
+    cp -f docker-compose.cicd.yml ${DEPLOY_DIR}/
+    cp -rf nginx ${DEPLOY_DIR}/    # ← 直接整个目录覆盖，简单粗暴
+    cp -rf mysql ${DEPLOY_DIR}/ 2>/dev/null || true
+    cp -rf redis ${DEPLOY_DIR}/ 2>/dev/null || true
+"""
 
                 echo '>>> 生成 .env...'
                 withCredentials([
