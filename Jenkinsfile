@@ -125,29 +125,31 @@ ENVEOF
                     """
                 }
 
-                echo '>>> 构建 Nginx 镜像...'
-                sh """
-                    docker build --force-rm \
-                        -f nginx/Dockerfile \
-                        -t tds-nginx:${GIT_COMMIT_SHORT} \
-                        -t tds-nginx:latest .
-                """
 
                 echo ">>> 部署范围: [${params.DEPLOY_SCOPE}]..."
-                dir("${DEPLOY_DIR}") {
-                    sh """
-                        rm -rf persistent-data/nginx-logs/*
+dir("${DEPLOY_DIR}") {
+    sh """
+        rm -rf persistent-data/nginx-logs/*
 
-                        if [ "${params.DEPLOY_SCOPE}" = "frontend" ] || [ "${params.DEPLOY_SCOPE}" = "all" ]; then
-                            docker compose -f ${COMPOSE_FILE} up -d --build --no-deps nginx
-                        fi
-                        if [ "${params.DEPLOY_SCOPE}" = "backend" ] || [ "${params.DEPLOY_SCOPE}" = "all" ]; then
-                            docker compose -f ${COMPOSE_FILE} up -d --build --no-deps backend
-                        fi
-                    """
-                }
+        if [ "${params.DEPLOY_SCOPE}" = "frontend" ] || [ "${params.DEPLOY_SCOPE}" = "all" ]; then
+            # 方案一（推荐）：一键全量重建所有容器，最省心，完全避开服务名匹配问题
+            docker compose -f ${COMPOSE_FILE} up -d --build
+            
+            # 方案二（如果你想精准控制）：只重建 nginx 和 backend，注意这里用的是 service name: nginx 和 backend
+            # docker compose -f ${COMPOSE_FILE} up -d --build --no-deps nginx backend
+        fi
+        
+        # 如果你只想部署前端，并且不想影响后端，可以用这个：
+        # if [ "${params.DEPLOY_SCOPE}" = "frontend" ]; then
+        #     docker compose -f ${COMPOSE_FILE} up -d --build --no-deps nginx
+        # fi
+        # if [ "${params.DEPLOY_SCOPE}" = "backend" ]; then
+        #     docker compose -f ${COMPOSE_FILE} up -d --build --no-deps backend
+        # fi
+    """
+}
 
-                echo '>>> 部署完成！'
+echo '>>> 部署完成！'
             }
         }
     }
