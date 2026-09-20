@@ -90,8 +90,8 @@ services:
     container_name: tds-nginx
     restart: always
     build:
-      dockerfile: nginx/Dockerfile
-      context: .
+      context: ./nginx  # 关键修改：指定构建上下文为 nginx 目录
+      dockerfile: Dockerfile
     ports:
       - "19203:19203"
     depends_on:
