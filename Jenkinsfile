@@ -25,15 +25,24 @@ pipeline {
 
     stages {
         stage('1. 拉取代码') {
-            steps {
-                echo '>>> 重置工作区...'
-                sh 'git reset --hard HEAD'
-                sh 'git clean -fd'
-                checkout scm
-                echo '>>> 当前提交：'
-                sh 'git log -1 --format=fuller'
-            }
+    steps {
+        script {
+            env.GIT_COMMIT_SHORT = sh(
+                script: 'git rev-parse --short HEAD',
+                returnStdout: true
+            ).trim()
+
+            env.BACKEND_IMAGE = "myapp-backend:${env.GIT_COMMIT_SHORT}"
         }
+
+        echo '>>> 重置工作区...'
+        sh 'git reset --hard HEAD'
+        sh 'git clean -fd'
+        checkout scm
+        echo '>>> 当前提交：'
+        sh 'git log -1 --format=fuller'
+    }
+}
 
         stage('2. 并行构建前后端') {
             parallel {
