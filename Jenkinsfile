@@ -146,15 +146,14 @@ ENVEOF
     post {
         always {
             echo '>>> 清理 Docker 资源...'
-            sh '''
-                # 1. 清理已停止的容器（解除对旧镜像的占用）
-                docker container prune -f || true
-                # 2. 清理悬空镜像（无标签且未被引用）
-                docker image prune -f || true
-                # 3. 清理超过24小时的构建缓存
-                docker builder prune -f --filter "until=24h" || true
-            '''
-
+             sh '''
+            # 1. 清理已停止的容器
+            docker container prune -f || true
+            # 2. 清理悬空镜像
+            docker image prune -f || true
+            # 3. 清理构建缓存（添加 || true 防止命令不存在时报错）
+            docker builder prune -f --filter "until=24h" || true
+        '''
             echo '>>> 清理工作区...'
             cleanWs()
         }
