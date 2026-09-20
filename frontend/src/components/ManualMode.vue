@@ -376,6 +376,7 @@ const eventLoading = ref(false)
 const frozenLoading = ref(false)
 const saving = ref(false)
 const saveMsg = ref('')
+const taskId = ref(null)
 const qrCanvas = ref(null)
 const timerSeconds = ref(30)
 const timerCountdown = ref(0)
@@ -433,19 +434,21 @@ async function fetchData() {
   try {
     const json = await fetchObtain(id)
     if (json.success && json.data) {
-      if (json.duplicate) {
-        retryCount++
-        if (retryCount > MAX_RETRIES) {
-          emit('error', '已连续 ' + MAX_RETRIES + ' 次检测到重复URL，请稍后再试')
-          duplicateTip.value = ''
-          return
-        }
-        duplicateTip.value = '检测到重复URL（第' + retryCount + '次），正在为您自动刷新...'
-        setTimeout(() => fetchData(), 1500)
-        return
-      }
-      retryCount = 0; duplicateTip.value = ''
-      downloadUrl.value = json.data.downloadUrl || ''; bundleId.value = json.data.bundleId || ''
+      // if (json.duplicate) {
+      //   retryCount++
+      //   if (retryCount > MAX_RETRIES) {
+      //     emit('error', '已连续 ' + MAX_RETRIES + ' 次检测到重复URL，请稍后再试')
+      //     duplicateTip.value = ''
+      //     return
+      //   }
+      //   duplicateTip.value = '检测到重复URL（第' + retryCount + '次），正在为您自动刷新...'
+      //   setTimeout(() => fetchData(), 1500)
+      //   return
+      // }
+      // retryCount = 0; duplicateTip.value = ''
+      downloadUrl.value = json.data.downloadUrl || '';
+      bundleId.value = json.data.bundleId || ''
+      taskId.value = json.data.id ?? null
       originalCurrentTargetNum.value = json.data.currentTargetNum ?? null
       if(originalCurrentTargetNum.value<=1||originalCurrentTargetNum.value===0){
         alert("初始originalCurrentTargetNum数小于等于1或等于0，后续测试期间可能会没有归因，请注意")
@@ -536,16 +539,16 @@ async function queryEvent() {
 }
 
 async function doFrozen() {
-  if (!eventId.value) return
+  if (!taskId.value) return
   frozenLoading.value = true; emit('error', '')
   try {
-    const json = await fetchFrozen(eventId.value);
-      if (json.success) {
-        frozenMsg.value = json.resultMsg || '操作完成'
-        isFrozen.value=',已冻结'
-      } else {
-        emit('error', '冻结接口返回异常：' + (json.resultMsg || '未知错误'))
-      }
+    const json = await fetchFrozen(taskId.value);
+    if (json.success) {
+      frozenMsg.value = json.resultMsg || '操作完成'
+      isFrozen.value=',已冻结'
+    } else {
+      emit('error', '冻结接口返回异常：' + (json.resultMsg || '未知错误'))
+    }
   }
   catch (e) {
     emit('error', '冻结请求失败：' + e.message)
@@ -607,6 +610,7 @@ function resetState() {
   frozenMsg.value = '';
   duplicateTip.value = '';
   saveMsg.value = ''
+  taskId.value = null;
   retryCount = 0
   lastReportTime.value = ''
   dateSource.value = 'lastReport'
