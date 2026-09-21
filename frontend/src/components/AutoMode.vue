@@ -16,30 +16,30 @@
     <div class="combined-action-bar" v-if="currentUser">
       <div class="combined-left">
         <button class="btn-refresh" @click="comfirm()" :disabled="loading">
-          {{ loading ? '加载中...' : '🔄 刷新下载任务' }}
+          {{ loading ? '加载中...' : '刷新下载任务' }}
         </button>
-        <button class="btn-quick-refresh-count" @click="loadQuickExportCount" :disabled="quickExportPolling" title="刷新导出数量">🔄</button>
+<!--        <button class="btn-quick-refresh-count" @click="loadQuickExportCount" :disabled="quickExportPolling" title="刷新导出数量">🔄</button>-->
       </div>
-      <div class="combined-right">
-        <button class="btn-quick-export" @click="doQuickExport" :disabled="quickExportLoading || quickExportPolling || quickExportCount === 0">
-          <span v-if="quickExportLoading">⏳ 导出中...</span>
-          <span v-else-if="quickExportPolling">🔄 文件生成中...</span>
-          <span v-else>📤 导出{{ quickExportCount ?? '...' }}条数据</span>
-        </button>
-        <div class="combined-download" v-if="quickExportFileReady">
-          <span class="quick-export-file">📄 {{ quickExportFileName }}</span>
-          <button class="btn-quick-download" @click="doQuickExportDownload">⬇ 下载</button>
-        </div>
-      </div>
+<!--      <div class="combined-right">-->
+<!--        <button class="btn-quick-export" @click="doQuickExport" :disabled="quickExportLoading || quickExportPolling || quickExportCount === 0">-->
+<!--          <span v-if="quickExportLoading">⏳ 导出中...</span>-->
+<!--          <span v-else-if="quickExportPolling">🔄 文件生成中...</span>-->
+<!--          <span v-else>📤 导出{{ quickExportCount ?? '...' }}条数据</span>-->
+<!--        </button>-->
+<!--        <div class="combined-download" v-if="quickExportFileReady">-->
+<!--          <span class="quick-export-file">📄 {{ quickExportFileName }}</span>-->
+<!--          <button class="btn-quick-download" @click="doQuickExportDownload">⬇ 下载</button>-->
+<!--        </div>-->
+<!--      </div>-->
     </div>
-    <div v-if="quickExportMsg" class="quick-export-feedback" :class="{ 'feedback-ok': quickExportMsgSuccess, 'feedback-err': !quickExportMsgSuccess }">
-      {{ quickExportMsg }}
-    </div>
-    <div v-if="quickExportPolling" class="quick-export-polling">
-      <div class="state-spinner" style="width:16px;height:16px;border-width:2px;margin:0;display:inline-block;vertical-align:middle;margin-right:6px;"></div>
-      文件生成中，请稍候...
-    </div>
-    <div v-if="loading && !downloadUrl" class="loading">正在获取数据...</div>
+<!--    <div v-if="quickExportMsg" class="quick-export-feedback" :class="{ 'feedback-ok': quickExportMsgSuccess, 'feedback-err': !quickExportMsgSuccess }">-->
+<!--      {{ quickExportMsg }}-->
+<!--    </div>-->
+<!--    <div v-if="quickExportPolling" class="quick-export-polling">-->
+<!--      <div class="state-spinner" style="width:16px;height:16px;border-width:2px;margin:0;display:inline-block;vertical-align:middle;margin-right:6px;"></div>-->
+<!--      文件生成中，请稍候...-->
+<!--    </div>-->
+<!--    <div v-if="loading && !downloadUrl" class="loading">正在获取数据...</div>-->
     <div class="empty-placeholder" v-if="!downloadUrl && !loading">
     <div class="empty-icon">404 NO FOUND</div>
     <div class="empty-text">当前没有任何测试条目，请点击刷新按钮刷新第一条数据</div>
@@ -48,7 +48,7 @@
     <div class="qr-info-section" v-if="downloadUrl">
       <div class="qr-card">
         <div class="qr-card-header">
-          <span class="qr-card-icon">📱</span>
+          <span class="qr-card-icon">D</span>
           <span class="qr-card-title">请扫描二维码下载APP进行测试</span>
         </div>
         <div class="qrcode-container">
@@ -197,7 +197,7 @@
           {{ saving ? '入库中...' : '直接入库' }}
         </button>
         <button class="btn-grade" @click="showGradeModal = true" :disabled="bundleIdAlreadyGraded">
-          📝 应用评分
+          应用评分
         </button>
         <div class="save-success" v-if="saveMsg">{{ saveMsg }}</div>
       </div>
@@ -206,7 +206,7 @@
 
     <div class="modal-overlay" v-if="showGradeModal" @click.self="showGradeModal = false">
       <div class="modal-box grade-modal-box">
-        <div class="modal-title">📝 应用评级</div>
+        <div class="modal-title">应用评级</div>
         <div class="grade-modal-url" :title="bundleId">{{ bundleId }}</div>
         <div class="grade-form-group">
           <label>评级等级</label>
@@ -225,10 +225,10 @@
         <div class="grade-modal-actions">
           <button class="btn-modal btn-cancel" @click="showGradeModal = false">取消</button>
           <button class="btn-modal btn-grade-save" @click="submitGrade" :disabled="gradeSaving">
-            {{ gradeSaving ? '保存中...' : '✅ 保存评级' }}
+            {{ gradeSaving ? '保存中...' : '保存评级' }}
           </button>
         </div>
-        <div v-if="gradeMsg" class="feedback" :class="{ 'feedback-ok': gradeMsg.startsWith('✅'), 'feedback-err': gradeMsg.startsWith('❌') }" style="margin-top:10px">
+        <div v-if="gradeMsg" class="feedback" :class="{ 'feedback-ok': gradeMsg.startsWith(''), 'feedback-err': gradeMsg.startsWith('') }" style="margin-top:10px">
           {{ gradeMsg }}
         </div>
       </div>
