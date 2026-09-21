@@ -18,7 +18,7 @@
         <button class="btn-refresh" @click="comfirm()" :disabled="loading">
           {{ loading ? '加载中...' : '刷新下载任务' }}
         </button>
-<!--        <button class="btn-quick-refresh-count" @click="loadQuickExportCount" :disabled="quickExportPolling" title="刷新导出数量">🔄</button>-->
+        <button class="btn-quick-refresh-count" @click="fetchDataByName()" :disabled="quickExportPolling" title="查看入库数量">🔄</button>
       </div>
 <!--      <div class="combined-right">-->
 <!--        <button class="btn-quick-export" @click="doQuickExport" :disabled="quickExportLoading || quickExportPolling || quickExportCount === 0">-->
