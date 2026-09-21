@@ -31,8 +31,8 @@ Chart.register(...registerables)
 const emit = defineEmits(['error'])
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pageSize.value)))
 const advFilters = reactive({
-  dateFrom: '',
-  dateTo: '',
+  dateFrom: getTodayDateStr(),
+  dateTo: getTodayDateStr(),
   bundleId: '',
   keyword: '',
   exceptionType: '',
@@ -139,8 +139,8 @@ const viewTypeLabel = {
 }
 
 function resetFilters() {
-  advFilters.dateFrom = ''
-  advFilters.dateTo = ''
+  advFilters.dateFrom = getTodayDateStr()
+  advFilters.dateTo = getTodayDateStr()
   advFilters.bundleId = ''
   advFilters.keyword = ''
   advFilters.exceptionType = ''
@@ -513,6 +513,10 @@ async function saveEditRow(index) {
   }
 }
 
+function sup(){
+  alert('谢谢你，成都。谢谢你，我的同桌：吴雨芹。谢谢我自己：完整的完成了这一切！！！')
+}
+
 async function refreshTodayUnexported() {
   todayUnexportedLoading.value = true
   try {
@@ -736,9 +740,6 @@ async function loadUsers() {
   } finally {
     userLoading.value = false
   }
-}
-function sup(){
-  alert('谢谢你，成都。谢谢你，我的同桌：吴雨芹。谢谢我自己：完整的完成了这一切！！！')
 }
 
 async function handleBatchImport() {
@@ -1200,7 +1201,7 @@ onUnmounted(() => {
               {{ todayUnexportedLoading ? '查询中...' : '刷新导出情况' }}
             </button>
             <div class="download-section-inline" v-if="exportFileReady">
-              <span class="download-file-name">📄 {{ exportFileName }}</span>
+              <span class="download-file-name">{{ exportFileName }}</span>
               <button class="btn-action btn-download-sm" @click="doExportDownload">⬇ 下载文件</button>
             </div>
           </div>
@@ -1538,9 +1539,6 @@ onUnmounted(() => {
       </div>
     </div>
   </template>
-
-
-
     <!-- ==================== 用户管理 Tab ==================== -->
     <div v-if="activeTab === 'users'" class="admin-section">
 
