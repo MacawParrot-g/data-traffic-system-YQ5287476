@@ -4,17 +4,23 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.example.common.UserContext;
 import org.example.service.DedupSessionService;
+import org.example.util.SysUserService;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 
 public class UserContextInterceptor implements HandlerInterceptor {
 
     private final DedupSessionService dedupSessionService;
+    private final RedisTemplate<String, Object> kickRedisTemplate;
 
-    public UserContextInterceptor(DedupSessionService dedupSessionService) {
+    public UserContextInterceptor(DedupSessionService dedupSessionService,
+                                  RedisTemplate<String, Object> kickRedisTemplate) {
         this.dedupSessionService = dedupSessionService;
+        this.kickRedisTemplate = kickRedisTemplate;
     }
 
     @Override
@@ -30,11 +36,11 @@ public class UserContextInterceptor implements HandlerInterceptor {
         }
         UserContext.setUsername(username);
 
-        jakarta.servlet.http.HttpSession session = request.getSession(false);
-        if (session != null) {
-            Object type = session.getAttribute("type");
-            if (type != null) {
-                UserContext.setUserType(type.toString());
+        String token = SysUserService.getTokenFromCookie(request);
+        if (token != null) {
+            Map<Object, Object> data = kickRedisTemplate.opsForHash().entries("auth:token:" + token);
+            if (data != null && data.containsKey("type")) {
+                UserContext.setUserType(data.get("type").toString());
             }
         }
 
