@@ -869,14 +869,33 @@ function stopUserPolling() {
 }
 
 function copyUrl(url, event) {
-  navigator.clipboard.writeText(url).then(() => {
+  const showTip = () => {
     const el = event.target
     const tip = document.createElement('span')
     tip.className = 'copy-tip'
     tip.textContent = '已复制'
     el.parentElement.appendChild(tip)
     setTimeout(() => tip.remove(), 1200)
-  })
+  }
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(url).then(showTip).catch(() => {
+      fallbackCopy(url) && showTip()
+    })
+  } else {
+    fallbackCopy(url) && showTip()
+  }
+}
+
+function fallbackCopy(text) {
+  const ta = document.createElement('textarea')
+  ta.value = text
+  ta.style.position = 'fixed'
+  ta.style.left = '-9999px'
+  document.body.appendChild(ta)
+  ta.select()
+  try { document.execCommand('copy') } catch (e) { return false }
+  finally { document.body.removeChild(ta) }
+  return true
 }
 
 function formatAppIdTime(timeStr) {
