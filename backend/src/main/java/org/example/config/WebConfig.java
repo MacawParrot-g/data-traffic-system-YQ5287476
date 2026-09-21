@@ -2,8 +2,10 @@ package org.example.config;
 
 import org.example.service.DedupSessionService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.web.servlet.config.annotation.AsyncSupportConfigurer;
@@ -20,9 +22,13 @@ public class WebConfig implements WebMvcConfigurer {
     @Autowired
     private DedupSessionService dedupSessionService;
 
+    @Autowired
+    @Qualifier("kickRedisTemplate")
+    private RedisTemplate<String, Object> kickRedisTemplate;
+
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(new AuthInterceptor())
+        registry.addInterceptor(new AuthInterceptor(kickRedisTemplate))
                 .addPathPatterns("/api/**")
                 .excludePathPatterns(
                         "/api/auth/login",
@@ -38,7 +44,7 @@ public class WebConfig implements WebMvcConfigurer {
                 .addPathPatterns("/**")
                 .excludePathPatterns("/actuator/**", "/swagger-ui/**", "/v3/api-docs/**");
 
-        registry.addInterceptor(new UserContextInterceptor(dedupSessionService))
+        registry.addInterceptor(new UserContextInterceptor(dedupSessionService, kickRedisTemplate))
                 .addPathPatterns("/api/**")
                 .excludePathPatterns("/actuator/**", "/swagger-ui/**", "/v3/api-docs/**");
     }
