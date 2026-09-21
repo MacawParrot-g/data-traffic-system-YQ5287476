@@ -13,8 +13,8 @@
 <!--      </div>-->
     </div>
     <div v-if="loading && !downloadUrl" class="loading">正在获取数据...</div>
-    <div class="combined-action-bar" v-if="currentUser">
-      <div class="combined-left">
+<!--    <div class="combined-action-bar" v-if="currentUser">-->
+      <div class="combined-left"  v-if="currentUser">
         <button class="btn-refresh" @click="comfirm()" :disabled="loading">
           {{ loading ? '加载中...' : '刷新下载任务' }}
         </button>
@@ -31,7 +31,7 @@
 <!--          <button class="btn-quick-download" @click="doQuickExportDownload">⬇ 下载</button>-->
 <!--        </div>-->
 <!--      </div>-->
-    </div>
+<!--    </div>-->
 <!--    <div v-if="quickExportMsg" class="quick-export-feedback" :class="{ 'feedback-ok': quickExportMsgSuccess, 'feedback-err': !quickExportMsgSuccess }">-->
 <!--      {{ quickExportMsg }}-->
 <!--    </div>-->
@@ -48,7 +48,7 @@
     <div class="qr-info-section" v-if="downloadUrl">
       <div class="qr-card">
         <div class="qr-card-header">
-          <span class="qr-card-icon">D</span>
+          <span class="qr-card-icon"></span>
           <span class="qr-card-title">请扫描二维码下载APP进行测试</span>
         </div>
         <div class="qrcode-container">
