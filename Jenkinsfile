@@ -151,15 +151,20 @@ echo '>>> 部署完成！'
         }
     }
 
-    post {
     always {
-        echo '>>> 清理 Docker 资源...'
+        echo '>>> 智能清理 Docker 资源...'
         sh '''
-            docker container prune -f || true
-            docker image prune -f || true
+            # 1. 清理构建缓存和停止的容器
             docker builder prune -f --filter "until=24h" || true
+            docker container prune -f || true
+
+            # 2. 智能清理镜像：保留最新的 3 个 myapp-backend 镜像，删除其余的
+            echo ">>> 清理旧的 myapp-backend 镜像，仅保留最新 3 个..."
+            docker images myapp-backend --format "{{.Tag}} {{.ID}}" | sort | head -n -3 | awk '{print $2}' | xargs -r docker rmi -f || true
+            
+            # 3. 清理其他悬空镜像
+            docker image prune -f || true
         '''
-        echo '>>> 清理工作区...'
         cleanWs()
     }
     failure {
