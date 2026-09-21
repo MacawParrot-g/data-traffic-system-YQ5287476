@@ -1,14 +1,13 @@
 package org.example.service.impl;
 
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpSession;
 import org.example.common.Result;
 import org.example.entity.SysUser;
 import org.example.mapper.SysUserMapper;
 import org.example.service.UserManageService;
+import org.example.util.SysUserService;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -16,7 +15,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 @Service
@@ -25,33 +23,13 @@ public class UserManageServiceImpl implements UserManageService {
     private final SysUserMapper sysUserMapper;
     private final RedisTemplate<String, Object> kickRedisTemplate;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
-    private final ConcurrentHashMap<String, HttpSession> activeSessions = new ConcurrentHashMap<>();
+    private static final String AUTH_TOKEN_PREFIX = "auth:token:";
+    private static final String AUTH_UID_PREFIX = "auth:uid:";
 
     public UserManageServiceImpl(SysUserMapper sysUserMapper,
                                  @Qualifier("kickRedisTemplate") RedisTemplate<String, Object> kickRedisTemplate) {
         this.sysUserMapper = sysUserMapper;
         this.kickRedisTemplate = kickRedisTemplate;
-    }
-
-    @Override
-    public void registerSession(String uid, HttpSession session) {
-        activeSessions.put(uid, session);
-    }
-
-    @Override
-    public void unregisterSession(String uid) {
-        activeSessions.remove(uid);
-    }
-
-    @Override
-    public boolean isBanned(String uid) {
-        return Boolean.TRUE.equals(kickRedisTemplate.hasKey("ban:uid:" + uid));
-    }
-
-    @Override
-    public long getBanRemainingSeconds(String uid) {
-        Long ttl = kickRedisTemplate.getExpire("ban:uid:" + uid, TimeUnit.SECONDS);
-        return ttl != null ? ttl : 0;
     }
 
     @Override
@@ -70,8 +48,7 @@ public class UserManageServiceImpl implements UserManageService {
             map.put("uid", u.getUid());
             map.put("name", u.getName());
             map.put("type", u.getType());
-            boolean online = isSessionAlive(u.getUid());
-            map.put("online", online);
+            map.put("online", isOnline(u.getUid()));
             result.add(map);
         }
         return Result.success("查询成功", result);
@@ -79,15 +56,10 @@ public class UserManageServiceImpl implements UserManageService {
 
     @Override
     public boolean isOnline(String uid) {
-        HttpSession session = activeSessions.get(uid);
-        if (session == null) return false;
-        try {
-            session.getAttribute("uid");
-            return true;
-        } catch (IllegalStateException e) {
-            activeSessions.remove(uid);
-            return false;
-        }
+        String token = (String) kickRedisTemplate.opsForValue().get(AUTH_UID_PREFIX + uid);
+        if (token == null) return false;
+        Boolean exists = kickRedisTemplate.hasKey(AUTH_TOKEN_PREFIX + token);
+        return Boolean.TRUE.equals(exists);
     }
 
     @Override
@@ -132,42 +104,22 @@ public class UserManageServiceImpl implements UserManageService {
     }
 
     private boolean isSessionAlive(String uid) {
-        HttpSession session = activeSessions.get(uid);
-        if (session == null) return false;
-        try {
-            session.getAttribute("uid");
-            return true;
-        } catch (IllegalStateException e) {
-            activeSessions.remove(uid);
-            return false;
-        }
+        return isOnline(uid);
     }
 
     private void invalidateSession(String uid) {
-        HttpSession session = activeSessions.remove(uid);
-        if (session != null) {
-            try { session.invalidate(); } catch (Exception ignored) {}
+        String token = (String) kickRedisTemplate.opsForValue().get(AUTH_UID_PREFIX + uid);
+        if (token != null) {
+            kickRedisTemplate.delete(AUTH_TOKEN_PREFIX + token);
         }
-        kickRedisTemplate.delete("session:uid:" + uid);
+        kickRedisTemplate.delete(AUTH_UID_PREFIX + uid);
     }
 
     private String getOperatorType(HttpServletRequest request) {
-        HttpSession session = request.getSession(false);
-        if (session == null || session.getAttribute("uid") == null) {
-            return null;
-        }
-        return (String) session.getAttribute("type");
-    }
-
-    @Scheduled(fixedDelay = 3600000)
-    public void cleanDeadSessions() {
-        activeSessions.entrySet().removeIf(entry -> {
-            try {
-                entry.getValue().getAttribute("uid");
-                return false;
-            } catch (IllegalStateException e) {
-                return true;
-            }
-        });
+        String token = SysUserService.getTokenFromCookie(request);
+        if (token == null) return null;
+        Map<Object, Object> data = kickRedisTemplate.opsForHash().entries(AUTH_TOKEN_PREFIX + token);
+        if (data == null || !data.containsKey("type")) return null;
+        return (String) data.get("type");
     }
 }
