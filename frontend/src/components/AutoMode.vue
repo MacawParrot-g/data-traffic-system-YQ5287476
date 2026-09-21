@@ -13,8 +13,8 @@
 <!--      </div>-->
     </div>
     <div v-if="loading && !downloadUrl" class="loading">正在获取数据...</div>
-<!--    <div class="combined-action-bar" v-if="currentUser">-->
-      <div class="combined-left"  v-if="currentUser">
+    <div class="combined-action-bar" v-if="currentUser">
+      <div class="combined-left">
         <button class="btn-refresh" @click="comfirm()" :disabled="loading">
           {{ loading ? '加载中...' : '刷新下载任务' }}
         </button>
@@ -31,7 +31,7 @@
 <!--          <button class="btn-quick-download" @click="doQuickExportDownload">⬇ 下载</button>-->
 <!--        </div>-->
 <!--      </div>-->
-<!--    </div>-->
+    </div>
 <!--    <div v-if="quickExportMsg" class="quick-export-feedback" :class="{ 'feedback-ok': quickExportMsgSuccess, 'feedback-err': !quickExportMsgSuccess }">-->
 <!--      {{ quickExportMsg }}-->
 <!--    </div>-->
