@@ -174,4 +174,4 @@ echo '>>> 部署完成！'
         echo "✅ 部署成功！镜像标签: ${env.GIT_COMMIT_SHORT}"
     }
 }
-}
+
