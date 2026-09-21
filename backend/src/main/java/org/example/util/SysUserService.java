@@ -231,7 +231,8 @@ public class SysUserService {
         sessionData.put("uid", user.getUid());
         sessionData.put("name", user.getName());
         sessionData.put("type", user.getType());
-        kickRedisTemplate.opsForValue().set(AUTH_TOKEN_PREFIX + token, sessionData, AUTH_TOKEN_TTL_DAYS, TimeUnit.DAYS);
+        kickRedisTemplate.opsForHash().putAll(AUTH_TOKEN_PREFIX + token, sessionData);
+        kickRedisTemplate.expire(AUTH_TOKEN_PREFIX + token, AUTH_TOKEN_TTL_DAYS, TimeUnit.DAYS);
         kickRedisTemplate.opsForValue().set(AUTH_UID_PREFIX + user.getUid(), token, AUTH_TOKEN_TTL_DAYS, TimeUnit.DAYS);
         Cookie cookie = new Cookie("AUTH_TOKEN", token);
         cookie.setHttpOnly(true);
