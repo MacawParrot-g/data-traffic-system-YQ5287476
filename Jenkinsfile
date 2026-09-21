@@ -25,24 +25,24 @@ pipeline {
 
     stages {
         stage('1. 拉取代码') {
-    steps {
-        script {
-            env.GIT_COMMIT_SHORT = sh(
-                script: 'git rev-parse --short HEAD',
-                returnStdout: true
-            ).trim()
+            steps {
+                script {
+                    env.GIT_COMMIT_SHORT = sh(
+                        script: 'git rev-parse --short HEAD',
+                        returnStdout: true
+                    ).trim()
 
-            env.BACKEND_IMAGE = "myapp-backend:${env.GIT_COMMIT_SHORT}"
+                    env.BACKEND_IMAGE = "myapp-backend:${env.GIT_COMMIT_SHORT}"
+                }
+
+                echo '>>> 重置工作区...'
+                sh 'git reset --hard HEAD'
+                sh 'git clean -fd'
+                checkout scm
+                echo '>>> 当前提交：'
+                sh 'git log -1 --format=fuller'
+            }
         }
-
-        echo '>>> 重置工作区...'
-        sh 'git reset --hard HEAD'
-        sh 'git clean -fd'
-        checkout scm
-        echo '>>> 当前提交：'
-        sh 'git log -1 --format=fuller'
-    }
-}
 
         stage('2. 并行构建前后端') {
             parallel {
@@ -58,11 +58,10 @@ pipeline {
 
                             echo '>>> 构建 Docker 镜像（标签: ${GIT_COMMIT_SHORT}）...'
                             sh """
-                                docker build --force-rm \
-                                    -t ${BACKEND_IMAGE} \
+                                docker build --force-rm \\
+                                    -t ${BACKEND_IMAGE} \\
                                     -t myapp-backend:latest .
                             """
-                            // 同时打 latest 标签方便 Compose 引用，但保留 Commit 标签用于追溯
                         }
                     }
                 }
@@ -97,81 +96,80 @@ pipeline {
             steps {
                 echo '>>> 准备部署目录...'
                 sh """
-    mkdir -p ${DEPLOY_DIR}/persistent-data/{mysql,redis,rabbitmq,export,nginx-logs}
-    mkdir -p ${DEPLOY_DIR}/mysql/initsql
-    cp -f docker-compose.cicd.yml ${DEPLOY_DIR}/
-    cp -rf nginx ${DEPLOY_DIR}/    # ← 直接整个目录覆盖，简单粗暴
-    cp -rf mysql ${DEPLOY_DIR}/ 2>/dev/null || true
-    cp -rf redis ${DEPLOY_DIR}/ 2>/dev/null || true
-"""
+                    mkdir -p ${DEPLOY_DIR}/persistent-data/{mysql,redis,rabbitmq,export,nginx-logs}
+                    mkdir -p ${DEPLOY_DIR}/mysql/initsql
+                    cp -f docker-compose.cicd.yml ${DEPLOY_DIR}/
+                    cp -rf nginx ${DEPLOY_DIR}/
+                    cp -rf mysql ${DEPLOY_DIR}/ 2>/dev/null || true
+                    cp -rf redis ${DEPLOY_DIR}/ 2>/dev/null || true
+                """
+
                 echo '>>> 生成 .env...'
-withCredentials([
-    string(credentialsId: 'tds-mysql-root-pwd',  variable: 'MYSQL_ROOT_PWD'),
-    string(credentialsId: 'tds-mysql-user-pwd',  variable: 'MYSQL_USER_PWD'),
-    string(credentialsId: 'tds-rabbitmq-user',   variable: 'RABBITMQ_USER_VAL'),
-    string(credentialsId: 'tds-rabbitmq-pwd',    variable: 'RABBITMQ_PWD')
-]) {
-    sh """
-        cat > ${DEPLOY_DIR}/.env << ENVEOF
+                withCredentials([
+                    string(credentialsId: 'tds-mysql-root-pwd',  variable: 'MYSQL_ROOT_PWD'),
+                    string(credentialsId: 'tds-mysql-user-pwd',  variable: 'MYSQL_USER_PWD'),
+                    string(credentialsId: 'tds-rabbitmq-user',   variable: 'RABBITMQ_USER_VAL'),
+                    string(credentialsId: 'tds-rabbitmq-pwd',    variable: 'RABBITMQ_PWD')
+                ]) {
+                    sh """
+                        cat > ${DEPLOY_DIR}/.env << ENVEOF
 MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PWD}
 MYSQL_USER=remote_user
 MYSQL_PASSWORD=${MYSQL_USER_PWD}
 RABBITMQ_USER=${RABBITMQ_USER_VAL}
 RABBITMQ_PASSWORD=${RABBITMQ_PWD}
 ENVEOF
-        chmod 600 ${DEPLOY_DIR}/.env
-    """
-}
+                        chmod 600 ${DEPLOY_DIR}/.env
+                    """
+                }
 
                 echo ">>> 部署范围: [${params.DEPLOY_SCOPE}]..."
-dir("${DEPLOY_DIR}") {
-    sh """
-        rm -rf persistent-data/nginx-logs/*
+                dir("${DEPLOY_DIR}") {
+                    sh """
+                        rm -rf persistent-data/nginx-logs/*
 
-        if [ "${params.DEPLOY_SCOPE}" = "frontend" ] || [ "${params.DEPLOY_SCOPE}" = "all" ]; then
-            # 方案一（推荐）：一键全量重建所有容器，最省心，完全避开服务名匹配问题
-            docker compose -f ${COMPOSE_FILE} up -d --build
-            
-            # 方案二（如果你想精准控制）：只重建 nginx 和 backend，注意这里用的是 service name: nginx 和 backend
-            # docker compose -f ${COMPOSE_FILE} up -d --build --no-deps nginx backend
-        fi
-        
-        # 如果你只想部署前端，并且不想影响后端，可以用这个：
-        # if [ "${params.DEPLOY_SCOPE}" = "frontend" ]; then
-        #     docker compose -f ${COMPOSE_FILE} up -d --build --no-deps nginx
-        # fi
-        # if [ "${params.DEPLOY_SCOPE}" = "backend" ]; then
-        #     docker compose -f ${COMPOSE_FILE} up -d --build --no-deps backend
-        # fi
-    """
-}
+                        # 先销毁旧容器，确保环境变量和镜像更新生效
+                        docker compose -f ${COMPOSE_FILE} down
 
-echo '>>> 部署完成！'
+                        if [ "${params.DEPLOY_SCOPE}" = "frontend" ] || [ "${params.DEPLOY_SCOPE}" = "all" ]; then
+                            docker compose -f ${COMPOSE_FILE} up -d --build
+                        fi
+                        
+                        # 如果以后需要单独部署后端，可以取消下面的注释
+                        # if [ "${params.DEPLOY_SCOPE}" = "backend" ]; then
+                        #     docker compose -f ${COMPOSE_FILE} up -d --build --no-deps backend
+                        # fi
+                    """
+                }
+
+                echo '>>> 部署完成！'
             }
         }
-    }
+    } // stages 块在这里结束
 
-    always {
-        echo '>>> 智能清理 Docker 资源...'
-        sh '''
-            # 1. 清理构建缓存和停止的容器
-            docker builder prune -f --filter "until=24h" || true
-            docker container prune -f || true
+    // post 块必须放在 stages 的外面，和 stages 同级
+    post {
+        always {
+            echo '>>> 智能清理 Docker 资源...'
+            sh '''
+                # 1. 清理构建缓存和停止的容器
+                docker builder prune -f --filter "until=24h" || true
+                docker container prune -f || true
 
-            # 2. 智能清理镜像：保留最新的 3 个 myapp-backend 镜像，删除其余的
-            echo ">>> 清理旧的 myapp-backend 镜像，仅保留最新 3 个..."
-            docker images myapp-backend --format "{{.Tag}} {{.ID}}" | sort | head -n -3 | awk '{print $2}' | xargs -r docker rmi -f || true
-            
-            # 3. 清理其他悬空镜像
-            docker image prune -f || true
-        '''
-        cleanWs()
-    }
-    failure {
-        echo '❌ 流水线执行失败！'
-    }
-    success {
-        echo "✅ 部署成功！镜像标签: ${env.GIT_COMMIT_SHORT}"
+                # 2. 智能清理镜像：保留最新的 3 个 myapp-backend 镜像，删除其余的
+                echo ">>> 清理旧的 myapp-backend 镜像，仅保留最新 3 个..."
+                docker images myapp-backend --format "{{.Tag}} {{.ID}}" | sort | head -n -3 | awk '{print $2}' | xargs -r docker rmi -f || true
+                
+                # 3. 清理其他悬空镜像
+                docker image prune -f || true
+            '''
+            cleanWs()
+        }
+        failure {
+            echo '❌ 流水线执行失败！'
+        }
+        success {
+            echo "✅ 部署成功！镜像标签: ${env.GIT_COMMIT_SHORT}"
+        }
     }
 }
-
