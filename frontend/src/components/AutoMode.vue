@@ -718,7 +718,7 @@ function toStorageDate(isoDate) {
 async function fetchDataByName(){
   const json = await fetchCountByRecorder()
   if(json.success){
-    alert("用户"+localStorage.getItem('userName') +"已入库"+json.data+"条")
+    alert("用户"+localStorage.getItem('userName') +"今日已入库"+json.data+"条")
   }else{
     alert("获取事件数失败，请联系工作人员")
   }
