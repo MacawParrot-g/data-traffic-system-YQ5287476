@@ -98,12 +98,11 @@ const currentUser = ref(localStorage.getItem('userName') || '')
 let exportPollTimer = null
 const unexportedTotal = ref(0)
 let unexportedTimer = null
-const chartFilter = ref('attrPie')
+const chartFilter = ref('all')
 const CHART_FILTER_OPTIONS = [
   { value: 'attrPie', label: '整体归因占比' },
   { value: 'recorderBar', label: '记录人合格率 vs 工作量' },
   { value: 'stackedAttr', label: '记录人归因构成对比' },
-  { value: 'radar', label: '记录人综合能力雷达' },
   { value: 'recorderPies', label: '各记录人归因明细' },
   { value: 'all', label: '全部图表' }
 ]
@@ -744,7 +743,7 @@ function sup(){
 
 async function handleBatchImport() {
   if (!importRawText.value.trim()) {
-    importMsg.value = '❌ 请粘贴要导入的数据'
+    importMsg.value = '请粘贴要导入的数据'
     return
   }
   const lineCount = importRawText.value.split('\n').filter(l => l.trim()).length
@@ -755,16 +754,16 @@ async function handleBatchImport() {
   try {
     const json = await adminBatchImport(importRawText.value)
     if (json.success) {
-      importMsg.value = '✅ ' + json.message
+      importMsg.value = ' ' + json.message
       importResult.value = json.data
       importRawText.value = ''
       await fetchData()
       await loadStats()
     } else {
-      importMsg.value = '❌ ' + (json.message || '导入失败')
+      importMsg.value = ' ' + (json.message || '导入失败')
     }
   } catch (e) {
-    importMsg.value = '❌ 导入请求失败：' + e.message
+    importMsg.value = ' 导入请求失败：' + e.message
   } finally {
     importing.value = false
   }
@@ -781,16 +780,16 @@ async function handleCreateUser() {
   try {
     const json = await createUser(createForm.name.trim(), createForm.pwd.trim(), createForm.type)
     if (json.success) {
-      createMsg.value = '✅ ' + json.message + '，账号UID：' + (json.data?.uid || '')
+      createMsg.value = '' + json.message + '，账号UID：' + (json.data?.uid || '')
       createForm.name = ''
       createForm.pwd = ''
       createForm.type = 'USER'
       await loadUsers()
     } else {
-      createMsg.value = '❌ ' + (json.message || '创建失败')
+      createMsg.value = '' + (json.message || '创建失败')
     }
   } catch (e) {
-    createMsg.value = '❌ 创建请求失败：' + e.message
+    createMsg.value = ' 创建请求失败：' + e.message
   } finally {
     creating.value = false
   }
@@ -812,11 +811,11 @@ async function handleDeleteUser(uid) {
 
 async function handleResetPassword() {
   if (!resetPwdUid.value.trim()) {
-    resetMsg.value = '❌ 请输入要重置的UID'
+    resetMsg.value = '请输入要重置的UID'
     return
   }
   if (!resetPwdNew.value.trim()) {
-    resetMsg.value = '❌ 请输入新密码'
+    resetMsg.value = '请输入新密码'
     return
   }
   resetting.value = true
@@ -824,15 +823,15 @@ async function handleResetPassword() {
   try {
     const json = await resetUserPassword(resetPwdUid.value.trim(), resetPwdNew.value.trim())
     if (json.success) {
-      resetMsg.value = '✅ ' + json.message
+      resetMsg.value = '' + json.message
       resetPwdUid.value = ''
       resetPwdNew.value = ''
       await loadUsers()
     } else {
-      resetMsg.value = '❌ ' + (json.message || '重置失败')
+      resetMsg.value = '' + (json.message || '重置失败')
     }
   } catch (e) {
-    resetMsg.value = '❌ 重置请求失败：' + e.message
+    resetMsg.value = '重置请求失败：' + e.message
   } finally {
     resetting.value = false
   }
@@ -844,7 +843,7 @@ async function handleKickUser(uid) {
   try {
     const json = await kickUser(uid, ban)
     if (json.success) {
-      alert('✅ ' + json.message)
+      alert('' + json.message)
       await loadUsers()
     } else {
       emit('error', json.message || '踢人失败')
@@ -1009,7 +1008,7 @@ onUnmounted(() => {
           </div>
           <div class="filter-action-row">
             <button class="btn-query" @click="fetchData(true)" :disabled="loading">
-              {{ loading ? '查询中...' : '🔍 查询' }}
+              {{ loading ? '查询中...' : '查询' }}
             </button>
             <button class="btn-reset" @click="resetFilters">↻ 重置</button>
             <span class="filter-tip">支持回车键快速查询</span>
@@ -1018,36 +1017,36 @@ onUnmounted(() => {
       </div>
 
       <!-- 顶部统计卡片 -->
-      <div class="stats-row" v-if="statsData">
-        <div class="stat-card">
-          <div class="stat-card-icon">T</div>
-          <div class="stat-card-body">
-            <div class="stat-card-value">{{ statsData.totalCount }}</div>
-            <div class="stat-card-label">总记录数</div>
-          </div>
-        </div>
-        <div class="stat-card stat-card-exported">
-          <div class="stat-card-icon">HE</div>
-          <div class="stat-card-body">
-            <div class="stat-card-value">{{ statsData.exportedCount }}</div>
-            <div class="stat-card-label">已导出</div>
-          </div>
-        </div>
-        <div class="stat-card stat-card-pending">
-          <div class="stat-card-icon">UE</div>
-          <div class="stat-card-body">
-            <div class="stat-card-value">{{ statsData.unexportedCount }}</div>
-            <div class="stat-card-label">未导出</div>
-          </div>
-        </div>
-        <div class="stat-card stat-card-frozen">
-          <div class="stat-card-icon">❄</div>
-          <div class="stat-card-body">
-            <div class="stat-card-value">{{ statsData.frozenCount }}</div>
-            <div class="stat-card-label">已冻结</div>
-          </div>
-        </div>
-      </div>
+<!--      <div class="stats-row" v-if="statsData">-->
+<!--        <div class="stat-card">-->
+<!--          <div class="stat-card-icon">T</div>-->
+<!--          <div class="stat-card-body">-->
+<!--            <div class="stat-card-value">{{ statsData.totalCount }}</div>-->
+<!--            <div class="stat-card-label">总记录数</div>-->
+<!--          </div>-->
+<!--        </div>-->
+<!--        <div class="stat-card stat-card-exported">-->
+<!--          <div class="stat-card-icon">HE</div>-->
+<!--          <div class="stat-card-body">-->
+<!--            <div class="stat-card-value">{{ statsData.exportedCount }}</div>-->
+<!--            <div class="stat-card-label">已导出</div>-->
+<!--          </div>-->
+<!--        </div>-->
+<!--        <div class="stat-card stat-card-pending">-->
+<!--          <div class="stat-card-icon">UE</div>-->
+<!--          <div class="stat-card-body">-->
+<!--            <div class="stat-card-value">{{ statsData.unexportedCount }}</div>-->
+<!--            <div class="stat-card-label">未导出</div>-->
+<!--          </div>-->
+<!--        </div>-->
+<!--        <div class="stat-card stat-card-frozen">-->
+<!--          <div class="stat-card-icon">❄</div>-->
+<!--          <div class="stat-card-body">-->
+<!--            <div class="stat-card-value">{{ statsData.frozenCount }}</div>-->
+<!--            <div class="stat-card-label">已冻结</div>-->
+<!--          </div>-->
+<!--        </div>-->
+<!--      </div>-->
 
       <!-- ==================== 数据报表 Tab 内容 ==================== -->
       <template v-if="activeTab === 'report'">
@@ -1093,7 +1092,7 @@ onUnmounted(() => {
         </div>
 
         <div v-if="summaryData" class="chart-filter-bar">
-          <span class="chart-filter-icon">📊</span>
+          <span class="chart-filter-icon">T</span>
           <label class="chart-filter-label">图表显示：</label>
           <select v-model="chartFilter" class="chart-filter-select">
             <option v-for="opt in CHART_FILTER_OPTIONS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
@@ -1125,17 +1124,17 @@ onUnmounted(() => {
           </div>
         </div>
 
-        <div v-if="recorderSummary.length >= 3 && (chartFilter === 'radar' || chartFilter === 'all')" class="charts-row charts-row-single">
-          <div class="chart-card">
-            <div class="chart-canvas-wrap chart-canvas-tall"><canvas id="radarChart"></canvas></div>
-          </div>
-        </div>
+<!--        <div v-if="recorderSummary.length >= 3 && (chartFilter === 'radar' || chartFilter === 'all')" class="charts-row charts-row-single">-->
+<!--          <div class="chart-card">-->
+<!--            <div class="chart-canvas-wrap chart-canvas-tall"><canvas id="radarChart"></canvas></div>-->
+<!--          </div>-->
+<!--        </div>-->
 
         <div v-if="recorderSummary.length > 0 && (chartFilter === 'recorderPies' || chartFilter === 'all')" class="recorder-pies-section">
 
 <!--        <div v-if="recorderSummary.length > 0" class="recorder-pies-section">-->
           <div class="recorder-pies-header">
-            <span class="recorder-pies-title">📊 各记录人归因明细</span>
+            <span class="recorder-pies-title">各记录人归因明细</span>
             <span class="recorder-pies-sub">共 {{ recorderSummary.length }} 位记录人</span>
           </div>
           <div class="recorder-pies-grid">
@@ -1182,13 +1181,13 @@ onUnmounted(() => {
         <div class="export-action-bar">
           <div class="export-action-left">
             <button class="btn-action btn-export-date" @click="doExportByDate" :disabled="exporting || exportPolling || hasSelection">
-              {{ exporting ? '导出中...' : '📤 按日期导出' + (advFilters.dateFrom ? '(' + advFilters.dateFrom + ')' : '(今日)') }}
+              {{ exporting ? '导出中...' : '按日期导出' + (advFilters.dateFrom ? '(' + advFilters.dateFrom + ')' : '(今日)') }}
             </button>
             <button class="btn-action btn-export-hash" @click="doExportByHashes" :disabled="exporting || exportPolling || !hasSelection">
-              {{ exporting ? '导出中...' : '📤 导出选中行 (' + selectedHashes.length + ')' }}
+              {{ exporting ? '导出中...' : '导出选中行 (' + selectedHashes.length + ')' }}
             </button>
             <button class="btn-action btn-export-all" @click="doExportAll" :disabled="exporting || exportPolling || hasSelection || unexportedTotal === 0">
-              {{ exporting ? '导出中...' : '📤 导出全部未导出' }}
+              {{ exporting ? '导出中...' : '导出全部未导出' }}
             </button>
             <span class="export-tip" v-if="hasSelection">⚠️ 已切换为选中行导出模式</span>
           </div>
@@ -1198,7 +1197,7 @@ onUnmounted(() => {
               <span class="unexported-badge-text">未导出: <strong>{{ unexportedTotal }}</strong> 条</span>
             </div>
             <button class="btn-action btn-refresh-unexported" @click="refreshTodayUnexported" :disabled="todayUnexportedLoading">
-              {{ todayUnexportedLoading ? '查询中...' : '🔄 刷新导出情况' }}
+              {{ todayUnexportedLoading ? '查询中...' : '刷新导出情况' }}
             </button>
             <div class="download-section-inline" v-if="exportFileReady">
               <span class="download-file-name">📄 {{ exportFileName }}</span>
