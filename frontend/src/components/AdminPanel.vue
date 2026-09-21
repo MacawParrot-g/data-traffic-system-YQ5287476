@@ -662,7 +662,7 @@ async function doBatchDelete() {
   try {
     const json = await adminBatchDelete(selectedHashes.value)
     if (json.success) {
-      alert('✅ ' + json.message)
+      alert('' + json.message)
       selectedHashes.value = []
       await fetchData()
       await loadStats()
@@ -868,6 +868,16 @@ function stopUserPolling() {
   }
 }
 
+function copyUrl(url, event) {
+  navigator.clipboard.writeText(url).then(() => {
+    const el = event.target
+    const tip = document.createElement('span')
+    tip.className = 'copy-tip'
+    tip.textContent = '已复制'
+    el.parentElement.appendChild(tip)
+    setTimeout(() => tip.remove(), 1200)
+  })
+}
 
 function formatAppIdTime(timeStr) {
   if (!timeStr) return '-'
@@ -1267,7 +1277,9 @@ onUnmounted(() => {
                 <td class="cell-index">{{ (currentPage - 1) * pageSize + index + 1 }}</td>
                 <td :title="item.URL" class="cell-url">
                   <template v-if="editingRow === index"><input v-model="editBuffer.URL" class="cell-edit-input cell-edit-input-wide" /></template>
-                  <template v-else>{{ item.URL }}</template>
+                  <template v-else>
+                    <span class="url-text" @contextmenu.prevent="copyUrl(item.URL, $event)">{{ item.URL }}</span>
+                  </template>
                 </td>
                 <td class="cell-mono">
                   <template v-if="editingRow === index"><input v-model="editBuffer.bundleId" class="cell-edit-input" /></template>
@@ -1335,7 +1347,7 @@ onUnmounted(() => {
         <div class="import-section" v-if="currentUserRole === 'DEVELOPER'">
           <div class="import-toggle" @click="importExpanded = !importExpanded">
             <span class="import-toggle-icon">{{ importExpanded ? '▼' : '▶' }}</span>
-            <span class="import-toggle-icon-emoji">📥</span>
+            <span class="import-toggle-icon-emoji">I</span>
             <span class="import-toggle-text">一键导入数据（从WPS表格粘贴）</span>
           </div>
           <div v-if="importExpanded" class="import-body">
@@ -1359,7 +1371,7 @@ onUnmounted(() => {
                   清空
                 </button>
                 <button class="btn-action btn-import" @click="handleBatchImport" :disabled="importing || !importRawText.trim()">
-                  {{ importing ? '导入中...' : '📥 一键导入' }}
+                  {{ importing ? '导入中...' : '一键导入' }}
                 </button>
               </div>
             </div>
@@ -1411,14 +1423,14 @@ onUnmounted(() => {
 
         <div class="appid-mode-switch">
           <button class="appid-mode-btn" :class="{ active: appIdMode === 'local' }" @click="appIdMode = 'local'">
-            <span class="appid-mode-icon">🏠</span>
+            <span class="appid-mode-icon">D</span>
             <div class="appid-mode-text">
               <span class="appid-mode-name">本地库获取</span>
               <span class="appid-mode-desc">仅返回 AppId · 优先 Redis → MySQL</span>
             </div>
           </button>
           <button class="appid-mode-btn" :class="{ active: appIdMode === 'online' }" @click="appIdMode = 'online'">
-            <span class="appid-mode-icon">🌐</span>
+            <span class="appid-mode-icon">I</span>
             <div class="appid-mode-text">
               <span class="appid-mode-name">联网搜索</span>
               <span class="appid-mode-desc">返回完整信息 · 自动同步到本地库</span>
@@ -1429,7 +1441,7 @@ onUnmounted(() => {
         <div class="appid-search-row">
           <input v-model="appIdBundleId" class="appid-search-input" placeholder="输入 Bundle ID，例如 com.game.hero.survival" @keyup.enter="doAppIdLookup" />
           <button class="appid-search-btn" @click="doAppIdLookup" :disabled="appIdLoading">
-            {{ appIdLoading ? '查询中...' : '🔍 查询' }}
+            {{ appIdLoading ? '查询中...' : '查询' }}
           </button>
         </div>
 
@@ -1441,7 +1453,7 @@ onUnmounted(() => {
         <div v-if="appIdMode === 'local' && appIdResult" class="appid-result-card">
           <div v-if="appIdResult.found" class="appid-result-found">
             <div class="appid-result-badge" :class="appIdResult.source === 'Redis' ? 'badge-redis' : 'badge-mysql'">
-              {{ appIdResult.source === 'Redis' ? '⚡ Redis 命中' : '🗄️ MySQL 查询' }}
+              {{ appIdResult.source === 'Redis' ? '⚡ Redis 命中' : '🗄MySQL 查询' }}
             </div>
             <div class="appid-result-grid">
               <div class="appid-result-field">
@@ -1462,7 +1474,7 @@ onUnmounted(() => {
             </div>
           </div>
           <div v-else class="appid-result-notfound">
-            <div class="appid-notfound-icon">🔍</div>
+            <div class="appid-notfound-icon">Q</div>
             <div class="appid-notfound-text">本地库中未找到该 Bundle ID 对应的 AppId</div>
             <div class="appid-notfound-hint">请切换到「联网搜索」模式从远端获取</div>
           </div>
@@ -1532,7 +1544,7 @@ onUnmounted(() => {
               <span class="appid-online-value">{{ formatAppIdTime(appIdOnlineResult.expireTime) }}</span>
             </div>
           </div>
-          <div v-if="appIdSaveMsg" class="appid-sync-msg" :class="{ 'appid-sync-ok': appIdSaveMsg.startsWith('✅') || appIdSaveMsg.includes('已存在'), 'appid-sync-err': appIdSaveMsg.startsWith('❌') }">
+          <div v-if="appIdSaveMsg" class="appid-sync-msg" :class="{ 'appid-sync-ok': appIdSaveMsg.startsWith('') || appIdSaveMsg.includes('已存在'), 'appid-sync-err': appIdSaveMsg.startsWith('') }">
             {{ appIdSaveMsg }}
           </div>
         </div>
@@ -1546,7 +1558,7 @@ onUnmounted(() => {
         <!-- 创建新用户 -->
         <div class="card">
           <div class="card-header">
-            <span class="card-icon">➕</span>
+            <span class="card-icon">A</span>
             <h3>创建新用户</h3>
           </div>
           <div class="card-body">
@@ -1572,7 +1584,7 @@ onUnmounted(() => {
             <button class="btn-action btn-create" @click="handleCreateUser" :disabled="creating">
               {{ creating ? '创建中...' : '创建用户' }}
             </button>
-            <div v-if="createMsg" class="feedback" :class="{ 'feedback-ok': createMsg.startsWith('✅'), 'feedback-err': createMsg.startsWith('❌') }">
+            <div v-if="createMsg" class="feedback" :class="{ 'feedback-ok': createMsg.startsWith(''), 'feedback-err': createMsg.startsWith('') }">
               {{ createMsg }}
             </div>
           </div>
@@ -1581,7 +1593,7 @@ onUnmounted(() => {
         <!-- 重置密码 -->
         <div class="card">
           <div class="card-header">
-            <span class="card-icon">🔑</span>
+            <span class="card-icon">R</span>
             <h3>重置账户密码</h3>
           </div>
           <div class="card-body">
@@ -1603,7 +1615,7 @@ onUnmounted(() => {
                 </button>
               </div>
             </div>
-            <div v-if="resetMsg" class="feedback" :class="{ 'feedback-ok': resetMsg.startsWith('✅'), 'feedback-err': resetMsg.startsWith('❌') }">
+            <div v-if="resetMsg" class="feedback" :class="{ 'feedback-ok': resetMsg.startsWith(''), 'feedback-err': resetMsg.startsWith('') }">
               {{ resetMsg }}
             </div>
           </div>
@@ -1614,7 +1626,7 @@ onUnmounted(() => {
       <div class="card">
         <div class="card-header card-header-between">
           <div class="card-header-left">
-            <span class="card-icon">📋</span>
+            <span class="card-icon">T</span>
             <h3>用户列表</h3>
             <span class="user-count" v-if="userList.length > 0">{{ userList.length }} 个账户</span>
           </div>
@@ -1632,7 +1644,7 @@ onUnmounted(() => {
             <div class="state-text">加载中...</div>
           </div>
           <div v-if="!userLoading && userList.length === 0" class="state-block">
-            <div class="state-icon">👤</div>
+            <div class="state-icon">404</div>
             <div class="state-text">暂无用户</div>
           </div>
           <div v-if="userList.length > 0" class="table-wrapper table-wrapper-user">
@@ -1663,10 +1675,10 @@ onUnmounted(() => {
                 </td>
                 <td class="action-cell">
                   <button class="btn-sm btn-kick" @click="handleKickUser(u.uid)" :disabled="!u.online" :title="u.online ? '踢下线' : '用户不在线'">
-                    ⚡ 踢下线
+                    踢下线
                   </button>
                   <button class="btn-sm btn-del" @click="handleDeleteUser(u.uid)" title="删除用户">
-                    🗑 删除
+                    删除
                   </button>
                 </td>
               </tr>
@@ -1828,6 +1840,13 @@ onUnmounted(() => {
 .card-header-right { display: flex; align-items: center; gap: 8px; }
 .card-icon { font-size: 18px; }
 .card-body { padding: 20px; }
+
+.cell-url { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cell-url .url-text { cursor: pointer; padding: 2px 4px; border-radius: 3px; transition: background 0.15s; }
+.cell-url .url-text:hover { background: rgba(64, 158, 255, 0.15); }
+.copy-tip { position: absolute; background: #67c23a; color: #fff; font-size: 12px; padding: 2px 6px; border-radius: 3px; margin-left: 4px; animation: fadeInOut 1.2s; }
+@keyframes fadeInOut { 0% { opacity: 0; } 20% { opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0; } }
+/* ... existing code ... */
 
 /* ========== 日报统计 ========== */
 .daily-report-trigger {
