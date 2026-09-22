@@ -196,6 +196,7 @@ public class SysUserService {
     private static final SecureRandom RANDOM = new SecureRandom();
     private static final String AUTH_TOKEN_PREFIX = "auth:token:";
     private static final String AUTH_UID_PREFIX = "auth:uid:";
+    private static final int MAX_SESSIONS_PER_USER = 5;
     private static final long AUTH_TOKEN_TTL_DAYS = 30;
 
     public SysUserService(SysUserMapper sysUserMapper,
@@ -222,10 +223,6 @@ public class SysUserService {
         if (!passwordEncoder.matches(rawPwd, user.getPwd())) {
             return Result.fail("密码错误");
         }
-        String oldToken = (String) kickRedisTemplate.opsForValue().get(AUTH_UID_PREFIX + user.getUid());
-        if (oldToken != null) {
-            kickRedisTemplate.delete(AUTH_TOKEN_PREFIX + oldToken);
-        }
         String token = UUID.randomUUID().toString().replace("-", "");
         Map<String, String> sessionData = new HashMap<>();
         sessionData.put("uid", user.getUid());
@@ -233,7 +230,17 @@ public class SysUserService {
         sessionData.put("type", user.getType());
         kickRedisTemplate.opsForHash().putAll(AUTH_TOKEN_PREFIX + token, sessionData);
         kickRedisTemplate.expire(AUTH_TOKEN_PREFIX + token, AUTH_TOKEN_TTL_DAYS, TimeUnit.DAYS);
-        kickRedisTemplate.opsForValue().set(AUTH_UID_PREFIX + user.getUid(), token, AUTH_TOKEN_TTL_DAYS, TimeUnit.DAYS);
+        String uidKey = AUTH_UID_PREFIX + user.getUid();
+        kickRedisTemplate.opsForList().leftPush(uidKey, token);
+        kickRedisTemplate.opsForList().trim(uidKey, 0, MAX_SESSIONS_PER_USER - 1);
+        Long tokenCount = kickRedisTemplate.opsForList().size(uidKey);
+        if (tokenCount != null && tokenCount > MAX_SESSIONS_PER_USER) {
+            String oldest = (String) kickRedisTemplate.opsForList().rightPop(uidKey);
+            if (oldest != null) {
+                kickRedisTemplate.delete(AUTH_TOKEN_PREFIX + oldest);
+            }
+        }
+        kickRedisTemplate.expire(uidKey, AUTH_TOKEN_TTL_DAYS, TimeUnit.DAYS);
         Cookie cookie = new Cookie("AUTH_TOKEN", token);
         cookie.setHttpOnly(true);
         cookie.setPath("/");
@@ -251,7 +258,12 @@ public class SysUserService {
         if (token != null) {
             Map<Object, Object> data = kickRedisTemplate.opsForHash().entries(AUTH_TOKEN_PREFIX + token);
             if (data != null && data.containsKey("uid")) {
-                kickRedisTemplate.delete(AUTH_UID_PREFIX + data.get("uid"));
+                String uidKey = AUTH_UID_PREFIX + data.get("uid");
+                kickRedisTemplate.opsForList().remove(uidKey, 0, token);
+                Long remaining = kickRedisTemplate.opsForList().size(uidKey);
+                if (remaining != null && remaining == 0) {
+                    kickRedisTemplate.delete(uidKey);
+                }
             }
             kickRedisTemplate.delete(AUTH_TOKEN_PREFIX + token);
         }
