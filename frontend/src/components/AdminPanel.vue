@@ -131,12 +131,59 @@ const reportData = ref(null)
 
 const currentUserRole = ref(localStorage.getItem('accType') || '')
 
+const dateSortOrder = ref(null)
+
 const viewTypeLabel = {
   ALL: '全部数据', APPFLYER: 'appflyer', ADJUST: 'adjust',
   SINGULAR: 'singular', TENJIN: 'tenjin', FROZEN: '已冻结数据',
   APPFLYER_FROZEN: 'appflyer · 已冻结', ADJUST_FROZEN: 'adjust · 已冻结',
   SINGULAR_FROZEN: 'singular · 已冻结', TENJIN_FROZEN: 'tenjin · 已冻结'
 }
+
+function toggleDateSort() {
+  if (dateSortOrder.value === null) dateSortOrder.value = 'asc'
+  else if (dateSortOrder.value === 'asc') dateSortOrder.value = 'desc'
+  else dateSortOrder.value = null
+}
+
+function normalizeRecordData(recordData) {
+  if (!recordData) return ''
+  let str = String(recordData).trim()
+  str = str.replace(/\//g, '-')
+  if (!str.includes('T') && !str.includes(' ')) {
+    const parts = str.split('-')
+    if (parts.length === 3) {
+      return parts[0].padStart(4, '0') + '-' + (parts[1] || '01').padStart(2, '0') + '-' + (parts[2] || '01').padStart(2, '0') + 'T00:00:00'
+    }
+    return str
+  }
+  let [datePart, timePart] = str.includes('T') ? str.split('T') : str.split(' ')
+  const dp = datePart.split('-')
+  const y = dp[0].padStart(4, '0')
+  const m = (dp[1] || '01').padStart(2, '0')
+  const d = (dp[2] || '01').padStart(2, '0')
+  const tp = (timePart || '00:00:00').substring(0, 8)
+  return y + '-' + m + '-' + d + 'T' + tp
+}
+
+function extractTimePart(recordData) {
+  const normalized = normalizeRecordData(recordData)
+  const tIdx = normalized.indexOf('T')
+  if (tIdx === -1) return ''
+  return normalized.substring(tIdx + 1)
+}
+
+const sortedList = computed(() => {
+  if (!dateSortOrder.value || list.value.length === 0) return list.value
+  const sorted = [...list.value]
+  sorted.sort((a, b) => {
+    const ta = extractTimePart(a.record_data)
+    const tb = extractTimePart(b.record_data)
+    const cmp = ta.localeCompare(tb)
+    return dateSortOrder.value === 'asc' ? cmp : -cmp
+  })
+  return sorted
+})
 
 function resetFilters() {
   advFilters.dateFrom = getTodayDateStr()
@@ -1282,7 +1329,12 @@ onUnmounted(() => {
               <th>归因</th>
               <th>事件数</th>
               <th>异常类型</th>
+              <th class="th-sortable" @click="toggleDateSort">
               <th>记录日期</th>
+                <span class="sort-indicator">
+                  <span class="sort-arrow" :class="{ active: dateSortOrder === 'asc' }">▲</span>
+                  <span class="sort-arrow" :class="{ active: dateSortOrder === 'desc' }">▼</span>
+                </span></th>
               <th>记录人</th>
               <th>备注</th>
 <!--              <th>导出</th>-->
@@ -1290,7 +1342,8 @@ onUnmounted(() => {
             </tr>
             </thead>
             <tbody>
-            <template v-for="(item, index) in list" :key="item.hash">
+<!--            <template v-for="(item, index) in list" :key="item.hash">-->
+            <template v-for="(item, index) in sortedList" :key="item.hash">
               <tr :class="{ 'row-selected': selectedHashes.includes(item.hash), 'row-editing': editingRow === index }">
                 <td class="td-check"><input type="checkbox" :value="item.hash" v-model="selectedHashes" /></td>
                 <td class="cell-index">{{ (currentPage - 1) * pageSize + index + 1 }}</td>
@@ -1326,7 +1379,7 @@ onUnmounted(() => {
                 </td>
                 <td>
                   <template v-if="editingRow === index"><input v-model="editBuffer.record_data" class="cell-edit-input" /></template>
-                  <template v-else>{{ item.record_data || '-' }}</template>
+                  <template v-else>{{ normalizeRecordData(item.record_data) || '-' }}</template>
                 </td>
                 <td>
                   <template v-if="editingRow === index"><input v-model="editBuffer.recorder" class="cell-edit-input" /></template>
@@ -2230,6 +2283,14 @@ onUnmounted(() => {
 .radio-tag.tenjin { background: #9C27B0; }
 
 .sup-area { color: white; font-size: 10px; background-size: 15px; width: 20px; height: 15px; }
+
+.th-check { width: 40px; text-align: center; }
+.th-sortable { cursor: pointer; user-select: none; position: relative; }
+.th-sortable:hover { background: linear-gradient(135deg, #764ba2, #667eea); }
+.sort-indicator { display: inline-flex; flex-direction: column; margin-left: 4px; vertical-align: middle; line-height: 1; font-size: 9px; }
+.sort-arrow { color: rgba(255,255,255,0.35); line-height: 0.8; }
+.sort-arrow.active { color: #fff; }
+.td-check { text-align: center; }
 
 .checkbox-tag { background: #eef2ff; color: #4f46e5; padding: 7px 16px; border-radius: 10px; font-size: 13px; opacity: 0.45; transition: all 0.2s; border: 2px solid transparent; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font-weight: 500; }
 .checkbox-tag.active { opacity: 1; border-color: #4f46e5; background: #e0e7ff; }
