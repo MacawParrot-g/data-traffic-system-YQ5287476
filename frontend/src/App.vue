@@ -70,6 +70,15 @@
 
   <NewbieGuide v-if="showGuide" @close="showGuide = false" />
 
+  <div class="alert-forced-overlay" v-if="forcedAlerts.length > 0">
+    <div class="alert-forced-modal" v-for="(alert, idx) in forcedAlerts" :key="'fa-' + idx">
+      <div class="alert-forced-icon">{{ getAlertIcon(alert.type) }}</div>
+      <h2 class="alert-forced-title">{{ alert.title }}</h2>
+      <p class="alert-forced-content">{{ alert.content || '（无附加内容）' }}</p>
+      <button class="alert-forced-btn" @click="ackForcedAlert(idx)">我已了解</button>
+    </div>
+  </div>
+
   <div class="login-overlay" v-if="!loggedIn">
     <div class="login-card">
       <img src="/icon.png" alt="公司Logo" class="login-logo" />
@@ -95,7 +104,7 @@
 </template>
 
 <script setup>import {ref, onMounted, computed, onUnmounted,watch} from 'vue'
-import { authLogin, authLogout, authStatus, fetchCountByRecorder } from './api/index.js'
+import { authLogin, authLogout, authStatus, fetchCountByRecorder,ackAlert} from './api/index.js'
 import AutoMode from './components/AutoMode.vue'
 import ManualMode from './components/ManualMode.vue'
 import ExportMode from './components/ExportMode.vue'
@@ -121,6 +130,7 @@ const loginPwd = ref('')
 const loginLoading = ref(false)
 const loginError = ref('')
 const loggingOut = ref(false)
+const forcedAlerts = ref([])
 const showGuide = ref(false)
 const accType = ref('USER')
 const displayName = ref('')
@@ -232,6 +242,16 @@ function connectSSE() {
     disconnectSSE()
   })
 
+  sseSource.addEventListener('alert', (event) => {
+    console.warn('[SSE] 收到强制通知:', event.data)
+    try {
+      const data = JSON.parse(event.data)
+      forcedAlerts.value.push(data)
+    } catch (e) {
+      forcedAlerts.value.push({ title: '系统通知', content: event.data, type: 'INFO' })
+    }
+  })
+
   sseSource.onerror = (e) => {
     console.error('[SSE] 连接异常:', e)
     disconnectSSE()
@@ -248,6 +268,24 @@ function disconnectSSE() {
     sseSource.close()
     sseSource = null
   }
+}
+
+function getAlertIcon(type) {
+  switch (type) {
+    case 'WARNING': return '⚠️'
+    case 'EMERGENCY': return '🚨'
+    default: return '📢'
+  }
+}
+
+async function ackForcedAlert(index) {
+  const alert = forcedAlerts.value[index]
+  if (!alert) return
+  try {
+    await ackAlert(alert.title)
+  } catch (e) { /* silent */
+  }
+  forcedAlerts.value.splice(index, 1)
 }
 
 function reloadPage() {
@@ -423,6 +461,81 @@ body {
   border-radius: 12px;
   padding: 12px 14px;
 }
+
+.probe-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.4);
+}
+
+.alert-forced-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+  backdrop-filter: blur(6px);
+  gap: 20px;
+  overflow-y: auto;
+  padding: 40px 20px;
+}
+.alert-forced-modal {
+  background: #fff;
+  border-radius: 20px;
+  padding: 40px 36px;
+  text-align: center;
+  box-shadow: 0 32px 100px rgba(0, 0, 0, 0.4);
+  max-width: 440px;
+  width: 92%;
+  animation: alertBounceIn 0.4s ease-out;
+  border: 3px solid #ef4444;
+}
+@keyframes alertBounceIn {
+  0% { opacity: 0; transform: scale(0.7) translateY(-30px); }
+  60% { transform: scale(1.05); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+.alert-forced-icon {
+  font-size: 56px;
+  margin-bottom: 16px;
+  animation: alertPulse 1.5s ease-in-out infinite;
+}
+@keyframes alertPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+.alert-forced-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: #dc2626;
+  margin-bottom: 12px;
+}
+.alert-forced-content {
+  font-size: 14px;
+  color: #555;
+  line-height: 1.7;
+  margin-bottom: 28px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.alert-forced-btn {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: #fff;
+  border: none;
+  padding: 12px 48px;
+  font-size: 15px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 700;
+  transition: all 0.2s;
+}
+.alert-forced-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(239, 68, 68, 0.4);
+}
+
 .stat-icon {
   font-size: 20px;
   flex-shrink: 0;
