@@ -3,7 +3,7 @@
     <aside class="sidebar" :class="{ 'sidebar-collapsed': sidebarCollapsed }">
       <div class="sidebar-header">
         <div class="sidebar-logo" v-if="!sidebarCollapsed">
-          <span class="logo-text">请选择操作模式</span>
+          <span class="logo-text">欢迎回来，请选择操作模式</span>
         </div>
         <button class="sidebar-toggle" @click="sidebarCollapsed = !sidebarCollapsed">
           {{ sidebarCollapsed ? '☰' : '✕' }}
@@ -73,7 +73,7 @@
   <div class="login-overlay" v-if="!loggedIn">
     <div class="login-card">
       <img src="/icon.png" alt="公司Logo" class="login-logo" />
-      <h1>游戏测试TDM系统</h1>
+      <h1>游戏测试数据TDM系统</h1>
       <div class="login-subtitle">请登录后使用</div>
       <div class="login-form">
         <div class="login-field">
@@ -112,7 +112,7 @@ import NotificationCenter from "./components/NotificationCenter.vue";
 import NotificationManager from "./components/NotificationManager.vue";
 import MQPanel from "./components/MQPanel.vue";
 
-
+let sseSource = null
 const mode = ref('auto')
 const errorMsg = ref('')
 const loggedIn = ref(false)
@@ -216,11 +216,44 @@ onMounted(async () => {
       displayName.value = json.data.data.name || ''
       localStorage.setItem('userName', json.data.data.name || '')
       localStorage.setItem('accType', json.data.data.type || 'USER')
+      connectSSE()
     }
   } catch (e) {
     console.warn('检查登录状态失败:', e)
   }
 })
+
+function connectSSE() {
+  disconnectSSE()
+  sseSource = new EventSource('/api/sse/connect')
+
+  sseSource.addEventListener('shutdown', (event) => {
+    console.warn('[SSE] 收到关闭通知:', event.data)
+    disconnectSSE()
+  })
+
+  sseSource.onerror = (e) => {
+    console.error('[SSE] 连接异常:', e)
+    disconnectSSE()
+    if (loggedIn.value) {
+      setTimeout(() => {
+        if (loggedIn.value) connectSSE()
+      }, 5000)
+    }
+  }
+}
+
+function disconnectSSE() {
+  if (sseSource) {
+    sseSource.close()
+    sseSource = null
+  }
+}
+
+function reloadPage() {
+  window.location.reload()
+}
+
 
 onMounted(() => {
   fetchTodayCount()
@@ -247,6 +280,7 @@ async function doLogin() {
       displayName.value = data.name
       loggedIn.value = true
       mode.value = 'auto'
+      connectSSE()
     } else {
       loginError.value = json.message || '登录失败'
     }
@@ -270,6 +304,7 @@ async function doLogout() {
   loggingOut.value = true
   try {
     await authLogout()
+    disconnectSSE()
   } catch (e) { /* silent */ }
   finally {
     localStorage.removeItem('userName')
