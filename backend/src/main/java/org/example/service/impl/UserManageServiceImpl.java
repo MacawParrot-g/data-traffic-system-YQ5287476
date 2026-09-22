@@ -56,10 +56,16 @@ public class UserManageServiceImpl implements UserManageService {
 
     @Override
     public boolean isOnline(String uid) {
-        String token = (String) kickRedisTemplate.opsForValue().get(AUTH_UID_PREFIX + uid);
-        if (token == null) return false;
-        Boolean exists = kickRedisTemplate.hasKey(AUTH_TOKEN_PREFIX + token);
-        return Boolean.TRUE.equals(exists);
+        String uidKey = AUTH_UID_PREFIX + uid;
+        Long size = kickRedisTemplate.opsForList().size(uidKey);
+        if (size == null || size == 0) return false;
+        List<Object> tokens = kickRedisTemplate.opsForList().range(uidKey, 0, -1);
+        if (tokens == null || tokens.isEmpty()) return false;
+        for (Object t : tokens) {
+            Boolean exists = kickRedisTemplate.hasKey(AUTH_TOKEN_PREFIX + t);
+            if (Boolean.TRUE.equals(exists)) return true;
+        }
+        return false;
     }
 
     @Override
@@ -108,11 +114,14 @@ public class UserManageServiceImpl implements UserManageService {
     }
 
     private void invalidateSession(String uid) {
-        String token = (String) kickRedisTemplate.opsForValue().get(AUTH_UID_PREFIX + uid);
-        if (token != null) {
-            kickRedisTemplate.delete(AUTH_TOKEN_PREFIX + token);
+        String uidKey = AUTH_UID_PREFIX + uid;
+        List<Object> tokens = kickRedisTemplate.opsForList().range(uidKey, 0, -1);
+        if (tokens != null) {
+            for (Object t : tokens) {
+                kickRedisTemplate.delete(AUTH_TOKEN_PREFIX + t);
+            }
         }
-        kickRedisTemplate.delete(AUTH_UID_PREFIX + uid);
+        kickRedisTemplate.delete(uidKey);
     }
 
     private String getOperatorType(HttpServletRequest request) {
