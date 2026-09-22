@@ -537,4 +537,32 @@ export function fetchDlqSummary() {
     return fetchWithTimeout('/api/mq/dlq/summary', {}, 10000).then(safeJson)
 }
 
+export function fetchHealthProbe() {
+    return fetchWithTimeout('/api/probe/health', {}, 5000).then(safeJson)
+}
 
+// ==================== 强制通知 ====================
+
+export function sendAlertNotification(receivers, type, title, content) {
+    return fetchWithTimeout('/api/alert/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ receivers, type, title, content })
+    }, 15000).then(safeJson)
+}
+
+export function fetchAlertList(page = 1, size = 15) {
+    return fetchWithTimeout('/api/alert/list?page=' + page + '&size=' + size, {}, 15000).then(safeJson)
+}
+
+export function ackAlert(title) {
+    return fetchWithTimeout('/api/alert/ack', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title })
+    }, 10000).then(safeJson)
+}
+
+export function deleteAlertNotification(id) {
+    return fetchWithTimeout('/api/alert/delete?id=' + id, { method: 'DELETE' }, 10000).then(safeJson)
+}
