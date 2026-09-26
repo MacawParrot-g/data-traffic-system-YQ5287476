@@ -7,4 +7,5 @@ public interface URLService {
     Map<String, Object> proxyEvent(String bundleId);
     Map<String, Object> proxyAttribution(String bundleId, String type);
     Map<String, Object> proxyFrozen(Long id);
+    Map<String, Object> proxyTaskCount();
 }

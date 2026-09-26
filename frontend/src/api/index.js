@@ -568,5 +568,5 @@ export function deleteAlertNotification(id) {
 }
 
 export function fetchInventoryCount() {
-    return fetchWithTimeout('https://d-reporter.de123.net/ad/play/task/count', {}, 15000).then(safeJson)
+    return fetchWithTimeout('/api/proxy/task/count', {}, 15000).then(safeJson)
 }

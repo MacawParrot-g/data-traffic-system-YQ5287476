@@ -579,6 +579,7 @@
   transition: all 0.2s;
 }
 
+  .btn-quick-refresh-count:hover:not(:disabled) { background: #667eea; color: #fff; }
   .btn-quick-refresh-count:disabled { opacity: 0.4; cursor: not-allowed; }
   .btn-inventory { background: #fff; border: 1px solid #c7d2fe; color: #667eea; padding: 0 14px; height: 36px; border-radius: 10px; cursor: pointer; font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 4px; transition: all 0.2s; }
   .btn-inventory:hover:not(:disabled) { background: #667eea; color: #fff; }

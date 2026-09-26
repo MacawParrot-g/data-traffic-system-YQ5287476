@@ -76,4 +76,11 @@ public class URLServiceImpl implements URLService {
         Map<String, Object> response = rk.safeRemoteGet(url);
         return response != null ? response : rk.errorResponse("冻结接口返回空响应");
     }
+
+    @Override
+    public Map<String, Object> proxyTaskCount() {
+        String remoteUrl = "https://d-reporter.de123.net/ad/play/task/count";
+        Map<String, Object> response = rk.safeRemoteGet(remoteUrl);
+        return response != null ? response : rk.errorResponse("库存接口返回空响应");
+    }
 }

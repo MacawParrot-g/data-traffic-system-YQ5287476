@@ -45,5 +45,10 @@ public class URLController {
     public Map<String, Object> proxyFrozen(@RequestParam Long id) {
         return urlService.proxyFrozen(id);
     }
-
+    @GetMapping("/api/proxy/task/count")
+    @LogExecutionTime("代理获取库存数量")
+    @SkipRateLimit
+    public Map<String, Object> proxyTaskCount() {
+        return urlService.proxyTaskCount();
+    }
 }
