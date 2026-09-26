@@ -19,27 +19,11 @@
           {{ loading ? '加载中...' : '刷新下载任务' }}
         </button>
         <button class="btn-quick-refresh-count" @click="fetchDataByName()" :disabled="quickExportPolling" title="查看入库数量">🔄</button>
+        <button class="btn-inventory" @click="showInventoryCount" :disabled="inventoryLoading">
+          {{ inventoryLoading ? '查询中...' : '查看库存' }}
+        </button>
       </div>
-<!--      <div class="combined-right">-->
-<!--        <button class="btn-quick-export" @click="doQuickExport" :disabled="quickExportLoading || quickExportPolling || quickExportCount === 0">-->
-<!--          <span v-if="quickExportLoading">⏳ 导出中...</span>-->
-<!--          <span v-else-if="quickExportPolling">🔄 文件生成中...</span>-->
-<!--          <span v-else>📤 导出{{ quickExportCount ?? '...' }}条数据</span>-->
-<!--        </button>-->
-<!--        <div class="combined-download" v-if="quickExportFileReady">-->
-<!--          <span class="quick-export-file">📄 {{ quickExportFileName }}</span>-->
-<!--          <button class="btn-quick-download" @click="doQuickExportDownload">⬇ 下载</button>-->
-<!--        </div>-->
-<!--      </div>-->
     </div>
-<!--    <div v-if="quickExportMsg" class="quick-export-feedback" :class="{ 'feedback-ok': quickExportMsgSuccess, 'feedback-err': !quickExportMsgSuccess }">-->
-<!--      {{ quickExportMsg }}-->
-<!--    </div>-->
-<!--    <div v-if="quickExportPolling" class="quick-export-polling">-->
-<!--      <div class="state-spinner" style="width:16px;height:16px;border-width:2px;margin:0;display:inline-block;vertical-align:middle;margin-right:6px;"></div>-->
-<!--      文件生成中，请稍候...-->
-<!--    </div>-->
-<!--    <div v-if="loading && !downloadUrl" class="loading">正在获取数据...</div>-->
     <div class="empty-placeholder" v-if="!downloadUrl && !loading">
     <div class="empty-icon">404 NO FOUND</div>
     <div class="empty-text">当前没有任何测试条目，请点击刷新按钮刷新第一条数据</div>
@@ -594,6 +578,12 @@
   background: rgba(255,255,255,0.6);
   transition: all 0.2s;
 }
+
+  .btn-quick-refresh-count:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-inventory { background: #fff; border: 1px solid #c7d2fe; color: #667eea; padding: 0 14px; height: 36px; border-radius: 10px; cursor: pointer; font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 4px; transition: all 0.2s; }
+  .btn-inventory:hover:not(:disabled) { background: #667eea; color: #fff; }
+  .btn-inventory:disabled { opacity: 0.4; cursor: not-allowed; }
+
 .grade-detail-a .grade-detail-footer .btn-cancel { border-color: #86efac; color: #166534; }
 .grade-detail-b .grade-detail-footer .btn-cancel { border-color: #93c5fd; color: #1e40af; }
 .grade-detail-c .grade-detail-footer .btn-cancel { border-color: #fde68a; color: #92400e; }
@@ -624,7 +614,8 @@ import {
   fetchUnexportedByUser,
   executeExportByUser,
   fetchExportStatus,
-  getExportDownloadUrl
+  getExportDownloadUrl,
+  fetchInventoryCount
 } from '../api/index.js'
 
 const emit = defineEmits(['error'])
@@ -688,6 +679,7 @@ const quickExportMsgSuccess = ref(false)
 let quickExportPollTimer = null
 const currentUser = currentUserName
 const showGradeDetailModal = ref(false)
+const inventoryLoading = ref(false)
 const gradeDescriptions = {
   A: '该应用很容易出事件，游玩的时候可以适当缩短测试时间',
   B: '该应用需要游玩较长时间，或者玩到指定关卡才会出事件,建议拉长到10分钟以上',
@@ -830,6 +822,22 @@ function getPast3DaysDates() {
     dates.push(t.getFullYear() + '/' + (t.getMonth() + 1) + '/' + t.getDate())
   }
   return dates
+}
+
+async function showInventoryCount() {
+  inventoryLoading.value = true
+  try {
+    const json = await fetchInventoryCount()
+    if (json.success) {
+      alert('当前库存数量：' + json.data)
+    } else {
+      alert('获取库存失败：' + (json.resultMsg || '未知错误'))
+    }
+  } catch (e) {
+    alert('获取库存请求失败：' + e.message)
+  } finally {
+    inventoryLoading.value = false
+  }
 }
 
 function startPolling() {

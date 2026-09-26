@@ -566,3 +566,7 @@ export function ackAlert(title) {
 export function deleteAlertNotification(id) {
     return fetchWithTimeout('/api/alert/delete?id=' + id, { method: 'DELETE' }, 10000).then(safeJson)
 }
+
+export function fetchInventoryCount() {
+    return fetchWithTimeout('https://d-reporter.de123.net/ad/play/task/count', {}, 15000).then(safeJson)
+}
