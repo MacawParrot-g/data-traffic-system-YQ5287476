@@ -30,7 +30,7 @@ public class AuditLogMessageConsumer {
             channel.basicAck(deliveryTag, false);
         } catch (Exception e) {
             log.error("❌ 审计日志入库失败: {}", e.getMessage());
-            channel.basicNack(deliveryTag, false, true);
+            channel.basicNack(deliveryTag, false, false);
         }
     }
 }

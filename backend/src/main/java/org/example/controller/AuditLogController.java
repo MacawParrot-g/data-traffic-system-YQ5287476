@@ -18,7 +18,7 @@ public class AuditLogController {
     private AuditLogService auditLogService;
 
     @PostMapping("/search")
-    @LogExecutionTime("审计日志搜索")
+    @LogExecutionTime(value = "审计日志搜索", skipAudit = true)
     public Result search(HttpServletRequest request, @RequestBody Map<String, Object> body) {
         String operator = (String) body.get("operator");
         String action = (String) body.get("action");
@@ -30,7 +30,7 @@ public class AuditLogController {
     }
 
     @DeleteMapping("/clean")
-    @LogExecutionTime("清理过期审计日志")
+    @LogExecutionTime(value = "清理过期审计日志", skipAudit = true)
     public Result clean(@RequestParam(defaultValue = "90") int retainDays) {
         return auditLogService.cleanOldLogs(retainDays);
     }

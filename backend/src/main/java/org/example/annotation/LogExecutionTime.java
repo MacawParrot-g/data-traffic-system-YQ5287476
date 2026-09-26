@@ -11,4 +11,5 @@ import java.lang.annotation.Target;
 public @interface LogExecutionTime {
     String value() default "";//干嘛的
     boolean logParams() default false;
+    boolean skipAudit() default false;
 }
