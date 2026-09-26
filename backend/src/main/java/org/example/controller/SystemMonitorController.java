@@ -16,7 +16,6 @@ public class SystemMonitorController {
     private SystemMonitorService systemMonitorService;
 
     @GetMapping("/info")
-    @LogExecutionTime("系统监控信息")
     public Result getSystemInfo() {
         return systemMonitorService.getSystemInfo();
     }
@@ -35,7 +34,6 @@ public class SystemMonitorController {
     }
 
     @GetMapping("/log/tail")
-    @LogExecutionTime("日志查看")
     public Result tailLog(@RequestParam(defaultValue = "200") int lines,
                           @RequestParam(defaultValue = "ALL") String level) {
         return systemMonitorService.tailLog(lines, level);
