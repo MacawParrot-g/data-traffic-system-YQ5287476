@@ -1048,8 +1048,8 @@ async function saveToMySQL() {
     })
     if (json.success) {
       saveMsg.value = '✅ ' + (json.message || '入库成功')
-      recordSubmitted = true
-      isSubmit.value = true
+      recordSubmitted.value  = true
+      isSubmit= true
     }
     else { emit('error', json.message || '入库失败') }
   } catch (e) { emit('error', '入库请求失败：' + e.message) }
