@@ -570,3 +570,21 @@ export function deleteAlertNotification(id) {
 export function fetchInventoryCount() {
     return fetchWithTimeout('/api/proxy/task/count', {}, 15000).then(safeJson)
 }
+
+function checkDeployVersion(response) {
+    const serverDeployId = response.headers.get('X-Deploy-Id')
+    if (!serverDeployId) return
+    const localDeployId = localStorage.getItem('deployId')
+    if (!localDeployId) {
+        localStorage.setItem('deployId', serverDeployId)
+        return
+    }
+    if (localDeployId !== serverDeployId) {
+        localStorage.setItem('deployId', serverDeployId)
+        localStorage.removeItem('userName')
+        localStorage.removeItem('accType')
+        window.dispatchEvent(new CustomEvent('force-logout', {
+            detail: '系统已更新，请重新登录'
+        }))
+    }
+}

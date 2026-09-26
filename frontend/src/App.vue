@@ -382,6 +382,36 @@ async function fetchTodayCount() {
     }
   } catch (e) { /* silent */ }
 }
+
+onMounted(async () => {
+  try {
+    const json = await authStatus()
+    if (json.success && json.data && json.data.loggedIn) {
+      loggedIn.value = true
+      accType.value = json.data.data.type || 'USER'
+      displayName.value = json.data.data.name || ''
+      localStorage.setItem('userName', json.data.data.name || '')
+      localStorage.setItem('accType', json.data.data.type || 'USER')
+      connectSSE()
+    }
+  } catch (e) {
+    console.warn('检查登录状态失败:', e)
+  }
+})
+
+window.addEventListener('force-logout', (e) => {
+  disconnectSSE()
+  localStorage.removeItem('userName')
+  localStorage.removeItem('accType')
+  loggedIn.value = false
+  accType.value = 'USER'
+  displayName.value = ''
+  loginUid.value = ''
+  loginPwd.value = ''
+  loginError.value = e.detail || '系统已更新，请重新登录'
+  mode.value = 'auto'
+})
+
 </script>
 
 <style>
