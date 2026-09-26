@@ -25,7 +25,6 @@ public class NotificationController {
     }
 
     @GetMapping("/unread-count")
-    @LogExecutionTime("查询未读通知数")
     public Result unreadCount(@RequestParam String receiver) {
         return notificationService.getUnreadCount(receiver);
     }

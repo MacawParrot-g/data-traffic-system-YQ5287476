@@ -21,7 +21,6 @@ public class SystemMonitorController {
     }
 
     @GetMapping("/redis/info")
-    @LogExecutionTime("Redis数据库信息")
     public Result getRedisInfo() {
         return systemMonitorService.getRedisInfo();
     }
