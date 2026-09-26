@@ -31,15 +31,7 @@ public class DatabaseController {
     @PostMapping("/api/record/insert")
     @LogExecutionTime("数据入库")
     public Result insertRecord(@RequestBody TestStatic record) {
-        try {
-            if (record.getIsOutput() == null) {
-                record.setIsOutput(0);
-            }
-            databaseService.submitRecordAsync(record);
-            return Result.success("入库请求已接收，正在异步处理", null);
-        } catch (Exception e) {
-            return Result.fail("入库失败：" + e.getMessage());
-        }
+        return databaseService.submitRecordWithIdempotent(record);
     }
 
     @GetMapping("/api/record/unexported")

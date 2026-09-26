@@ -177,8 +177,8 @@
         </div>
       </div>
       <div class="form-btn-row">
-        <button class="btn-save" @click="saveToMySQL" :disabled="saving">
-          {{ saving ? '入库中...' : '直接入库' }}
+        <button class="btn-save" @click="saveToMySQL" :disabled="saving || recordSubmitted">
+          {{ recordSubmitted ? '✅ 已入库' : saving ? '入库中...' : '直接入库' }}
         </button>
         <button class="btn-grade" @click="showGradeModal = true" :disabled="bundleIdAlreadyGraded">
           应用评分
@@ -632,7 +632,7 @@ const currentUserRole = ref(localStorage.getItem('accType') || '')
 const lastReportTime = ref('')
 const dateSource = ref('lastReport')
 let exportPollTimer = null
-
+const recordSubmitted = ref(false)
 const downloadUrl = ref('')
 const bundleId = ref('')
 const originalCurrentTargetNum = ref(null)
@@ -978,11 +978,11 @@ function resetState() {
   saveMsg.value = ''
   lastReportTime.value = ''
   dateSource.value = 'lastReport'
+  recordSubmitted.value = false
   form.exception_type = '';
   form.remark = '';
   form.recorder = localStorage.getItem('userName') || '';
   form.record_data = getTodayStr()
-  //form.record_data = getTodayStr()
   isFrozen.value=''
   gradeData.value = null
   bundleIdAlreadyGraded.value = false
@@ -1013,6 +1013,7 @@ async function doFrozen() {
 
 async function saveToMySQL() {
   emit('record-saved')
+  if (recordSubmitted.value) return
   if (!form.exception_type.trim()) { emit('error', '请选择异常类型'); return }
   saving.value = true; saveMsg.value = ''
   if(newCurrentTargetNum.value===0||newCurrentTargetNum.value===null){
@@ -1037,6 +1038,7 @@ async function saveToMySQL() {
       bundleId: bundleId.value,
       ascribe: (attributions.value || []).join(';'),
       appId: appId.value,
+      taskId: taskId.value,
       event_number: newCurrentTargetNum.value,
       exception_type: form.exception_type.trim(),
       record_data: finalRecordData,
@@ -1045,10 +1047,11 @@ async function saveToMySQL() {
       isOutput: 0
     })
     if (json.success) {
-      saveMsg.value = '✅ ' + (json.resultMsg || '入库成功')
-      isSubmit=true;
+      saveMsg.value = '✅ ' + (json.message || '入库成功')
+      recordSubmitted.value = true
+      isSubmit.value = true
     }
-    else { emit('error', json.resultMsg || '入库失败') }
+    else { emit('error', json.message || '入库失败') }
   } catch (e) { emit('error', '入库请求失败：' + e.message) }
   finally { saving.value = false }
 }

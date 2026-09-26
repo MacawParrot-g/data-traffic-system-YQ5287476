@@ -42,4 +42,8 @@ public class TestStatic {
 
     @TableField(exist = false)
     private Long appId;
+    
+    @TableField(exist = false)
+    private Long taskId;
+
 }

@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @Service
@@ -33,6 +34,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class DatabaseServiceImpl implements DatabaseService, CommandLineRunner {
 
     private static final Logger log = LoggerFactory.getLogger(DatabaseServiceImpl.class);
+    private static final String SUBMITTED_KEY_PREFIX = "record:submitted:";
 
     @Autowired
     private GeneranMapper generanMapper;
@@ -54,6 +56,10 @@ public class DatabaseServiceImpl implements DatabaseService, CommandLineRunner {
 
     @Autowired
     private AppIdService appIdService;
+
+    @Autowired
+    private org.springframework.data.redis.core.RedisTemplate<String, Object> redisTemplate;
+
 
     private final AtomicBoolean rabbitAvailable = new AtomicBoolean(false);
 
@@ -263,7 +269,41 @@ public class DatabaseServiceImpl implements DatabaseService, CommandLineRunner {
     }
 
     @Override
-    public void submitRecordAsync(TestStatic record) {
+    public Result submitRecordWithIdempotent(TestStatic record) {
+        Long taskId = record.getTaskId();
+        if (taskId != null) {
+            String redisKey = SUBMITTED_KEY_PREFIX + taskId;
+            try {
+                Boolean alreadySubmitted = redisTemplate.hasKey(redisKey);
+                if (Boolean.TRUE.equals(alreadySubmitted)) {
+                    return Result.fail("该任务已入库，请勿重复提交");
+                }
+            } catch (Exception e) {
+                log.warn("幂等检查Redis查询失败，降级放行: {}", e.getMessage());
+            }
+
+            try {
+                redisTemplate.opsForValue().set(redisKey, "1", 24, TimeUnit.HOURS);
+            } catch (Exception e) {
+                log.warn("幂等标记Redis写入失败: {}", e.getMessage());
+            }
+        }
+
+        try {
+            if (record.getIsOutput() == null) {
+                record.setIsOutput(0);
+            }
+            doSubmitRecord(record);
+            return Result.success("入库请求已接收，正在异步处理", null);
+        } catch (Exception e) {
+            if (taskId != null) {
+                try { redisTemplate.delete(SUBMITTED_KEY_PREFIX + taskId); } catch (Exception ignored) {}
+            }
+            return Result.fail("入库失败：" + e.getMessage());
+        }
+    }
+
+    private void doSubmitRecord(TestStatic record) {
         boolean appIdDuplicate = false;
         if (record.getAppId() != null && appIdService.isAppIdExists(record.getAppId())) {
             appIdDuplicate = true;

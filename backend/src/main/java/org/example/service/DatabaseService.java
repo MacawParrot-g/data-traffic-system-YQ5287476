@@ -7,7 +7,7 @@ import java.util.List;
 public interface DatabaseService {
     int insertRecord(TestStatic record);
 
-    void submitRecordAsync(TestStatic record);
+    Result submitRecordWithIdempotent(TestStatic record);
 
     void submitUpdateAsync(TestStatic record);
 
