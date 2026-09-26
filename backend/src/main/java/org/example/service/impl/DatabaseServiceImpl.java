@@ -58,7 +58,9 @@ public class DatabaseServiceImpl implements DatabaseService, CommandLineRunner {
     private AppIdService appIdService;
 
     @Autowired
+    @org.springframework.beans.factory.annotation.Qualifier("idempotentRedisTemplate")
     private org.springframework.data.redis.core.RedisTemplate<String, Object> redisTemplate;
+
 
 
     private final AtomicBoolean rabbitAvailable = new AtomicBoolean(false);
