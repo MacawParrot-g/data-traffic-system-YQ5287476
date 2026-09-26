@@ -180,10 +180,10 @@
         <button class="btn-save" @click="saveToMySQL" :disabled="saving || recordSubmitted">
           {{ recordSubmitted ? '✅ 已入库' : saving ? '入库中...' : '直接入库' }}
         </button>
+        <span class="save-success-tag" v-if="recordSubmitted">入库成功</span>
         <button class="btn-grade" @click="showGradeModal = true" :disabled="bundleIdAlreadyGraded">
           应用评分
         </button>
-        <div class="save-success" v-if="saveMsg">{{ saveMsg }}</div>
       </div>
 <!--      <div class="save-success" v-if="saveMsg">{{ saveMsg }}</div>-->
     </div>
@@ -390,6 +390,10 @@
   font-size: 13px;
   font-weight: 500;
 }
+
+.form-btn-row { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; align-items: center; }
+.save-success-tag { display: inline-block; padding: 6px 16px; background: #dcfce7; color: #166534; border-radius: 8px; font-size: 13px; font-weight: 700; border: 1px solid #86efac; letter-spacing: 0.5px; }
+.btn-grade { background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff; border: none; padding: 10px 20px; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
 
 /* ========== 应用评级卡片 ========== */
 .grade-card { position: relative; }
@@ -1047,7 +1051,7 @@ async function saveToMySQL() {
       isOutput: 0
     })
     if (json.success) {
-      saveMsg.value = '✅ ' + (json.message || '入库成功')
+      // saveMsg.value = '✅ ' + (json.message || '入库成功')
       recordSubmitted.value  = true
       isSubmit= true
     }
@@ -1138,80 +1142,80 @@ async function submitGrade() {
   }
 }
 
-async function loadQuickExportCount() {
-  try {
-    const json = await fetchUnexportedByUser(currentUser.value)
-    if (json.success && json.data) {
-      quickExportCount.value = json.data.total || 0
-    }
-  } catch (e) { /* silent */ }
-}
+// async function loadQuickExportCount() {
+//   try {
+//     const json = await fetchUnexportedByUser(currentUser.value)
+//     if (json.success && json.data) {
+//       quickExportCount.value = json.data.total || 0
+//     }
+//   } catch (e) { /* silent */ }
+// }
+//
+// async function doQuickExport() {
+//   if (quickExportLoading.value || quickExportPolling.value) return
+//   quickExportLoading.value = true
+//   quickExportMsg.value = ''
+//   quickExportMsgSuccess.value = false
+//   quickExportFileReady.value = false
+//   quickExportFileName.value = ''
+//   try {
+//     const json = await executeExportByUser(currentUser.value)
+//     quickExportMsgSuccess.value = json.success
+//     quickExportMsg.value = json.message || ''
+//     if (json.success) {
+//       quickExportFileName.value = json.data?.fileName || ''
+//       startQuickExportPolling()
+//     }
+//   } catch (e) {
+//     quickExportMsgSuccess.value = false
+//     quickExportMsg.value = '导出请求失败：' + e.message
+//   } finally {
+//     quickExportLoading.value = false
+//   }
+// }
 
-async function doQuickExport() {
-  if (quickExportLoading.value || quickExportPolling.value) return
-  quickExportLoading.value = true
-  quickExportMsg.value = ''
-  quickExportMsgSuccess.value = false
-  quickExportFileReady.value = false
-  quickExportFileName.value = ''
-  try {
-    const json = await executeExportByUser(currentUser.value)
-    quickExportMsgSuccess.value = json.success
-    quickExportMsg.value = json.message || ''
-    if (json.success) {
-      quickExportFileName.value = json.data?.fileName || ''
-      startQuickExportPolling()
-    }
-  } catch (e) {
-    quickExportMsgSuccess.value = false
-    quickExportMsg.value = '导出请求失败：' + e.message
-  } finally {
-    quickExportLoading.value = false
-  }
-}
+// function startQuickExportPolling() {
+//   quickExportPolling.value = true
+//   quickExportPollTimer = setInterval(async () => {
+//     try {
+//       const json = await fetchExportStatus(currentUser.value)
+//       if (json.success && json.data?.ready) {
+//         stopQuickExportPolling()
+//         quickExportFileReady.value = true
+//         quickExportFileName.value = json.data.fileName || quickExportFileName.value
+//         loadQuickExportCount()
+//       }
+//     } catch (e) { /* ignore */ }
+//   }, 2000)
+// }
 
-function startQuickExportPolling() {
-  quickExportPolling.value = true
-  quickExportPollTimer = setInterval(async () => {
-    try {
-      const json = await fetchExportStatus(currentUser.value)
-      if (json.success && json.data?.ready) {
-        stopQuickExportPolling()
-        quickExportFileReady.value = true
-        quickExportFileName.value = json.data.fileName || quickExportFileName.value
-        loadQuickExportCount()
-      }
-    } catch (e) { /* ignore */ }
-  }, 2000)
-}
-
-function stopQuickExportPolling() {
-  quickExportPolling.value = false
-  if (quickExportPollTimer) { clearInterval(quickExportPollTimer); quickExportPollTimer = null }
-}
-
-function doQuickExportDownload() {
-  const url = getExportDownloadUrl(currentUser.value)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = quickExportFileName.value
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-  setTimeout(() => {
-    quickExportFileReady.value = false
-    quickExportFileName.value = ''
-    quickExportMsg.value = '✅ 文件已下载'
-    quickExportMsgSuccess.value = true
-  }, 1500)
-}
+// function stopQuickExportPolling() {
+//   quickExportPolling.value = false
+//   if (quickExportPollTimer) { clearInterval(quickExportPollTimer); quickExportPollTimer = null }
+// }
+//
+// function doQuickExportDownload() {
+//   const url = getExportDownloadUrl(currentUser.value)
+//   const a = document.createElement('a')
+//   a.href = url
+//   a.download = quickExportFileName.value
+//   document.body.appendChild(a)
+//   a.click()
+//   document.body.removeChild(a)
+//   setTimeout(() => {
+//     quickExportFileReady.value = false
+//     quickExportFileName.value = ''
+//     quickExportMsg.value = '✅ 文件已下载'
+//     quickExportMsgSuccess.value = true
+//   }, 1500)
+// }
 
 onUnmounted(() => { cancelTimer(); stopPolling() })
-onUnmounted(() => { stopQuickExportPolling() })
-onMounted(() => {
-  timerMsg.value='计时结束后内容会在这里显示'
-  loadQuickExportCount()
-})
+// onUnmounted(() => { stopQuickExportPolling() })
+// onMounted(() => {
+//   timerMsg.value='计时结束后内容会在这里显示'
+//   loadQuickExportCount()
+// })
 onMounted(() => {
   timerMsg.value='计时结束后内容会在这里显示' }
 )
