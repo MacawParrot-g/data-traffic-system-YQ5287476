@@ -6,14 +6,13 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
-import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.serializer.StringRedisSerializer;
+import org.springframework.data.redis.core.StringRedisTemplate;
 
 @Configuration
 public class GlobalNotificationRedisConfig {
 
     @Bean
-    public RedisTemplate<String, Object> globalNotificationRedisTemplate(
+    public StringRedisTemplate globalNotificationRedisTemplate(
             @Value("${spring.data.redis.host}") String host,
             @Value("${spring.data.redis.port}") int port) {
         RedisStandaloneConfiguration config = new RedisStandaloneConfiguration(host, port);
@@ -21,12 +20,8 @@ public class GlobalNotificationRedisConfig {
         LettuceConnectionFactory factory = new LettuceConnectionFactory(config);
         factory.afterPropertiesSet();
 
-        RedisTemplate<String, Object> template = new RedisTemplate<>();
+        StringRedisTemplate template = new StringRedisTemplate();
         template.setConnectionFactory(factory);
-        template.setKeySerializer(new StringRedisSerializer());
-        template.setValueSerializer(new StringRedisSerializer());
-        template.setHashKeySerializer(new StringRedisSerializer());
-        template.setHashValueSerializer(new StringRedisSerializer());
         template.afterPropertiesSet();
         return template;
     }

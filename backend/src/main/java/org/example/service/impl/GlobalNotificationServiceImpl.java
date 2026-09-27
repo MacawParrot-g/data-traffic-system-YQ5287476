@@ -1,6 +1,6 @@
-// 新文件: C:\Users\EDY\data-traffic-system-YQ5287476\backend\src\main\java\org\example\service\impl\GlobalNotificationServiceImpl.java
 package org.example.service.impl;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.example.common.Result;
 import org.example.config.ShutdownNotifier;
@@ -9,11 +9,11 @@ import org.example.mapper.SysUserMapper;
 import org.example.service.GlobalNotificationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.core.ZSetOperations;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -28,13 +28,13 @@ public class GlobalNotificationServiceImpl implements GlobalNotificationService 
     private static final String COUNTER_KEY = "global:notif:counter";
     private static final DateTimeFormatter DT_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
-    private final RedisTemplate<String, Object> notifRedis;
+    private final StringRedisTemplate notifRedis;
     private final ShutdownNotifier shutdownNotifier;
     private final SysUserMapper sysUserMapper;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public GlobalNotificationServiceImpl(
-            @Qualifier("globalNotificationRedisTemplate") RedisTemplate<String, Object> notifRedis,
+            @Qualifier("globalNotificationRedisTemplate") StringRedisTemplate notifRedis,
             ShutdownNotifier shutdownNotifier,
             SysUserMapper sysUserMapper) {
         this.notifRedis = notifRedis;
@@ -48,12 +48,13 @@ public class GlobalNotificationServiceImpl implements GlobalNotificationService 
         if (type == null || type.isBlank()) type = "INFO";
         if (expireSeconds <= 0) expireSeconds = 86400;
 
-        long id = notifRedis.opsForValue().increment(COUNTER_KEY);
+        Long idLong = notifRedis.opsForValue().increment(COUNTER_KEY);
+        String id = String.valueOf(idLong);
         String now = LocalDateTime.now().format(DT_FMT);
         String expireAt = LocalDateTime.now().plusSeconds(expireSeconds).format(DT_FMT);
 
-        Map<String, Object> notif = new LinkedHashMap<>();
-        notif.put("id", String.valueOf(id));
+        Map<String, String> notif = new LinkedHashMap<>();
+        notif.put("id", id);
         notif.put("title", title.trim());
         notif.put("content", content != null ? content.trim() : "");
         notif.put("type", type);
@@ -64,38 +65,31 @@ public class GlobalNotificationServiceImpl implements GlobalNotificationService 
 
         String key = NOTIF_PREFIX + id;
         try {
-            notifRedis.opsForHash().putAll(key, notif);
-            notifRedis.expire(key, expireSeconds);
+            String json = objectMapper.writeValueAsString(notif);
+            notifRedis.opsForValue().set(key, json, Duration.ofSeconds(expireSeconds));
         } catch (Exception e) {
             log.error("Redis写入通知失败: {}", e.getMessage());
             return Result.fail("通知存储失败");
         }
 
         double score = System.currentTimeMillis();
-        notifRedis.opsForZSet().add(GLOBAL_ZSET, String.valueOf(id), score);
+        notifRedis.opsForZSet().add(GLOBAL_ZSET, id, score);
 
-        cleanExpiredFromZSet(GLOBAL_ZSET);
-
-        String sseData;
-        try {
-            sseData = objectMapper.writeValueAsString(notif);
-        } catch (Exception e) {
-            sseData = "{}";
-        }
+        cleanZSet(GLOBAL_ZSET);
 
         if ("ALL".equalsIgnoreCase(receivers)) {
             List<SysUser> allUsers = sysUserMapper.findAll();
             for (SysUser u : allUsers) {
                 if (u.getName().equals(sender)) continue;
-                notifRedis.opsForZSet().add(USER_ZSET_PREFIX + u.getName(), String.valueOf(id), score);
-                shutdownNotifier.sendToUser(u.getName(), "global_notification", sseData);
+                notifRedis.opsForZSet().add(USER_ZSET_PREFIX + u.getName(), id, score);
+                shutdownNotifier.sendToUser(u.getName(), "global_notification", toJson(notif));
             }
         } else {
             for (String r : receivers.split(",")) {
                 String trimmed = r.trim();
                 if (trimmed.isEmpty() || trimmed.equals(sender)) continue;
-                notifRedis.opsForZSet().add(USER_ZSET_PREFIX + trimmed, String.valueOf(id), score);
-                shutdownNotifier.sendToUser(trimmed, "global_notification", sseData);
+                notifRedis.opsForZSet().add(USER_ZSET_PREFIX + trimmed, id, score);
+                shutdownNotifier.sendToUser(trimmed, "global_notification", toJson(notif));
             }
         }
 
@@ -105,7 +99,7 @@ public class GlobalNotificationServiceImpl implements GlobalNotificationService 
     @Override
     public Result getGlobalHistory(int page, int size) {
         long total = cleanAndCount(GLOBAL_ZSET);
-        List<Map<String, Object>> list = getNotifPage(GLOBAL_ZSET, page, size);
+        List<Map<String, String>> list = getPage(GLOBAL_ZSET, page, size);
         return Result.success("查询成功", list, null, total, page, size);
     }
 
@@ -115,17 +109,16 @@ public class GlobalNotificationServiceImpl implements GlobalNotificationService 
         long total = cleanAndCount(userZSet);
         if (total == 0) {
             total = cleanAndCount(GLOBAL_ZSET);
-            List<Map<String, Object>> list = getNotifPage(GLOBAL_ZSET, page, size);
+            List<Map<String, String>> list = getPage(GLOBAL_ZSET, page, size);
             return Result.success("查询成功", list, null, total, page, size);
         }
-        List<Map<String, Object>> list = getNotifPage(userZSet, page, size);
+        List<Map<String, String>> list = getPage(userZSet, page, size);
         return Result.success("查询成功", list, null, total, page, size);
     }
 
     @Override
     public Result deleteNotification(String id) {
-        String key = NOTIF_PREFIX + id;
-        notifRedis.delete(key);
+        notifRedis.delete(NOTIF_PREFIX + id);
         notifRedis.opsForZSet().remove(GLOBAL_ZSET, id);
         return Result.success("已删除");
     }
@@ -133,17 +126,17 @@ public class GlobalNotificationServiceImpl implements GlobalNotificationService 
     @Override
     public Result pollNew(long since) {
         Set<String> ids = notifRedis.opsForZSet().rangeByScore(GLOBAL_ZSET, since + 1, Double.MAX_VALUE);
-        List<Map<String, Object>> result = new ArrayList<>();
+        List<Map<String, String>> result = new ArrayList<>();
         if (ids == null || ids.isEmpty()) return Result.success("无新通知", result);
 
         List<String> toRemove = new ArrayList<>();
         for (String id : ids) {
-            Map<Object, Object> hash = notifRedis.opsForHash().entries(NOTIF_PREFIX + id);
-            if (hash.isEmpty()) {
+            Map<String, String> notif = readNotif(id);
+            if (notif == null) {
                 toRemove.add(id);
-                continue;
+            } else {
+                result.add(notif);
             }
-            result.add(new LinkedHashMap<>(hash));
         }
         if (!toRemove.isEmpty()) {
             notifRedis.opsForZSet().remove(GLOBAL_ZSET, toRemove.toArray());
@@ -151,20 +144,21 @@ public class GlobalNotificationServiceImpl implements GlobalNotificationService 
         return Result.success("查询成功", result);
     }
 
-    private List<Map<String, Object>> getNotifPage(String zSetKey, int page, int size) {
+    private List<Map<String, String>> getPage(String zSetKey, int page, int size) {
         long start = (long) (page - 1) * size;
         long end = start + size - 1;
         Set<String> ids = notifRedis.opsForZSet().reverseRange(zSetKey, start, end);
-        List<Map<String, Object>> result = new ArrayList<>();
+        List<Map<String, String>> result = new ArrayList<>();
         if (ids == null) return result;
+
         List<String> toRemove = new ArrayList<>();
         for (String id : ids) {
-            Map<Object, Object> hash = notifRedis.opsForHash().entries(NOTIF_PREFIX + id);
-            if (hash.isEmpty()) {
+            Map<String, String> notif = readNotif(id);
+            if (notif == null) {
                 toRemove.add(id);
-                continue;
+            } else {
+                result.add(notif);
             }
-            result.add(new LinkedHashMap<>(hash));
         }
         for (String id : toRemove) {
             notifRedis.opsForZSet().remove(zSetKey, id);
@@ -173,16 +167,15 @@ public class GlobalNotificationServiceImpl implements GlobalNotificationService 
     }
 
     private long cleanAndCount(String zSetKey) {
-        Set<ZSetOperations.TypedTuple<Object>> tuples = notifRedis.opsForZSet().rangeWithScores(zSetKey, 0, -1);
-        if (tuples == null) return 0;
+        Set<String> ids = notifRedis.opsForZSet().range(zSetKey, 0, -1);
+        if (ids == null) return 0;
         long count = 0;
         List<String> toRemove = new ArrayList<>();
-        for (ZSetOperations.TypedTuple<Object> t : tuples) {
-            String id = String.valueOf(t.getValue());
-            if (Boolean.FALSE.equals(notifRedis.hasKey(NOTIF_PREFIX + id))) {
-                toRemove.add(id);
-            } else {
+        for (String id : ids) {
+            if (Boolean.TRUE.equals(notifRedis.hasKey(NOTIF_PREFIX + id))) {
                 count++;
+            } else {
+                toRemove.add(id);
             }
         }
         if (!toRemove.isEmpty()) {
@@ -191,7 +184,7 @@ public class GlobalNotificationServiceImpl implements GlobalNotificationService 
         return count;
     }
 
-    private void cleanExpiredFromZSet(String zSetKey) {
+    private void cleanZSet(String zSetKey) {
         Set<String> ids = notifRedis.opsForZSet().range(zSetKey, 0, -1);
         if (ids == null) return;
         List<String> toRemove = new ArrayList<>();
@@ -202,6 +195,25 @@ public class GlobalNotificationServiceImpl implements GlobalNotificationService 
         }
         if (!toRemove.isEmpty()) {
             notifRedis.opsForZSet().remove(zSetKey, toRemove.toArray());
+        }
+    }
+
+    private Map<String, String> readNotif(String id) {
+        String json = notifRedis.opsForValue().get(NOTIF_PREFIX + id);
+        if (json == null) return null;
+        try {
+            return objectMapper.readValue(json, new TypeReference<Map<String, String>>() {});
+        } catch (Exception e) {
+            log.warn("通知JSON解析失败 id={}: {}", id, e.getMessage());
+            return null;
+        }
+    }
+
+    private String toJson(Map<String, String> map) {
+        try {
+            return objectMapper.writeValueAsString(map);
+        } catch (Exception e) {
+            return "{}";
         }
     }
 }
