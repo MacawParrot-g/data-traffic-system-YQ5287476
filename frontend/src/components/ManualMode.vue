@@ -124,7 +124,7 @@
         </div>
         <div class="form-group" style="flex:1">
           <label>记录日期</label>
-          <template v-if="eventResult === applyTime">
+          <template v-if="applyTime">
             <template v-if="currentUserRole === 'DEVELOPER'">
               <div class="date-source-toggle">
                 <button type="button" class="date-source-btn" :class="{ active: dateSource === 'applyTime' }" @click="dateSource = 'applyTime'; form.record_data = applyTime">📅 applyTime</button>
