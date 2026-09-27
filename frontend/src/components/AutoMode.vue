@@ -978,6 +978,7 @@ function resetState() {
   duplicateTip.value = '';
   dateSource.value = 'applyTime'
   saveMsg.value = ''
+  applyTime.value = ''
   lastReportTime.value = ''
   recordSubmitted.value = false
   form.exception_type = '';

@@ -184,9 +184,9 @@
           </div>
           <div class="form-group" style="flex:1">
             <label>记录日期</label>
-            <template v-if="eventResult === 'has_event' && lastReportTime">
+            <template v-if="applyTime">
               <div class="date-source-toggle">
-                <button type="button" class="date-source-btn" :class="{ active: dateSource === 'lastReport' }" @click="dateSource = 'lastReport'; form.record_data = lastReportTime">📡 lastReportTime</button>
+                <button type="button" class="date-source-btn" :class="{ active: dateSource === 'applyTime' }" @click="dateSource = 'applyTime'; form.record_data = applyTime">📅 applyTime</button>
                 <button type="button" class="date-source-btn" :class="{ active: dateSource === 'today' }" @click="dateSource = 'today'; form.record_data = getTodayStr()">📅 今日日期</button>
               </div>
               <input :value="form.record_data" disabled class="date-readonly" />
@@ -502,6 +502,7 @@ const qrCanvas = ref(null)
 const timerSeconds = ref(60)
 const timerCountdown = ref(0)
 const timerMsg = ref('')
+const applyTime = ref('')
 const polling = ref(false)
 const pollCount = ref(0)
 const appIds = ref('')
@@ -517,6 +518,13 @@ const attrStates = reactive({
   singular: { bundleId: '', data: [], loading: false, count: null, queried: false },
   tenjin: { bundleId: '', data: [], loading: false, count: null, queried: false }
 })
+
+function trimApplyTime(raw) {
+  if (!raw) return ''
+  const idx = raw.indexOf('.')
+  return idx > -1 ? raw.substring(0, idx) : raw
+}
+
 
 const form = reactive({
   exception_type: '',
@@ -630,6 +638,7 @@ async function fetchData() {
       downloadUrl.value = json.data.downloadUrl || ''
       bundleId.value = json.data.bundleId || ''
       appIds.value = json.data.appId || ''
+      applyTime.value = trimApplyTime(json.data.applyTime || '')
       taskId.value = json.data.id ?? null
       originalCurrentTargetNum.value = json.data.currentTargetNum ?? null
       isSubmit = false
@@ -680,6 +689,7 @@ async function fetchByAppId() {
       duplicateTip.value = ''
       downloadUrl.value = json.data.downloadUrl || ''
       bundleId.value = json.data.bundleId || ''
+      applyTime.value = trimApplyTime(json.data.applyTime || '')
       originalCurrentTargetNum.value = json.data.currentTargetNum ?? null
       isSubmit = false
       fillAttrBundleIds(bundleId.value)
@@ -823,10 +833,8 @@ async function queryEvent() {
       }
     }
     lastReportTime.value = lrt
-    if (eventResult.value === 'has_event' && lrt) {
       if (dateSource.value === 'lastReport') form.record_data = lrt
       else form.record_data = getTodayStr()
-    }
   } catch (e) {
     emit('error', '事件查询失败：' + e.message)
   } finally {
@@ -1009,6 +1017,7 @@ function resetTaskState() {
   newCurrentTargetNum.value = null
   attributions.value = []
   eventId.value = null
+  applyTime.value = ''
   frozenMsg.value = ''
   duplicateTip.value = ''
   saveMsg.value = ''
