@@ -1,6 +1,6 @@
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue'
-import { sendAlertNotification, fetchAlertList, deleteAlertNotification, fetchUserList } from '../api/index.js'
+import { sendGlobalNotification, fetchGlobalNotificationHistory, deleteGlobalNotification, fetchUserList } from '../api/index.js'
 
 const emit = defineEmits(['error'])
 
@@ -21,16 +21,26 @@ const selectedUsers = ref([])
 const userList = ref([])
 const userLoading = ref(false)
 
-const newAlert = reactive({
+const newNotif = reactive({
   type: 'INFO',
   title: '',
-  content: ''
+  content: '',
+  expireSeconds: 86400
 })
 
 const typeOptions = [
-  { value: 'INFO', label: '📢 普通通知' },
-  { value: 'WARNING', label: '⚠️ 警告通知' },
-  { value: 'EMERGENCY', label: '🚨 紧急通知' }
+  { value: 'INFO', label: '普通通知' },
+  { value: 'WARNING', label: '警告通知' },
+  { value: 'EMERGENCY', label: '紧急通知' }
+]
+
+const expireOptions = [
+  { value: 3600, label: '1小时' },
+  { value: 21600, label: '6小时' },
+  { value: 86400, label: '1天' },
+  { value: 259200, label: '3天' },
+  { value: 604800, label: '7天' },
+  { value: 2592000, label: '30天' }
 ]
 
 const totalPages = () => Math.max(1, Math.ceil(total.value / pageSize.value))
@@ -52,7 +62,7 @@ async function loadUsers() {
 async function loadAll() {
   loading.value = true
   try {
-    const json = await fetchAlertList(currentPage.value, pageSize.value)
+    const json = await fetchGlobalNotificationHistory(currentPage.value, pageSize.value)
     if (json.success) {
       list.value = json.data || []
       total.value = json.total || 0
@@ -86,42 +96,48 @@ function toggleAllUsers() {
 async function handleSend() {
   let receivers = ''
   if (sendMode.value === 'single') {
-    if (!selectedUser.value.trim()) { sendMsg.value = '❌ 请输入接收人'; return }
+    if (!selectedUser.value.trim()) { sendMsg.value = '请输入接收人'; return }
     receivers = selectedUser.value.trim()
   } else if (sendMode.value === 'multi') {
-    if (selectedUsers.value.length === 0) { sendMsg.value = '❌ 请至少选择一个用户'; return }
+    if (selectedUsers.value.length === 0) { sendMsg.value = '请至少选择一个用户'; return }
     receivers = selectedUsers.value.join(',')
   } else {
     receivers = 'ALL'
   }
-  if (!newAlert.title.trim()) { sendMsg.value = '❌ 请输入标题'; return }
+  if (!newNotif.title.trim()) { sendMsg.value = '请输入标题'; return }
 
   sending.value = true
   sendMsg.value = ''
   try {
-    const json = await sendAlertNotification(receivers, newAlert.type, newAlert.title.trim(), newAlert.content.trim())
+    const json = await sendGlobalNotification({
+      title: newNotif.title.trim(),
+      content: newNotif.content.trim(),
+      type: newNotif.type,
+      receivers: receivers,
+      expireSeconds: newNotif.expireSeconds
+    })
     if (json.success) {
-      sendMsg.value = '✅ ' + json.message
-      newAlert.title = ''
-      newAlert.content = ''
+      sendMsg.value = json.message || '发送成功'
+      newNotif.title = ''
+      newNotif.content = ''
       selectedUser.value = ''
       selectedUsers.value = []
       showSendForm.value = false
       await loadAll()
     } else {
-      sendMsg.value = '❌ ' + (json.message || '发送失败')
+      sendMsg.value = json.message || '发送失败'
     }
   } catch (e) {
-    sendMsg.value = '❌ 发送请求失败：' + e.message
+    sendMsg.value = '发送请求失败：' + e.message
   } finally {
     sending.value = false
   }
 }
 
 async function handleDelete(n) {
-  if (!confirm(`确定要删除通知「${n.title}」吗？`)) return
+  if (!confirm('确定要删除通知「' + n.title + '」吗？')) return
   try {
-    const json = await deleteAlertNotification(n.id)
+    const json = await deleteGlobalNotification(n.id)
     if (json.success) {
       await loadAll()
     } else {
@@ -139,15 +155,6 @@ function applyPageSize() {
   if (v > 0) { pageSize.value = v; currentPage.value = 1; loadAll() }
 }
 
-function getTypeIcon(type) {
-  switch (type) {
-    case 'INFO': return '📢'
-    case 'WARNING': return '⚠️'
-    case 'EMERGENCY': return '🚨'
-    default: return '🔔'
-  }
-}
-
 function getTypeLabel(type) {
   switch (type) {
     case 'INFO': return '普通'
@@ -155,6 +162,19 @@ function getTypeLabel(type) {
     case 'EMERGENCY': return '紧急'
     default: return type
   }
+}
+
+function getTypeClass(type) {
+  switch (type) {
+    case 'WARNING': return 'type-WARNING'
+    case 'EMERGENCY': return 'type-EMERGENCY'
+    default: return 'type-INFO'
+  }
+}
+
+function isExpired(item) {
+  if (!item.expireAt) return false
+  return new Date(item.expireAt) < new Date()
 }
 
 onMounted(() => {
@@ -166,31 +186,31 @@ onMounted(() => {
 <template>
   <div class="notify-page">
     <div class="page-header">
-      <h2>📨 强制通知管理</h2>
-      <div class="page-header-sub">发送通知将强制弹窗显示在目标用户屏幕上</div>
+      <h2>全域通知管理</h2>
+      <div class="page-header-sub">发送通知将弹窗显示在目标用户屏幕上（除发送者外）</div>
     </div>
 
     <div class="notify-actions-bar">
       <button class="btn-action btn-send" @click="showSendForm = !showSendForm">
-        {{ showSendForm ? '✕ 取消' : '✉️ 发送通知' }}
+        {{ showSendForm ? '取消' : '发送通知' }}
       </button>
       <button class="btn-action btn-refresh-n" @click="loadAll" :disabled="loading">
-        {{ loading ? '加载中...' : '🔄 刷新' }}
+        {{ loading ? '加载中...' : '刷新' }}
       </button>
     </div>
 
     <div v-if="showSendForm" class="send-card">
-      <h3>发送强制通知</h3>
+      <h3>发送全域通知</h3>
 
       <div class="mode-selector">
         <label class="mode-option" :class="{ 'mode-active': sendMode === 'single' }">
-          <input type="radio" v-model="sendMode" value="single" /> 👤 单人发送
+          <input type="radio" v-model="sendMode" value="single" /> 单人发送
         </label>
         <label class="mode-option" :class="{ 'mode-active': sendMode === 'multi' }">
-          <input type="radio" v-model="sendMode" value="multi" /> 👥 多人发送
+          <input type="radio" v-model="sendMode" value="multi" /> 多人发送
         </label>
         <label class="mode-option" :class="{ 'mode-active': sendMode === 'all' }">
-          <input type="radio" v-model="sendMode" value="all" /> 📡 全员广播
+          <input type="radio" v-model="sendMode" value="all" /> 全员广播
         </label>
       </div>
 
@@ -218,27 +238,33 @@ onMounted(() => {
         </div>
 
         <div v-if="sendMode === 'all'" class="send-field send-field-full">
-          <div class="broadcast-hint">📡 将发送给系统内所有用户（共 {{ userList.length }} 人）</div>
+          <div class="broadcast-hint">将发送给系统内所有用户（共 {{ userList.length }} 人）</div>
         </div>
 
         <div class="send-field">
           <label class="field-label">通知类型</label>
-          <select v-model="newAlert.type" class="send-input">
+          <select v-model="newNotif.type" class="send-input">
             <option v-for="opt in typeOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
           </select>
         </div>
         <div class="send-field">
+          <label class="field-label">过期时间</label>
+          <select v-model="newNotif.expireSeconds" class="send-input">
+            <option v-for="opt in expireOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+          </select>
+        </div>
+        <div class="send-field">
           <label class="field-label">标题</label>
-          <input v-model="newAlert.title" class="send-input" placeholder="通知标题" />
+          <input v-model="newNotif.title" class="send-input" placeholder="通知标题" />
         </div>
         <div class="send-field send-field-full">
           <label class="field-label">内容</label>
-          <textarea v-model="newAlert.content" class="send-textarea" placeholder="通知内容（可选）" rows="3"></textarea>
+          <textarea v-model="newNotif.content" class="send-textarea" placeholder="通知内容（可选）" rows="3"></textarea>
         </div>
       </div>
-      <div v-if="sendMsg" class="send-msg" :class="{ 'send-msg-ok': sendMsg.startsWith('✅'), 'send-msg-err': sendMsg.startsWith('❌') }">{{ sendMsg }}</div>
+      <div v-if="sendMsg" class="send-msg" :class="{ 'send-msg-ok': sendMsg.includes('成功'), 'send-msg-err': !sendMsg.includes('成功') }">{{ sendMsg }}</div>
       <button class="btn-action btn-submit" @click="handleSend" :disabled="sending">
-        {{ sending ? '发送中...' : '📤 确认发送' }}
+        {{ sending ? '发送中...' : '确认发送' }}
       </button>
     </div>
 
@@ -247,7 +273,7 @@ onMounted(() => {
     </div>
 
     <div v-if="list.length === 0 && !loading" class="state-block">
-      <div class="state-icon">📭</div>
+      <div class="state-icon">--</div>
       <div class="state-text">暂无通知记录</div>
     </div>
 
@@ -255,23 +281,25 @@ onMounted(() => {
       <table class="data-table">
         <thead>
         <tr>
-          <th>#</th><th>类型</th><th>接收人</th><th>标题</th><th>内容</th>
-          <th>状态</th><th>发送时间</th><th>操作</th>
+          <th>#</th><th>类型</th><th>发送者</th><th>标题</th><th>内容</th>
+          <th>发送时间</th><th>过期时间</th><th>状态</th><th>操作</th>
         </tr>
         </thead>
         <tbody>
         <tr v-for="(n, index) in list" :key="n.id">
           <td class="cell-index">{{ (currentPage - 1) * pageSize + index + 1 }}</td>
-          <td><span class="type-tag" :class="'type-' + n.type">{{ getTypeIcon(n.type) }} {{ getTypeLabel(n.type) }}</span></td>
-          <td><span class="receiver-tag">{{ n.receiver }}</span></td>
+          <td><span class="type-tag" :class="getTypeClass(n.type)">{{ getTypeLabel(n.type) }}</span></td>
+          <td><span class="sender-tag">{{ n.sender }}</span></td>
           <td class="cell-title">{{ n.title }}</td>
           <td class="cell-content" :title="n.content">{{ n.content || '-' }}</td>
-          <td>
-            <span :class="n.acknowledged ? 'tag-read' : 'tag-unread'">{{ n.acknowledged ? '已确认' : '未确认' }}</span>
-          </td>
           <td class="cell-time">{{ n.createdAt || '-' }}</td>
+          <td class="cell-time">{{ n.expireAt || '-' }}</td>
           <td>
-            <button class="btn-sm-del" @click="handleDelete(n)">🗑 删除</button>
+            <span v-if="isExpired(n)" class="tag-expired">已过期</span>
+            <span v-else class="tag-active">有效</span>
+          </td>
+          <td>
+            <button class="btn-sm-del" @click="handleDelete(n)">删除</button>
           </td>
         </tr>
         </tbody>
@@ -279,9 +307,9 @@ onMounted(() => {
     </div>
 
     <div v-if="total > 0" class="pagination">
-      <button class="page-btn" :disabled="currentPage <= 1" @click="prevPage">‹ 上一页</button>
+      <button class="page-btn" :disabled="currentPage <= 1" @click="prevPage">上一页</button>
       <span class="page-info">第 {{ currentPage }} / {{ totalPages() }} 页，共 {{ total }} 条</span>
-      <button class="page-btn" :disabled="currentPage >= totalPages()" @click="nextPage">下一页 ›</button>
+      <button class="page-btn" :disabled="currentPage >= totalPages()" @click="nextPage">下一页</button>
       <label class="page-size-label">
         每页 <input class="page-size-input" type="number" v-model="pageSizeInput" @keydown.enter="applyPageSize" @blur="applyPageSize" min="1" max="200" /> 条
       </label>
@@ -342,7 +370,7 @@ onMounted(() => {
 .result-count strong { color: #667eea; font-weight: 800; }
 
 .state-block { text-align: center; padding: 50px 20px; }
-.state-icon { font-size: 48px; margin-bottom: 12px; }
+.state-icon { font-size: 48px; margin-bottom: 12px; color: #ccc; }
 .state-text { color: #aaa; font-size: 14px; }
 
 .table-wrapper { overflow-x: auto; border-radius: 10px; border: 1px solid #e8e8e8; margin-bottom: 16px; }
@@ -358,15 +386,15 @@ onMounted(() => {
 .type-INFO { background: #e0e7ff; color: #3730a3; }
 .type-WARNING { background: #fef3c7; color: #92400e; }
 .type-EMERGENCY { background: #fef2f2; color: #991b1b; }
-.receiver-tag { background: #dcfce7; color: #166534; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
-.tag-read { background: #dcfce7; color: #166534; padding: 3px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; }
-.tag-unread { background: #fef3c7; color: #92400e; padding: 3px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+.sender-tag { background: #e0e7ff; color: #3730a3; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+.tag-active { background: #dcfce7; color: #166534; padding: 3px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+.tag-expired { background: #f0f0f0; color: #999; padding: 3px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; }
 .btn-sm-del { background: #fef2f2; color: #991b1b; border: none; padding: 5px 12px; border-radius: 8px; cursor: pointer; font-size: 11px; font-weight: 600; }
 .btn-sm-del:hover { background: #fecaca; }
 
 .pagination { display: flex; justify-content: center; align-items: center; gap: 16px; padding: 14px 0; }
 .page-btn { background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; border: none; padding: 8px 22px; border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 13px; transition: transform 0.15s; }
-.page-btn:hover { transform: translateY(-2px); }
+.page-btn:hover:not(:disabled) { transform: translateY(-2px); }
 .page-btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
 .page-info { font-size: 13px; color: #666; font-weight: 600; }
 .page-size-label { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #666; }

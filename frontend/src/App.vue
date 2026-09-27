@@ -175,7 +175,6 @@ const componentMap = computed(() => {
     auto: AutoMode,
     manual: ManualMode,
     qrcode: QRCodeBuilderByMan,
-    notifyHistory: NotificationHistory,
   }
   if (accType.value === 'ADMIN' || accType.value === 'DEVELOPER') {
     map.data = AdminPanel
@@ -232,7 +231,6 @@ const tabs = [
   { key: 'audit', label: '审计日志' },
   { key: 'task', label: '定时任务' },
   { key: 'notify', label: '通知管理' },
-  { key: 'notifyHistory', label: '通知历史' },
   { key: 'mq', label: 'MQ监控' },
 ]
 
@@ -339,9 +337,9 @@ function disconnectSSE() {
 
 function getAlertIcon(type) {
   switch (type) {
-    case 'WARNING': return '⚠️'
-    case 'EMERGENCY': return '🚨'
-    default: return '📢'
+    case 'WARNING': return 'A'
+    case 'EMERGENCY': return 'E'
+    default: return 'O'
   }
 }
 
