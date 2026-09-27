@@ -634,7 +634,6 @@ const template=['需要iOS17以上','需要登陆后使用，无法注册','卡�
 
 const currentUserRole = ref(localStorage.getItem('accType') || '')
 const lastReportTime = ref('')
-let exportPollTimer = null
 const recordSubmitted = ref(false)
 const downloadUrl = ref('')
 const bundleId = ref('')
@@ -995,6 +994,14 @@ function resetState() {
   gradeForm.remark = ''
 }
 
+function generateSubmissionId() {
+  const bytes = new Uint8Array(16)
+  crypto.getRandomValues(bytes)
+  return Array.from(bytes)
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('')
+}
+
 async function doFrozen() {
   if (!taskId.value) return
   frozenLoading.value = true; emit('error', '')
@@ -1048,7 +1055,8 @@ async function saveToMySQL() {
       record_data: finalRecordData,
       recorder: form.recorder,
       remark: finalRemark,
-      isOutput: 0
+      isOutput: 0,
+      submissionId: generateSubmissionId()
     })
     if (json.success) {
       // saveMsg.value = '✅ ' + (json.message || '入库成功')

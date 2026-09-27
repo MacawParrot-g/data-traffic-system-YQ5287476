@@ -648,6 +648,14 @@ async function fetchData() {
   }
 }
 
+function generateSubmissionId() {
+  const bytes = new Uint8Array(16)
+  crypto.getRandomValues(bytes)
+  return Array.from(bytes)
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('')
+}
+
 async function fetchByAppId() {
   const id = appId.value.trim()
   if (!id) return
@@ -924,7 +932,8 @@ async function saveToMySQL() {
       record_data: finalRecordData,
       recorder: form.recorder,
       remark: finalRemark,
-      isOutput: 0
+      isOutput: 0,
+      submissionId: generateSubmissionId()
     })
     if (json.success) {
       saveMsg.value = '✅ ' + (json.resultMsg || '入库成功')

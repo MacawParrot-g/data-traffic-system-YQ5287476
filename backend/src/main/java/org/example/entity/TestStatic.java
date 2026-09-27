@@ -46,4 +46,8 @@ public class TestStatic {
     @TableField(exist = false)
     private Long taskId;
 
+    @TableField(exist = false)
+    @JsonProperty("submissionId")
+    private String submissionId;
+
 }

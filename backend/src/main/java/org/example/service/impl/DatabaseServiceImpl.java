@@ -272,13 +272,13 @@ public class DatabaseServiceImpl implements DatabaseService, CommandLineRunner {
 
     @Override
     public Result submitRecordWithIdempotent(TestStatic record) {
-        Long taskId = record.getTaskId();
-        if (taskId != null) {
-            String redisKey = SUBMITTED_KEY_PREFIX + taskId;
+        String submissionId = record.getSubmissionId();
+        if (submissionId != null && !submissionId.isEmpty()) {
+            String redisKey = SUBMITTED_KEY_PREFIX + submissionId;
             try {
                 Boolean alreadySubmitted = redisTemplate.hasKey(redisKey);
                 if (Boolean.TRUE.equals(alreadySubmitted)) {
-                    return Result.fail("该任务已入库，请勿重复提交");
+                    return Result.fail("该提交已处理，请勿重复提交");
                 }
             } catch (Exception e) {
                 log.warn("幂等检查Redis查询失败，降级放行: {}", e.getMessage());
@@ -289,6 +289,17 @@ public class DatabaseServiceImpl implements DatabaseService, CommandLineRunner {
             } catch (Exception e) {
                 log.warn("幂等标记Redis写入失败: {}", e.getMessage());
             }
+
+            try {
+                if (record.getIsOutput() == null) {
+                    record.setIsOutput(0);
+                }
+                doSubmitRecord(record);
+                return Result.success("入库请求已接收，正在异步处理", null);
+            } catch (Exception e) {
+                try { redisTemplate.delete(redisKey); } catch (Exception ignored) {}
+                return Result.fail("入库失败：" + e.getMessage());
+            }
         }
 
         try {
@@ -298,9 +309,6 @@ public class DatabaseServiceImpl implements DatabaseService, CommandLineRunner {
             doSubmitRecord(record);
             return Result.success("入库请求已接收，正在异步处理", null);
         } catch (Exception e) {
-            if (taskId != null) {
-                try { redisTemplate.delete(SUBMITTED_KEY_PREFIX + taskId); } catch (Exception ignored) {}
-            }
             return Result.fail("入库失败：" + e.getMessage());
         }
     }
