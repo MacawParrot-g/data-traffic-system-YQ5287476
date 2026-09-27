@@ -161,7 +161,7 @@
         </div>
         <div class="form-group" style="flex:1">
           <label>记录日期</label>
-          <template v-if="eventResult === 'has_event' && applyTime">
+          <template v-if="eventResult === applyTime">
             <template v-if="currentUserRole === 'DEVELOPER'">
               <div class="date-source-toggle">
                 <button type="button" class="date-source-btn" :class="{ active: dateSource === 'applyTime' }" @click="dateSource = 'applyTime'; form.record_data = applyTime">📅 applyTime</button>
@@ -951,14 +951,13 @@ async function queryEvent() {
       }
     }
     lastReportTime.value = lrt
-    if (eventResult.value === 'has_event') {
       if (currentUserRole.value !== 'DEVELOPER') {
         form.record_data = applyTime.value || lrt
       } else {
         if (dateSource.value === 'applyTime') form.record_data = applyTime.value || lrt
         else form.record_data = getTodayStr()
       }
-    }
+
   } catch (e) {
     emit('error', '事件查询失败：' + e.message)
   } finally {
@@ -980,7 +979,6 @@ function resetState() {
   dateSource.value = 'applyTime'
   saveMsg.value = ''
   lastReportTime.value = ''
-  dateSource.value = 'lastReport'
   recordSubmitted.value = false
   form.exception_type = '';
   form.remark = '';
@@ -992,6 +990,7 @@ function resetState() {
   gradeMsg.value = ''
   gradeForm.grade = ''
   gradeForm.remark = ''
+
 }
 
 function generateSubmissionId() {
