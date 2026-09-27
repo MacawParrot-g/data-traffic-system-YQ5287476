@@ -79,6 +79,22 @@
     </div>
   </div>
 
+  <div class="gn-overlay" v-if="globalNotifs.length > 0">
+    <div class="gn-modal" v-for="(notif, idx) in globalNotifs" :key="'gn-' + notif.id + '-' + idx" :class="getNotifTypeClass(notif.type)">
+      <div class="gn-header">
+        <span class="gn-type-label" :class="getNotifTypeClass(notif.type)">{{ getNotifTypeLabel(notif.type) }}</span>
+        <button class="gn-close" @click="dismissGlobalNotif(idx)">x</button>
+      </div>
+      <h3 class="gn-title">{{ notif.title }}</h3>
+      <p class="gn-content" v-if="notif.content">{{ notif.content }}</p>
+      <div class="gn-footer">
+        <span class="gn-sender">发送者: {{ notif.sender }}</span>
+        <span class="gn-time">{{ notif.createdAt }}</span>
+      </div>
+      <button class="gn-dismiss" @click="dismissGlobalNotif(idx)">关闭</button>
+    </div>
+  </div>
+
   <div class="login-overlay" v-if="!loggedIn">
     <div class="login-card">
       <img src="/icon.png" alt="公司Logo" class="login-logo" />
@@ -103,11 +119,10 @@
   </div>
 </template>
 
-<script setup>import {ref, onMounted, computed, onUnmounted,watch} from 'vue'
-import { authLogin, authLogout, authStatus, fetchCountByRecorder,ackAlert} from './api/index.js'
+<script setup>
+import { authLogin, authLogout, authStatus, fetchCountByRecorder, ackAlert, pollGlobalNotifications } from './api/index.js'
 import AutoMode from './components/AutoMode.vue'
 import ManualMode from './components/ManualMode.vue'
-import ExportMode from './components/ExportMode.vue'
 import DataVisitable from "./components/DataVisitable.vue";
 import QRCodeBuilderByMan from "./components/QRCodeBuilderByMan.vue";
 import NewbieGuide from "./components/NewbieGuide.vue";
@@ -119,6 +134,7 @@ import AuditLogPanel from "./components/AuditLogPanel.vue";
 import ScheduledTaskPanel from "./components/ScheduledTaskPanel.vue";
 import NotificationCenter from "./components/NotificationCenter.vue";
 import NotificationManager from "./components/NotificationManager.vue";
+import NotificationHistory from "./components/NotificationHistory.vue";
 import MQPanel from "./components/MQPanel.vue";
 
 let sseSource = null
@@ -127,12 +143,15 @@ const errorMsg = ref('')
 const loggedIn = ref(false)
 const loginUid = ref('')
 const loginPwd = ref('')
+const lastPollTime = ref(Date.now())
+let pollTimer = null
 const loginLoading = ref(false)
 const loginError = ref('')
 const loggingOut = ref(false)
 const forcedAlerts = ref([])
 const showGuide = ref(false)
 const accType = ref('USER')
+const globalNotifs = ref([])
 const displayName = ref('')
 const sidebarCollapsed = ref(false)
 const todayCount = ref(0)
@@ -180,6 +199,26 @@ const componentMap = computed(() => {
 const currentComponent = computed(() => componentMap.value[mode.value])
 
 
+function dismissGlobalNotif(index) {
+  globalNotifs.value.splice(index, 1)
+}
+
+function getNotifTypeLabel(type) {
+  switch (type) {
+    case 'WARNING': return '警告'
+    case 'EMERGENCY': return '紧急'
+    default: return '通知'
+  }
+}
+
+function getNotifTypeClass(type) {
+  switch (type) {
+    case 'WARNING': return 'gn-warn'
+    case 'EMERGENCY': return 'gn-emergency'
+    default: return 'gn-info'
+  }
+}
+
 const tabs = [
   { key: 'auto', label: '自动模式' },
   { key: 'manual', label: '手动模式' },
@@ -191,6 +230,7 @@ const tabs = [
   { key: 'audit', label: '审计日志' },
   { key: 'task', label: '定时任务' },
   { key: 'notify', label: '通知管理' },
+  { key: 'notifyHistory', label: '通知历史' },
   { key: 'mq', label: 'MQ监控' },
 ]
 
@@ -263,6 +303,31 @@ function connectSSE() {
   }
 }
 
+function startNotifPolling() {
+  stopNotifPolling()
+  lastPollTime.value = Date.now()
+  pollTimer = setInterval(async () => {
+    try {
+      const json = await pollGlobalNotifications(lastPollTime.value)
+      if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+        for (const n of json.data) {
+          if (n.sender !== localStorage.getItem('userName')) {
+            globalNotifs.value.push(n)
+          }
+        }
+        lastPollTime.value = Date.now()
+      }
+    } catch (e) { /* silent */ }
+  }, 5000)
+}
+
+function stopNotifPolling() {
+  if (pollTimer) {
+    clearInterval(pollTimer)
+    pollTimer = null
+  }
+}
+
 function disconnectSSE() {
   if (sseSource) {
     sseSource.close()
@@ -319,6 +384,7 @@ async function doLogin() {
       loggedIn.value = true
       mode.value = 'auto'
       connectSSE()
+      startNotifPolling()
     } else {
       loginError.value = json.message || '登录失败'
     }
@@ -355,6 +421,8 @@ async function doLogout() {
     loginError.value = ''
     mode.value = 'auto'
     loggingOut.value = false
+    disconnectSSE()
+    stopNotifPolling()
   }
 }
 
@@ -607,6 +675,24 @@ body {
 .logo-icon {
   font-size: 24px;
 }
+.gn-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.45); z-index: 99999; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 16px; }
+.gn-modal { width: 440px; background: #fff; border-radius: 16px; padding: 24px 28px; box-shadow: 0 16px 64px rgba(0,0,0,0.3); border-top: 4px solid #667eea; animation: gnIn 0.3s ease-out; }
+.gn-modal.gn-warn { border-top-color: #f59e0b; }
+.gn-modal.gn-emergency { border-top-color: #ef4444; }
+@keyframes gnIn { from { opacity: 0; transform: scale(0.9) translateY(-20px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+.gn-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.gn-type-label { padding: 3px 10px; border-radius: 4px; font-size: 11px; font-weight: 700; }
+.gn-info { background: #e0e7ff; color: #3730a3; }
+.gn-warn { background: #fef3c7; color: #92400e; }
+.gn-emergency { background: #fef2f2; color: #991b1b; }
+.gn-close { background: none; border: none; font-size: 18px; cursor: pointer; color: #999; font-weight: 700; padding: 0 4px; }
+.gn-close:hover { color: #333; }
+.gn-title { margin: 0 0 8px; font-size: 18px; font-weight: 700; color: #1a1a2e; }
+.gn-content { margin: 0 0 16px; font-size: 14px; color: #555; line-height: 1.6; }
+.gn-footer { display: flex; justify-content: space-between; font-size: 11px; color: #aaa; margin-bottom: 16px; }
+.gn-dismiss { width: 100%; padding: 10px; border: none; border-radius: 10px; background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; }
+.gn-dismiss:hover { opacity: 0.9; }
+
 .logo-text {
   font-size: 16px;
   font-weight: 700;

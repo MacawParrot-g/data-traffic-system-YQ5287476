@@ -588,3 +588,27 @@ function checkDeployVersion(response) {
         }))
     }
 }
+
+export function sendGlobalNotification(data) {
+    return fetchWithTimeout('/api/global-notification/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    }, 15000).then(safeJson)
+}
+
+export function fetchGlobalNotificationHistory(page = 1, size = 20) {
+    return fetchWithTimeout('/api/global-notification/history?page=' + page + '&size=' + size, {}, 15000).then(safeJson)
+}
+
+export function fetchMyNotifications(page = 1, size = 20) {
+    return fetchWithTimeout('/api/global-notification/my?page=' + page + '&size=' + size, {}, 15000).then(safeJson)
+}
+
+export function deleteGlobalNotification(id) {
+    return fetchWithTimeout('/api/global-notification/delete?id=' + encodeURIComponent(id), { method: 'DELETE' }, 10000).then(safeJson)
+}
+
+export function pollGlobalNotifications(since) {
+    return fetchWithTimeout('/api/global-notification/poll?since=' + since, {}, 10000).then(safeJson)
+}
