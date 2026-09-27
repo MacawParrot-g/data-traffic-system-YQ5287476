@@ -124,16 +124,16 @@
         </div>
         <div class="form-group" style="flex:1">
           <label>记录日期</label>
-          <template v-if="eventResult === 'has_event' && lastReportTime">
+          <template v-if="eventResult === 'has_event' && applyTime">
             <template v-if="currentUserRole === 'DEVELOPER'">
               <div class="date-source-toggle">
-                <button type="button" class="date-source-btn" :class="{ active: dateSource === 'lastReport' }" @click="dateSource = 'lastReport'; form.record_data = lastReportTime">📡 lastReportTime</button>
+                <button type="button" class="date-source-btn" :class="{ active: dateSource === 'applyTime' }" @click="dateSource = 'applyTime'; form.record_data = applyTime">📅 applyTime</button>
                 <button type="button" class="date-source-btn" :class="{ active: dateSource === 'today' }" @click="dateSource = 'today'; form.record_data = getTodayStr()">📅 今日日期</button>
               </div>
               <input :value="form.record_data" disabled class="date-readonly" />
             </template>
             <template v-else>
-              <input :value="lastReportTime" disabled class="date-readonly" title="使用事件最后上报时间" />
+              <input :value="applyTime" disabled class="date-readonly" title="使用任务申请时间" />
             </template>
           </template>
           <input v-else v-model="form.record_data" />
@@ -368,6 +368,9 @@ const originalCurrentTargetNum = ref(null)
 const eventResult = ref('')
 const newCurrentTargetNum = ref(null)
 let attributions = ref([])
+const lastReportTime = ref('')
+const applyTime = ref('')
+const dateSource = ref('applyTime')
 const eventId = ref(null)
 const frozenMsg = ref('')
 const duplicateTip = ref('')
@@ -386,8 +389,6 @@ let isFrozen=ref('')
 const MAX_RETRIES = 5
 let retryCount = 0
 const currentUserRole = ref(localStorage.getItem('accType') || '')
-const lastReportTime = ref('')
-const dateSource = ref('lastReport')
 const form = reactive(
     {
       exception_type: '',
@@ -408,6 +409,12 @@ async function fetchDataByName(){
   }else{
     alert("获取事件数失败，请联系工作人员")
   }
+}
+
+function trimApplyTime(raw) {
+  if (!raw) return ''
+  const idx = raw.indexOf('.')
+  return idx > -1 ? raw.substring(0, idx) : raw
 }
 
 async function renderQR(url) {
@@ -434,21 +441,10 @@ async function fetchData() {
   try {
     const json = await fetchObtain(id)
     if (json.success && json.data) {
-      // if (json.duplicate) {
-      //   retryCount++
-      //   if (retryCount > MAX_RETRIES) {
-      //     emit('error', '已连续 ' + MAX_RETRIES + ' 次检测到重复URL，请稍后再试')
-      //     duplicateTip.value = ''
-      //     return
-      //   }
-      //   duplicateTip.value = '检测到重复URL（第' + retryCount + '次），正在为您自动刷新...'
-      //   setTimeout(() => fetchData(), 1500)
-      //   return
-      // }
-      // retryCount = 0; duplicateTip.value = ''
       downloadUrl.value = json.data.downloadUrl || '';
       bundleId.value = json.data.bundleId || ''
       taskId.value = json.data.id ?? null
+      applyTime.value = trimApplyTime(json.data.applyTime || '')
       originalCurrentTargetNum.value = json.data.currentTargetNum ?? null
       if(originalCurrentTargetNum.value<=1||originalCurrentTargetNum.value===0){
         alert("初始originalCurrentTargetNum数小于等于1或等于0，后续测试期间可能会没有归因，请注意")
@@ -526,11 +522,11 @@ async function queryEvent() {
       }
     }
     lastReportTime.value = lrt
-    if (eventResult.value === 'has_event' && lrt) {
+    if (eventResult.value === 'has_event') {
       if (currentUserRole.value !== 'DEVELOPER') {
-        form.record_data = lrt
+        form.record_data = applyTime.value || lrt
       } else {
-        if (dateSource.value === 'lastReport') form.record_data = lrt
+        if (dateSource.value === 'applyTime') form.record_data = applyTime.value || lrt
         else form.record_data = getTodayStr()
       }
     }
@@ -613,7 +609,8 @@ function resetState() {
   taskId.value = null;
   retryCount = 0
   lastReportTime.value = ''
-  dateSource.value = 'lastReport'
+  applyTime.value = ''
+  dateSource.value = 'applyTime'
   form.exception_type = '';
   form.remark = '';
   form.recorder = localStorage.getItem('userName') || '';

@@ -161,16 +161,16 @@
         </div>
         <div class="form-group" style="flex:1">
           <label>记录日期</label>
-          <template v-if="eventResult === 'has_event' && lastReportTime">
+          <template v-if="eventResult === 'has_event' && applyTime">
             <template v-if="currentUserRole === 'DEVELOPER'">
               <div class="date-source-toggle">
-                <button type="button" class="date-source-btn" :class="{ active: dateSource === 'lastReport' }" @click="dateSource = 'lastReport'; form.record_data = lastReportTime">📡 lastReportTime</button>
+                <button type="button" class="date-source-btn" :class="{ active: dateSource === 'applyTime' }" @click="dateSource = 'applyTime'; form.record_data = applyTime">📅 applyTime</button>
                 <button type="button" class="date-source-btn" :class="{ active: dateSource === 'today' }" @click="dateSource = 'today'; form.record_data = getTodayStr()">📅 今日日期</button>
               </div>
               <input :value="form.record_data" disabled class="date-readonly" />
             </template>
             <template v-else>
-              <input :value="lastReportTime" disabled class="date-readonly" title="使用事件最后上报时间" />
+              <input :value="applyTime" disabled class="date-readonly" title="使用任务申请时间" />
             </template>
           </template>
           <input v-else type="date" v-model="form.record_data" />
@@ -634,7 +634,6 @@ const template=['需要iOS17以上','需要登陆后使用，无法注册','卡�
 
 const currentUserRole = ref(localStorage.getItem('accType') || '')
 const lastReportTime = ref('')
-const dateSource = ref('lastReport')
 let exportPollTimer = null
 const recordSubmitted = ref(false)
 const downloadUrl = ref('')
@@ -648,6 +647,7 @@ const frozenMsg = ref('')
 const duplicateTip = ref('')
 const loading = ref(false)
 const eventLoading = ref(false)
+const dateSource = ref('applyTime')
 const frozenLoading = ref(false)
 const saving = ref(false)
 const saveMsg = ref('')
@@ -675,18 +675,11 @@ const gradeSaving = ref(false)
 const gradeMsg = ref('')
 const currentUserName = ref(localStorage.getItem('userName') || '')
 const gradeForm = reactive({ grade: '', remark: '' })
-const editingBundleId = ref(null)
-const quickExportCount = ref(null)
-const quickExportLoading = ref(false)
 const quickExportPolling = ref(false)
-const quickExportFileName = ref('')
-const quickExportFileReady = ref(false)
-const quickExportMsg = ref('')
-const quickExportMsgSuccess = ref(false)
-let quickExportPollTimer = null
 const currentUser = currentUserName
 const showGradeDetailModal = ref(false)
 const inventoryLoading = ref(false)
+const applyTime = ref('')
 const gradeDescriptions = {
   A: '该应用很容易出事件，游玩的时候可以适当缩短测试时间',
   B: '该应用需要游玩较长时间，或者玩到指定关卡才会出事件,建议拉长到10分钟以上',
@@ -700,6 +693,11 @@ const form = reactive({
   record_data: getTodayStr()
 })
 
+function trimApplyTime(raw) {
+  if (!raw) return ''
+  const idx = raw.indexOf('.')
+  return idx > -1 ? raw.substring(0, idx) : raw
+}
 
 function getTodayStr() {
   const d = new Date()
@@ -771,6 +769,7 @@ async function fetchData() {
       bundleId.value = json.data.bundleId || ''
       appId.value = json.data.appId || ''
       taskId.value = json.data.id ?? null
+      applyTime.value = trimApplyTime(json.data.applyTime || '')
       originalCurrentTargetNum.value = json.data.currentTargetNum ?? null
       isSubmit=false;
       if(originalCurrentTargetNum.value<=1||originalCurrentTargetNum.value===0){
@@ -953,11 +952,11 @@ async function queryEvent() {
       }
     }
     lastReportTime.value = lrt
-    if (eventResult.value === 'has_event' && lrt) {
+    if (eventResult.value === 'has_event') {
       if (currentUserRole.value !== 'DEVELOPER') {
-        form.record_data = lrt
+        form.record_data = applyTime.value || lrt
       } else {
-        if (dateSource.value === 'lastReport') form.record_data = lrt
+        if (dateSource.value === 'applyTime') form.record_data = applyTime.value || lrt
         else form.record_data = getTodayStr()
       }
     }
@@ -979,6 +978,7 @@ function resetState() {
   frozenMsg.value = '';
   taskId.value = null;
   duplicateTip.value = '';
+  dateSource.value = 'applyTime'
   saveMsg.value = ''
   lastReportTime.value = ''
   dateSource.value = 'lastReport'
