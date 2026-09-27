@@ -120,6 +120,7 @@
 </template>
 
 <script setup>
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { authLogin, authLogout, authStatus, fetchCountByRecorder, ackAlert, pollGlobalNotifications } from './api/index.js'
 import AutoMode from './components/AutoMode.vue'
 import ManualMode from './components/ManualMode.vue'
@@ -174,6 +175,7 @@ const componentMap = computed(() => {
     auto: AutoMode,
     manual: ManualMode,
     qrcode: QRCodeBuilderByMan,
+    notifyHistory: NotificationHistory,
   }
   if (accType.value === 'ADMIN' || accType.value === 'DEVELOPER') {
     map.data = AdminPanel
