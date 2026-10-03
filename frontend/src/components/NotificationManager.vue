@@ -85,14 +85,6 @@ function toggleUser(name) {
   }
 }
 
-function toggleAllUsers() {
-  if (selectedUsers.value.length === userList.value.length) {
-    selectedUsers.value = []
-  } else {
-    selectedUsers.value = userList.value.map(u => u.name)
-  }
-}
-
 async function handleSend() {
   let receivers = ''
   if (sendMode.value === 'single') {
@@ -131,6 +123,14 @@ async function handleSend() {
     sendMsg.value = '发送请求失败：' + e.message
   } finally {
     sending.value = false
+  }
+}
+
+function toggleAllUsers() {
+  if (selectedUsers.value.length === userList.value.length) {
+    selectedUsers.value = []
+  } else {
+    selectedUsers.value = userList.value.map(u => u.name)
   }
 }
 
@@ -229,11 +229,10 @@ onMounted(() => {
             <span class="user-loading" v-if="userLoading">加载用户列表中...</span>
           </div>
           <div class="user-checkbox-grid">
-            <label v-for="u in userList" :key="u.name" class="user-checkbox-item" :class="{ 'user-checked': selectedUsers.includes(u.name) }">
-              <input type="checkbox" :value="u.name" :checked="selectedUsers.includes(u.name)" @change="toggleUser(u.name)" />
+            <div v-for="u in userList" :key="u.name" class="user-checkbox-item" :class="{ 'user-checked': selectedUsers.includes(u.name) }" @click="toggleUser(u.name)">
               <span class="user-cb-name">{{ u.name }}</span>
               <span class="user-cb-type">{{ u.type }}</span>
-            </label>
+            </div>
           </div>
         </div>
 
