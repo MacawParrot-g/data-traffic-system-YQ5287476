@@ -121,7 +121,7 @@
 
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
-import { authLogin, authLogout, authStatus, fetchCountByRecorder, ackAlert, pollGlobalNotifications } from './api/index.js'
+import { authLogin, authLogout, authStatus, fetchCountByRecorder, ackAlert, pollGlobalNotifications,fetchMyNotifications } from './api/index.js'
 import AutoMode from './components/AutoMode.vue'
 import ManualMode from './components/ManualMode.vue'
 import DataVisitable from "./components/DataVisitable.vue";
@@ -135,10 +135,9 @@ import AuditLogPanel from "./components/AuditLogPanel.vue";
 import ScheduledTaskPanel from "./components/ScheduledTaskPanel.vue";
 import NotificationCenter from "./components/NotificationCenter.vue";
 import NotificationManager from "./components/NotificationManager.vue";
-import NotificationHistory from "./components/NotificationHistory.vue";
 import MQPanel from "./components/MQPanel.vue";
-
-let sseSource = null
+const notifCount = ref(0)
+let bellPollTimer = null
 const mode = ref('auto')
 const errorMsg = ref('')
 const loggedIn = ref(false)
@@ -166,6 +165,7 @@ const tabIcons = {
   grade: 'G',
   audit: 'U',
   task: 'T',
+  ncenter: 'H',
   notify: 'N',
   mq: 'L'
 }
@@ -230,6 +230,7 @@ const tabs = [
   { key: 'grade', label: '评级管理' },
   { key: 'audit', label: '审计日志' },
   { key: 'task', label: '定时任务' },
+  { key: 'ncenter', label: '通知中心' },
   { key: 'notify', label: '通知管理' },
   { key: 'mq', label: 'MQ监控' },
 ]
@@ -252,10 +253,37 @@ const filteredTabs = computed(() => {
   return result
 })
 
+
 const currentTabLabel = computed(() => {
   const found = filteredTabs.value.find(t => t.key === mode.value)
   return found ? found.label : ''
 })
+
+function startBellPolling() {
+  stopBellPolling()
+  pollBell()
+  bellPollTimer = setInterval(pollBell, 5000)
+}
+
+function stopBellPolling() {
+  if (bellPollTimer) {
+    clearInterval(bellPollTimer)
+    bellPollTimer = null
+  }
+}
+
+async function pollBell() {
+  try {
+    const json = await fetchMyNotifications(1, 50)
+    if (json.success) {
+      const list = json.data || []
+      notifCount.value = list.filter(n => {
+        if (!n.expireAt) return true
+        return new Date(n.expireAt) > new Date()
+      }).length
+    }
+  } catch (e) { /* silent */ }
+}
 
 onMounted(async () => {
   try {
@@ -266,102 +294,16 @@ onMounted(async () => {
       displayName.value = json.data.data.name || ''
       localStorage.setItem('userName', json.data.data.name || '')
       localStorage.setItem('accType', json.data.data.type || 'USER')
-      connectSSE()
+      startBellPolling()
     }
   } catch (e) {
     console.warn('检查登录状态失败:', e)
   }
 })
 
-function connectSSE() {
-  disconnectSSE()
-  sseSource = new EventSource('/api/sse/connect')
-
-  sseSource.addEventListener('shutdown', (event) => {
-    console.warn('[SSE] 收到关闭通知:', event.data)
-    disconnectSSE()
-  })
-
-  sseSource.addEventListener('alert', (event) => {
-    console.warn('[SSE] 收到强制通知:', event.data)
-    try {
-      const data = JSON.parse(event.data)
-      forcedAlerts.value.push(data)
-    } catch (e) {
-      forcedAlerts.value.push({ title: '系统通知', content: event.data, type: 'INFO' })
-    }
-  })
-
-  sseSource.onerror = (e) => {
-    console.error('[SSE] 连接异常:', e)
-    disconnectSSE()
-    if (loggedIn.value) {
-      setTimeout(() => {
-        if (loggedIn.value) connectSSE()
-      }, 5000)
-    }
-  }
-}
-
-function startNotifPolling() {
-  stopNotifPolling()
-  lastPollTime.value = Date.now()
-  pollTimer = setInterval(async () => {
-    try {
-      const json = await pollGlobalNotifications(lastPollTime.value)
-      if (json.success && Array.isArray(json.data) && json.data.length > 0) {
-        for (const n of json.data) {
-          if (n.sender !== localStorage.getItem('userName')) {
-            globalNotifs.value.push(n)
-          }
-        }
-        lastPollTime.value = Date.now()
-      }
-    } catch (e) { /* silent */ }
-  }, 5000)
-}
-
-function stopNotifPolling() {
-  if (pollTimer) {
-    clearInterval(pollTimer)
-    pollTimer = null
-  }
-}
-
-function disconnectSSE() {
-  if (sseSource) {
-    sseSource.close()
-    sseSource = null
-  }
-}
-
-function getAlertIcon(type) {
-  switch (type) {
-    case 'WARNING': return 'A'
-    case 'EMERGENCY': return 'E'
-    default: return 'O'
-  }
-}
-
-async function ackForcedAlert(index) {
-  const alert = forcedAlerts.value[index]
-  if (!alert) return
-  try {
-    await ackAlert(alert.title)
-  } catch (e) { /* silent */
-  }
-  forcedAlerts.value.splice(index, 1)
-}
-
-function reloadPage() {
-  window.location.reload()
-}
-
-
 onMounted(() => {
   fetchTodayCount()
 })
-
 
 watch(sidebarCollapsed, (newVal) => {
   if (!newVal) {
@@ -383,8 +325,7 @@ async function doLogin() {
       displayName.value = data.name
       loggedIn.value = true
       mode.value = 'auto'
-      connectSSE()
-      startNotifPolling()
+      startBellPolling()
     } else {
       loginError.value = json.message || '登录失败'
     }
@@ -395,11 +336,11 @@ async function doLogin() {
   }
 }
 
-function comfirmLogout(){
-  let logout=confirm("确定要退出登录吗")
-  if(logout){
+function comfirmLogout() {
+  let logout = confirm("确定要退出登录吗")
+  if (logout) {
     doLogout()
-  }else{
+  } else {
     return
   }
 }
@@ -408,7 +349,6 @@ async function doLogout() {
   loggingOut.value = true
   try {
     await authLogout()
-    disconnectSSE()
   } catch (e) { /* silent */ }
   finally {
     localStorage.removeItem('userName')
@@ -421,8 +361,8 @@ async function doLogout() {
     loginError.value = ''
     mode.value = 'auto'
     loggingOut.value = false
-    disconnectSSE()
-    stopNotifPolling()
+    notifCount.value = 0
+    stopBellPolling()
   }
 }
 
@@ -432,6 +372,7 @@ function switchMode(newMode) {
   mode.value = newMode
   errorMsg.value = ''
 }
+
 function getTodayStrLocal() {
   const d = new Date()
   return d.getFullYear() + '/' + (d.getMonth() + 1) + '/' + d.getDate()
@@ -451,41 +392,43 @@ async function fetchTodayCount() {
   } catch (e) { /* silent */ }
 }
 
-onMounted(async () => {
-  try {
-    const json = await authStatus()
-    if (json.success && json.data && json.data.loggedIn) {
-      loggedIn.value = true
-      accType.value = json.data.data.type || 'USER'
-      displayName.value = json.data.data.name || ''
-      localStorage.setItem('userName', json.data.data.name || '')
-      localStorage.setItem('accType', json.data.data.type || 'USER')
-      connectSSE()
-    }
-  } catch (e) {
-    console.warn('检查登录状态失败:', e)
-  }
-})
-
-window.addEventListener('force-logout', (e) => {
-  disconnectSSE()
-  localStorage.removeItem('userName')
-  localStorage.removeItem('accType')
-  loggedIn.value = false
-  accType.value = 'USER'
-  displayName.value = ''
-  loginUid.value = ''
-  loginPwd.value = ''
-  loginError.value = e.detail || '系统已更新，请重新登录'
-  mode.value = 'auto'
-})
-
 </script>
 
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
+
+/* ===== Sidebar notification badge ===== */
+.nav-item-alert {
+  background: rgba(239, 68, 68, 0.15) !important;
+  color: #ef4444 !important;
+  border-color: transparent;
+}
+.nav-item-alert:hover {
+  background: rgba(239, 68, 68, 0.25) !important;
+  color: #fca5a5 !important;
+}
+.nav-item-alert.active {
+  background: rgba(239, 68, 68, 0.3) !important;
+  color: #fff !important;
+  box-shadow: inset 3px 0 0 #ef4444;
+}
+.nav-badge {
+  background: #ef4444;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+  margin-left: auto;
+  line-height: 1;
+}
 
 :root {
   --sidebar-bg: #0f0f1a;
@@ -550,6 +493,160 @@ body {
 .sidebar-stats {
   padding: 8px 12px;
 }
+
+/* ===== Global Notification Overlay ===== */
+.gn-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+}
+.gn-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.gn-container {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-height: 80vh;
+  overflow-y: auto;
+  padding: 20px;
+  width: 100%;
+  max-width: 520px;
+}
+.gn-modal {
+  background: #fff;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05);
+  animation: gn-slide-in 0.3s ease-out;
+  position: relative;
+  overflow: hidden;
+}
+.gn-modal::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+}
+.gn-modal.gn-info::before { background: linear-gradient(90deg, #6366f1, #8b5cf6); }
+.gn-modal.gn-warn::before { background: linear-gradient(90deg, #f59e0b, #f97316); }
+.gn-modal.gn-emergency::before { background: linear-gradient(90deg, #ef4444, #dc2626); }
+
+.gn-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.gn-type-label {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.gn-type-label.gn-info { background: #e0e7ff; color: #3730a3; }
+.gn-type-label.gn-warn { background: #fef3c7; color: #92400e; }
+.gn-type-label.gn-emergency { background: #fef2f2; color: #991b1b; }
+
+.gn-close {
+  background: #f1f5f9;
+  border: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+.gn-close:hover {
+  background: #e2e8f0;
+  color: #1a1a2e;
+}
+
+.gn-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin-bottom: 8px;
+  line-height: 1.3;
+}
+.gn-content {
+  font-size: 14px;
+  color: #64748b;
+  line-height: 1.6;
+  margin-bottom: 14px;
+}
+.gn-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #94a3b8;
+  margin-bottom: 16px;
+  padding-top: 12px;
+  border-top: 1px solid #f1f5f9;
+}
+.gn-sender { font-weight: 600; }
+.gn-time { color: #cbd5e1; }
+
+.gn-dismiss {
+  width: 100%;
+  padding: 10px;
+  border: none;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  background: #f1f5f9;
+  color: #64748b;
+}
+.gn-dismiss:hover {
+  background: #e2e8f0;
+  color: #1a1a2e;
+}
+
+.gn-modal.gn-info .gn-dismiss { background: #eef2ff; color: #4f46e5; }
+.gn-modal.gn-info .gn-dismiss:hover { background: #e0e7ff; }
+.gn-modal.gn-warn .gn-dismiss { background: #fffbeb; color: #d97706; }
+.gn-modal.gn-warn .gn-dismiss:hover { background: #fef3c7; }
+.gn-modal.gn-emergency .gn-dismiss { background: #fef2f2; color: #dc2626; }
+.gn-modal.gn-emergency .gn-dismiss:hover { background: #fecaca; }
+
+@keyframes gn-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
 .stat-card {
   display: flex;
   align-items: center;
@@ -559,81 +656,6 @@ body {
   border-radius: 12px;
   padding: 12px 14px;
 }
-
-.probe-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.4);
-}
-
-.alert-forced-overlay {
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0, 0, 0, 0.75);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  z-index: 99999;
-  backdrop-filter: blur(6px);
-  gap: 20px;
-  overflow-y: auto;
-  padding: 40px 20px;
-}
-.alert-forced-modal {
-  background: #fff;
-  border-radius: 20px;
-  padding: 40px 36px;
-  text-align: center;
-  box-shadow: 0 32px 100px rgba(0, 0, 0, 0.4);
-  max-width: 440px;
-  width: 92%;
-  animation: alertBounceIn 0.4s ease-out;
-  border: 3px solid #ef4444;
-}
-@keyframes alertBounceIn {
-  0% { opacity: 0; transform: scale(0.7) translateY(-30px); }
-  60% { transform: scale(1.05); }
-  100% { opacity: 1; transform: scale(1) translateY(0); }
-}
-.alert-forced-icon {
-  font-size: 56px;
-  margin-bottom: 16px;
-  animation: alertPulse 1.5s ease-in-out infinite;
-}
-@keyframes alertPulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.15); }
-}
-.alert-forced-title {
-  font-size: 20px;
-  font-weight: 800;
-  color: #dc2626;
-  margin-bottom: 12px;
-}
-.alert-forced-content {
-  font-size: 14px;
-  color: #555;
-  line-height: 1.7;
-  margin-bottom: 28px;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-.alert-forced-btn {
-  background: linear-gradient(135deg, #ef4444, #dc2626);
-  color: #fff;
-  border: none;
-  padding: 12px 48px;
-  font-size: 15px;
-  border-radius: 12px;
-  cursor: pointer;
-  font-weight: 700;
-  transition: all 0.2s;
-}
-.alert-forced-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(239, 68, 68, 0.4);
-}
-
 .stat-icon {
   font-size: 20px;
   flex-shrink: 0;
@@ -675,24 +697,6 @@ body {
 .logo-icon {
   font-size: 24px;
 }
-.gn-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.45); z-index: 99999; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 16px; }
-.gn-modal { width: 440px; background: #fff; border-radius: 16px; padding: 24px 28px; box-shadow: 0 16px 64px rgba(0,0,0,0.3); border-top: 4px solid #667eea; animation: gnIn 0.3s ease-out; }
-.gn-modal.gn-warn { border-top-color: #f59e0b; }
-.gn-modal.gn-emergency { border-top-color: #ef4444; }
-@keyframes gnIn { from { opacity: 0; transform: scale(0.9) translateY(-20px); } to { opacity: 1; transform: scale(1) translateY(0); } }
-.gn-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-.gn-type-label { padding: 3px 10px; border-radius: 4px; font-size: 11px; font-weight: 700; }
-.gn-info { background: #e0e7ff; color: #3730a3; }
-.gn-warn { background: #fef3c7; color: #92400e; }
-.gn-emergency { background: #fef2f2; color: #991b1b; }
-.gn-close { background: none; border: none; font-size: 18px; cursor: pointer; color: #999; font-weight: 700; padding: 0 4px; }
-.gn-close:hover { color: #333; }
-.gn-title { margin: 0 0 8px; font-size: 18px; font-weight: 700; color: #1a1a2e; }
-.gn-content { margin: 0 0 16px; font-size: 14px; color: #555; line-height: 1.6; }
-.gn-footer { display: flex; justify-content: space-between; font-size: 11px; color: #aaa; margin-bottom: 16px; }
-.gn-dismiss { width: 100%; padding: 10px; border: none; border-radius: 10px; background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; }
-.gn-dismiss:hover { opacity: 0.9; }
-
 .logo-text {
   font-size: 16px;
   font-weight: 700;

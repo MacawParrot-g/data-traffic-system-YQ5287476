@@ -6,11 +6,11 @@
         <span class="polling-status">🔄 正在每10秒自动获取下载任务...（第{{ pollCount }}次）</span>
         <button class="btn-timer-cancel" @click="stopPolling">停止轮询</button>
       </div>
-<!--      <div class="top-actions">-->
-<!--        <button class="btn-refresh" @click="comfirm()" :disabled="loading">-->
-<!--          {{ loading ? '加载中...' : '刷新数据' }}-->
-<!--        </button>-->
-<!--      </div>-->
+      <!--      <div class="top-actions">-->
+      <!--        <button class="btn-refresh" @click="comfirm()" :disabled="loading">-->
+      <!--          {{ loading ? '加载中...' : '刷新数据' }}-->
+      <!--        </button>-->
+      <!--      </div>-->
     </div>
     <div v-if="loading && !downloadUrl" class="loading">正在获取数据...</div>
     <div class="combined-action-bar" v-if="currentUser">
@@ -25,9 +25,9 @@
       </div>
     </div>
     <div class="empty-placeholder" v-if="!downloadUrl && !loading">
-    <div class="empty-icon">404 NO FOUND</div>
-    <div class="empty-text">当前没有任何测试条目，请点击刷新按钮刷新第一条数据</div>
-  </div>
+      <div class="empty-icon">404 NO FOUND</div>
+      <div class="empty-text">当前没有任何测试条目，请点击刷新按钮刷新第一条数据</div>
+    </div>
 
     <div class="qr-info-section" v-if="downloadUrl">
       <div class="qr-card">
@@ -161,7 +161,10 @@
         </div>
         <div class="form-group" style="flex:1">
           <label>记录日期</label>
-          <template v-if="applyTime">
+          <template v-if="isRetestMode">
+            <input :value="form.record_data" disabled class="date-readonly retest-date" title="复测自动生成时间戳" />
+          </template>
+          <template v-else-if="applyTime">
             <template v-if="currentUserRole === 'DEVELOPER'">
               <div class="date-source-toggle">
                 <button type="button" class="date-source-btn" :class="{ active: dateSource === 'applyTime' }" @click="dateSource = 'applyTime'; form.record_data = applyTime">📅 applyTime</button>
@@ -185,7 +188,7 @@
           应用评分
         </button>
       </div>
-<!--      <div class="save-success" v-if="saveMsg">{{ saveMsg }}</div>-->
+      <!--      <div class="save-success" v-if="saveMsg">{{ saveMsg }}</div>-->
     </div>
 
     <div class="modal-overlay" v-if="showGradeModal" @click.self="showGradeModal = false">
@@ -262,6 +265,11 @@
   font-size: 48px;
   margin-bottom: 16px;
 }
+
+.graded-warning { background: #fef3c7; border: 1px solid #fde68a; border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; font-size: 13px; color: #92400e; }
+.auto-normal-tag { display: inline-block; padding: 6px 18px; background: #dcfce7; color: #166534; border-radius: 8px; font-size: 14px; font-weight: 600; border: 1px solid #86efac; }
+.retest-date { background: #eef2ff !important; color: #4f46e5 !important; border-color: #c7d2fe !important; font-family: monospace; letter-spacing: 0.5px; }
+
 .empty-text {
   font-size: 14px;
   color: var(--text-secondary);
@@ -517,73 +525,73 @@
   z-index: 9999;
   animation: fadeIn 0.2s ease;
 }
-.grade-detail-modal {
-  width: 420px;
-  max-width: 90vw;
-  border-radius: 20px;
-  padding: 32px;
-  position: relative;
-  animation: slideUp 0.25s ease;
-  border: 2px solid;
-  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.15);
-}
-.grade-detail-modal.grade-detail-a {
-  background: linear-gradient(135deg, #f0fdf4, #dcfce7);
-  border-color: #86efac;
-  color: #166534;
-}
-.grade-detail-modal.grade-detail-b {
-  background: linear-gradient(135deg, #eff6ff, #dbeafe);
-  border-color: #93c5fd;
-  color: #1e40af;
-}
-.grade-detail-modal.grade-detail-c {
-  background: linear-gradient(135deg, #fffbeb, #fef3c7);
-  border-color: #fde68a;
-  color: #92400e;
-}
-.grade-detail-modal.grade-detail-d {
-  background: linear-gradient(135deg, #fef2f2, #fee2e2);
-  border-color: #fca5a5;
-  color: #991b1b;
-}
-.grade-detail-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 20px;
-}
-.grade-detail-icon {
-  font-size: 32px;
-}
-.grade-detail-title {
-  font-size: 20px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-}
-.grade-detail-body {
-  margin-bottom: 24px;
-}
-.grade-detail-desc {
-  font-size: 15px;
-  line-height: 1.8;
-  margin: 0;
-  font-weight: 500;
-}
-.grade-detail-footer {
-  display: flex;
-  justify-content: flex-end;
-}
-.grade-detail-footer .btn-cancel {
-  padding: 8px 24px;
-  border-radius: 10px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  border: 1px solid;
-  background: rgba(255,255,255,0.6);
-  transition: all 0.2s;
-}
+  .grade-detail-modal {
+    width: 420px;
+    max-width: 90vw;
+    border-radius: 20px;
+    padding: 32px;
+    position: relative;
+    animation: slideUp 0.25s ease;
+    border: 2px solid;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.15);
+  }
+  .grade-detail-modal.grade-detail-a {
+    background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+    border-color: #86efac;
+    color: #166534;
+  }
+  .grade-detail-modal.grade-detail-b {
+    background: linear-gradient(135deg, #eff6ff, #dbeafe);
+    border-color: #93c5fd;
+    color: #1e40af;
+  }
+  .grade-detail-modal.grade-detail-c {
+    background: linear-gradient(135deg, #fffbeb, #fef3c7);
+    border-color: #fde68a;
+    color: #92400e;
+  }
+  .grade-detail-modal.grade-detail-d {
+    background: linear-gradient(135deg, #fef2f2, #fee2e2);
+    border-color: #fca5a5;
+    color: #991b1b;
+  }
+  .grade-detail-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .grade-detail-icon {
+    font-size: 32px;
+  }
+  .grade-detail-title {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+  }
+  .grade-detail-body {
+    margin-bottom: 24px;
+  }
+  .grade-detail-desc {
+    font-size: 15px;
+    line-height: 1.8;
+    margin: 0;
+    font-weight: 500;
+  }
+  .grade-detail-footer {
+    display: flex;
+    justify-content: flex-end;
+  }
+  .grade-detail-footer .btn-cancel {
+    padding: 8px 24px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid;
+    background: rgba(255,255,255,0.6);
+    transition: all 0.2s;
+  }
 
   .btn-quick-refresh-count:hover:not(:disabled) { background: #667eea; color: #fff; }
   .btn-quick-refresh-count:disabled { opacity: 0.4; cursor: not-allowed; }
@@ -591,13 +599,13 @@
   .btn-inventory:hover:not(:disabled) { background: #667eea; color: #fff; }
   .btn-inventory:disabled { opacity: 0.4; cursor: not-allowed; }
 
-.grade-detail-a .grade-detail-footer .btn-cancel { border-color: #86efac; color: #166534; }
-.grade-detail-b .grade-detail-footer .btn-cancel { border-color: #93c5fd; color: #1e40af; }
-.grade-detail-c .grade-detail-footer .btn-cancel { border-color: #fde68a; color: #92400e; }
-.grade-detail-d .grade-detail-footer .btn-cancel { border-color: #fca5a5; color: #991b1b; }
-.grade-detail-footer .btn-cancel:hover { background: rgba(255,255,255,0.9); }
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-@keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }}
+  .grade-detail-a .grade-detail-footer .btn-cancel { border-color: #86efac; color: #166534; }
+  .grade-detail-b .grade-detail-footer .btn-cancel { border-color: #93c5fd; color: #1e40af; }
+  .grade-detail-c .grade-detail-footer .btn-cancel { border-color: #fde68a; color: #92400e; }
+  .grade-detail-d .grade-detail-footer .btn-cancel { border-color: #fca5a5; color: #991b1b; }
+  .grade-detail-footer .btn-cancel:hover { background: rgba(255,255,255,0.9); }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }}
 .date-source-toggle { display: flex; gap: 6px; margin-bottom: 6px; }
 .date-source-btn { padding: 4px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; background: #fff; color: #6b7280; transition: all 0.2s; }
 .date-source-btn.active { background: #667eea; color: #fff; border-color: #667eea; }
@@ -679,6 +687,7 @@ const currentUser = currentUserName
 const showGradeDetailModal = ref(false)
 const inventoryLoading = ref(false)
 const applyTime = ref('')
+const isRetestMode = ref(false)
 const gradeDescriptions = {
   A: '该应用很容易出事件，游玩的时候可以适当缩短测试时间',
   B: '该应用需要游玩较长时间，或者玩到指定关卡才会出事件,建议拉长到10分钟以上',
@@ -703,6 +712,17 @@ function getTodayStr() {
   const mm = String(d.getMonth() + 1).padStart(2, '0')
   const dd = String(d.getDate()).padStart(2, '0')
   return d.getFullYear() + '-' + mm + '-' + dd
+}
+
+function generateCurrentTimestamp() {
+  const d = new Date()
+  const yyyy = d.getFullYear()
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  const hh = String(d.getHours()).padStart(2, '0')
+  const mi = String(d.getMinutes()).padStart(2, '0')
+  const ss = String(d.getSeconds()).padStart(2, '0')
+  return `${yyyy}-${mm}-${dd}T${hh}:${mi}:${ss}`
 }
 
 function toStorageDate(isoDate) {
@@ -789,22 +809,25 @@ async function fetchData() {
 async function retestFlow() {
   retestLoading.value = true
   resetState()
+  isRetestMode.value = true
   try {
     const dates = getPast3DaysDates()
     const json = await fetchRandomForRetest(dates)
-    appId.value = json.data.appId || '此为复测内容，暂无appid'
     if (json.success && json.data) {
       showRetestModal.value = false
       downloadUrl.value = json.data.downloadUrl || ''
       bundleId.value = json.data.bundleId || ''
       taskId.value = json.data.id ?? null
+      form.record_data = generateCurrentTimestamp()
       const jsons = await fetchEvent(bundleId.value)
       try{
-      if (jsons.success) {
-        originalCurrentTargetNum.value = jsons.data.currentTargetNum ?? null
-      }
+        if (jsons.success) {
+          originalCurrentTargetNum.value = jsons.data.currentTargetNum ?? null
+          appId.value = jsons.data.appId || ''
+        }
         loadGradeInfo(bundleId.value)
       }catch (e) {
+        appId.value = '此为复测内容，暂无appid'
         alert('服务器无响应，请联系技术人员')
       }
       isSubmit = false
@@ -951,16 +974,21 @@ async function queryEvent() {
       }
     }
     lastReportTime.value = lrt
+    if (!isRetestMode.value) {
       if (currentUserRole.value !== 'DEVELOPER') {
         form.record_data = applyTime.value || lrt
       } else {
         if (dateSource.value === 'applyTime') form.record_data = applyTime.value || lrt
         else form.record_data = getTodayStr()
       }
+    }
 
-  } catch (e) {
+  }  catch (e) {
     emit('error', '事件查询失败：' + e.message)
   } finally {
+    if (isRetestMode.value) {
+      form.record_data = generateCurrentTimestamp()
+    }
     eventLoading.value = false
   }
 }
@@ -981,17 +1009,13 @@ function resetState() {
   applyTime.value = ''
   lastReportTime.value = ''
   recordSubmitted.value = false
+  isRetestMode.value = false
   form.exception_type = '';
   form.remark = '';
   form.recorder = localStorage.getItem('userName') || '';
   form.record_data = getTodayStr()
   isFrozen.value=''
   gradeData.value = null
-  bundleIdAlreadyGraded.value = false
-  gradeMsg.value = ''
-  gradeForm.grade = ''
-  gradeForm.remark = ''
-
 }
 
 function generateSubmissionId() {
@@ -1038,6 +1062,9 @@ async function saveToMySQL() {
   if (newCurrentTargetNum.value > 0 && attributions.value.length === 0) {
     finalRemark += ',无事件归因'
   }
+  if (isRetestMode.value) {
+    form.record_data = generateCurrentTimestamp()
+  }
   const finalRecordData = form.record_data.includes('T')
       ? form.record_data
       : form.record_data.includes('/')
@@ -1059,7 +1086,6 @@ async function saveToMySQL() {
       submissionId: generateSubmissionId()
     })
     if (json.success) {
-      // saveMsg.value = '✅ ' + (json.message || '入库成功')
       recordSubmitted.value  = true
       isSubmit= true
     }
