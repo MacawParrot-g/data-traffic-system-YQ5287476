@@ -40,7 +40,6 @@
             <div class="user-name">{{ displayName }}</div>
             <div class="user-role">{{ accType }}</div>
           </div>
-          <NotificationCenter />
         </div>
         <div class="sidebar-actions">
           <span class="action-link" @click="showGuide = true">新人指南</span>
@@ -175,6 +174,7 @@ const componentMap = computed(() => {
     auto: AutoMode,
     manual: ManualMode,
     qrcode: QRCodeBuilderByMan,
+    ncenter: NotificationCenter,
   }
   if (accType.value === 'ADMIN' || accType.value === 'DEVELOPER') {
     map.data = AdminPanel
@@ -202,22 +202,6 @@ const currentComponent = computed(() => componentMap.value[mode.value])
 
 function dismissGlobalNotif(index) {
   globalNotifs.value.splice(index, 1)
-}
-
-function getNotifTypeLabel(type) {
-  switch (type) {
-    case 'WARNING': return '警告'
-    case 'EMERGENCY': return '紧急'
-    default: return '通知'
-  }
-}
-
-function getNotifTypeClass(type) {
-  switch (type) {
-    case 'WARNING': return 'gn-warn'
-    case 'EMERGENCY': return 'gn-emergency'
-    default: return 'gn-info'
-  }
 }
 
 const tabs = [
