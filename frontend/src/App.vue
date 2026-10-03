@@ -15,11 +15,12 @@
             v-for="tab in filteredTabs"
             :key="tab.key"
             class="nav-item"
-            :class="{ active: mode === tab.key }"
+            :class="{ active: mode === tab.key, 'nav-item-alert': tab.key === 'ncenter' && notifCount > 0 }"
             @click="switchMode(tab.key)"
         >
           <span class="nav-icon">{{ tabIcons[tab.key] }}</span>
           <span class="nav-label" v-if="!sidebarCollapsed">{{ tab.label }}</span>
+          <span class="nav-badge" v-if="tab.key === 'ncenter' && notifCount > 0">{{ notifCount }}</span>
         </button>
       </nav>
 
