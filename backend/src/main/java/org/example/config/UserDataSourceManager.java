@@ -6,7 +6,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
-
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.stereotype.Component;
 import javax.sql.DataSource;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -16,7 +22,7 @@ public class UserDataSourceManager {
 
     private static final Logger log = LoggerFactory.getLogger(UserDataSourceManager.class);
     private static final String DS_CONFIG_KEY = "ds:config:";
-    public UserDataSourceManager(DataSource defaultDataSource,
+    public UserDataSourceManager(@Qualifier("defaultDataSource") DataSource defaultDataSource,
                                  RedisTemplate<String, Object> redisTemplate) {
         this.defaultDataSource = defaultDataSource;
         this.redisTemplate = redisTemplate;

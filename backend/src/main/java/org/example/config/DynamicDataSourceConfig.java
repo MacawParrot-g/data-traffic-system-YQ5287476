@@ -1,6 +1,7 @@
 package org.example.config;
 
 import com.zaxxer.hikari.HikariDataSource;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -11,12 +12,16 @@ import javax.sql.DataSource;
 @Configuration
 public class DynamicDataSourceConfig {
 
+    @Bean(name = "defaultDataSource")
+    public DataSource defaultDataSource(DataSourceProperties properties) {
+        return properties.initializeDataSourceBuilder()
+                .type(HikariDataSource.class).build();
+    }
+
     @Bean
     @Primary
-    public DynamicDataSource dynamicDataSource(DataSourceProperties properties,
+    public DynamicDataSource dynamicDataSource(@Qualifier("defaultDataSource") DataSource defaultDataSource,
                                                UserDataSourceManager userDataSourceManager) {
-        HikariDataSource defaultDs = properties.initializeDataSourceBuilder()
-                .type(HikariDataSource.class).build();
-        return new DynamicDataSource(defaultDs, userDataSourceManager);
+        return new DynamicDataSource(defaultDataSource, userDataSourceManager);
     }
 }
