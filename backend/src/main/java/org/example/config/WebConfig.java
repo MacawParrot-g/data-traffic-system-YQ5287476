@@ -26,9 +26,13 @@ public class WebConfig implements WebMvcConfigurer {
     @Qualifier("kickRedisTemplate")
     private RedisTemplate<String, Object> kickRedisTemplate;
 
+    @Autowired
+    @Qualifier("dataSourceRedisTemplate")
+    private RedisTemplate<String, Object> dataSourceRedisTemplate;
+
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(new AuthInterceptor(kickRedisTemplate))
+        registry.addInterceptor(new UserContextInterceptor(dedupSessionService, kickRedisTemplate, dataSourceRedisTemplate))
                 .addPathPatterns("/api/**")
                 .excludePathPatterns(
                         "/api/auth/login",
@@ -45,7 +49,7 @@ public class WebConfig implements WebMvcConfigurer {
                 .addPathPatterns("/**")
                 .excludePathPatterns("/actuator/**", "/swagger-ui/**", "/v3/api-docs/**");
 
-        registry.addInterceptor(new UserContextInterceptor(dedupSessionService, kickRedisTemplate))
+        registry.addInterceptor(new UserContextInterceptor(dedupSessionService, kickRedisTemplate,dataSourceRedisTemplate))
                 .addPathPatterns("/api/**")
                 .excludePathPatterns("/actuator/**", "/swagger-ui/**", "/v3/api-docs/**");
     }

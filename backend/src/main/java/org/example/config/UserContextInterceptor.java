@@ -16,11 +16,14 @@ public class UserContextInterceptor implements HandlerInterceptor {
 
     private final DedupSessionService dedupSessionService;
     private final RedisTemplate<String, Object> kickRedisTemplate;
+    private final RedisTemplate<String, Object> dataSourceRedisTemplate;
 
     public UserContextInterceptor(DedupSessionService dedupSessionService,
-                                  RedisTemplate<String, Object> kickRedisTemplate) {
+                                  RedisTemplate<String, Object> kickRedisTemplate,
+                                  RedisTemplate<String, Object> dataSourceRedisTemplate) {
         this.dedupSessionService = dedupSessionService;
         this.kickRedisTemplate = kickRedisTemplate;
+        this.dataSourceRedisTemplate = dataSourceRedisTemplate;
     }
 
     @Override
@@ -64,7 +67,7 @@ public class UserContextInterceptor implements HandlerInterceptor {
 
     private void resolveUserDataSource(String username) {
         try {
-            Object switchVal = kickRedisTemplate.opsForValue().get("ds:switch:" + username);
+            Object switchVal = dataSourceRedisTemplate.opsForValue().get("ds:switch:" + username);
             if (Boolean.TRUE.equals(switchVal)) {
                 UserDataSourceContextHolder.set(username);
             }

@@ -23,7 +23,7 @@ public class UserDataSourceManager {
     private static final Logger log = LoggerFactory.getLogger(UserDataSourceManager.class);
     private static final String DS_CONFIG_KEY = "ds:config:";
     public UserDataSourceManager(@Qualifier("defaultDataSource") DataSource defaultDataSource,
-                                 RedisTemplate<String, Object> redisTemplate) {
+                                 @Qualifier("dataSourceRedisTemplate") RedisTemplate<String, Object> redisTemplate) {
         this.defaultDataSource = defaultDataSource;
         this.redisTemplate = redisTemplate;
     }

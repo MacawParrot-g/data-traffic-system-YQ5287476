@@ -5,6 +5,7 @@ import org.example.config.UserDataSourceManager;
 import org.example.service.DataSourceService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
@@ -19,11 +20,10 @@ public class DataSourceServiceImpl implements DataSourceService {
     private static final Logger log = LoggerFactory.getLogger(DataSourceServiceImpl.class);
     private static final String DS_CONFIG_KEY = "ds:config:";
     private static final String DS_SWITCH_KEY = "ds:switch:";
-
     private final RedisTemplate<String, Object> redisTemplate;
     private final UserDataSourceManager userDataSourceManager;
 
-    public DataSourceServiceImpl(RedisTemplate<String, Object> redisTemplate,
+    public DataSourceServiceImpl(@Qualifier("dataSourceRedisTemplate") RedisTemplate<String, Object> redisTemplate,
                                  UserDataSourceManager userDataSourceManager) {
         this.redisTemplate = redisTemplate;
         this.userDataSourceManager = userDataSourceManager;
