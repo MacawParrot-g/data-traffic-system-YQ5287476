@@ -1,6 +1,8 @@
 package org.example.mq;
+
 import com.rabbitmq.client.Channel;
 import org.example.config.RabbitMQConfig;
+import org.example.config.UserDataSourceContextHolder;
 import org.example.entity.RecordUpdateMessage;
 import org.example.mapper.GeneranMapper;
 import org.slf4j.Logger;
@@ -28,12 +30,17 @@ public class RecordUpdateMessageConsumer {
             Channel channel,
             @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag) throws IOException {
         try {
+            if (message.getUsername() != null && !message.getUsername().isEmpty()) {
+                UserDataSourceContextHolder.set(message.getUsername());
+            }
             generanMapper.updateRecord(message.getRecord());
             channel.basicAck(deliveryTag, false);
-            log.info("异步更新成功, URL: {}", message.getRecord().getUrl());
+            log.info("异步更新成功, URL: {}, user: {}", message.getRecord().getUrl(), message.getUsername());
         } catch (Exception e) {
             log.error("异步更新失败, URL: {}, 原因: {}", message.getRecord().getUrl(), e.getMessage());
             channel.basicNack(deliveryTag, false, false);
+        } finally {
+            UserDataSourceContextHolder.clear();
         }
     }
 
@@ -42,7 +49,7 @@ public class RecordUpdateMessageConsumer {
             @Payload RecordUpdateMessage message,
             Channel channel,
             @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag) throws IOException {
-        log.error("🚨 更新消息进入死信队列, URL: {}, 请人工排查", message.getRecord().getUrl());
+        log.error("更新消息进入死信队列, URL: {}", message.getRecord().getUrl());
         channel.basicAck(deliveryTag, false);
     }
 }

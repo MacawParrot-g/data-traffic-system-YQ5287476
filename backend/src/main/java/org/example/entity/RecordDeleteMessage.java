@@ -12,4 +12,5 @@ import java.io.Serializable;
 public class RecordDeleteMessage implements Serializable {
     private String hash;
     private long timestamp;
+    private String username;
 }

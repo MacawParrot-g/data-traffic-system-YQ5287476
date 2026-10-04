@@ -107,11 +107,6 @@ public class GlobalNotificationServiceImpl implements GlobalNotificationService 
     public Result getUserNotifications(String userName, int page, int size) {
         String userZSet = USER_ZSET_PREFIX + userName;
         long total = cleanAndCount(userZSet);
-        if (total == 0) {
-            total = cleanAndCount(GLOBAL_ZSET);
-            List<Map<String, String>> list = getPage(GLOBAL_ZSET, page, size);
-            return Result.success("查询成功", list, null, total, page, size);
-        }
         List<Map<String, String>> list = getPage(userZSet, page, size);
         return Result.success("查询成功", list, null, total, page, size);
     }
@@ -124,8 +119,9 @@ public class GlobalNotificationServiceImpl implements GlobalNotificationService 
     }
 
     @Override
-    public Result pollNew(long since) {
-        Set<String> ids = notifRedis.opsForZSet().rangeByScore(GLOBAL_ZSET, since + 1, Double.MAX_VALUE);
+    public Result pollNew(String userName, long since) {
+        String userZSet = USER_ZSET_PREFIX + userName;
+        Set<String> ids = notifRedis.opsForZSet().rangeByScore(userZSet, since + 1, Double.MAX_VALUE);
         List<Map<String, String>> result = new ArrayList<>();
         if (ids == null || ids.isEmpty()) return Result.success("无新通知", result);
 
@@ -139,7 +135,7 @@ public class GlobalNotificationServiceImpl implements GlobalNotificationService 
             }
         }
         if (!toRemove.isEmpty()) {
-            notifRedis.opsForZSet().remove(GLOBAL_ZSET, toRemove.toArray());
+            notifRedis.opsForZSet().remove(userZSet, toRemove.toArray());
         }
         return Result.success("查询成功", result);
     }

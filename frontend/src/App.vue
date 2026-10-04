@@ -136,6 +136,7 @@ import ScheduledTaskPanel from "./components/ScheduledTaskPanel.vue";
 import NotificationCenter from "./components/NotificationCenter.vue";
 import NotificationManager from "./components/NotificationManager.vue";
 import MQPanel from "./components/MQPanel.vue";
+import DataSource from "./components/DataSource.vue";
 const notifCount = ref(0)
 let bellPollTimer = null
 const mode = ref('auto')
@@ -167,7 +168,8 @@ const tabIcons = {
   task: 'T',
   ncenter: 'H',
   notify: 'N',
-  mq: 'L'
+  mq: 'L',
+  source: 'S'
 }
 
 const componentMap = computed(() => {
@@ -176,6 +178,7 @@ const componentMap = computed(() => {
     manual: ManualMode,
     qrcode: QRCodeBuilderByMan,
     ncenter: NotificationCenter,
+    source: DataSource,
   }
   if (accType.value === 'ADMIN' || accType.value === 'DEVELOPER') {
     map.data = AdminPanel
@@ -218,6 +221,7 @@ const tabs = [
   { key: 'ncenter', label: '通知中心' },
   { key: 'notify', label: '通知管理' },
   { key: 'mq', label: 'MQ监控' },
+  { key: 'source', label: '数据源切换' },
 ]
 
 

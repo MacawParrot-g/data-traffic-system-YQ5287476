@@ -2,6 +2,7 @@ package org.example.mq;
 
 import com.rabbitmq.client.Channel;
 import org.example.config.RabbitMQConfig;
+import org.example.config.UserDataSourceContextHolder;
 import org.example.entity.RecordInsertMessage;
 import org.example.mapper.GeneranMapper;
 import org.example.service.HashCacheService;
@@ -33,15 +34,20 @@ public class RecordMessageConsumer {
             Channel channel,
             @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag) throws IOException {
         try {
+            if (message.getUsername() != null && !message.getUsername().isEmpty()) {
+                UserDataSourceContextHolder.set(message.getUsername());
+            }
             generanMapper.insertRecord(message.getRecord());
             if (message.getRecord().getHash() != null) {
                 hashCacheService.save(message.getRecord().getHash());
             }
             channel.basicAck(deliveryTag, false);
-            log.info("异步入库成功, hash: {}", message.getRecord().getHash());
+            log.info("异步入库成功, hash: {}, user: {}", message.getRecord().getHash(), message.getUsername());
         } catch (Exception e) {
             log.error("异步入库失败, hash: {}, 原因: {}", message.getRecord().getHash(), e.getMessage());
             channel.basicNack(deliveryTag, false, false);
+        } finally {
+            UserDataSourceContextHolder.clear();
         }
     }
 }

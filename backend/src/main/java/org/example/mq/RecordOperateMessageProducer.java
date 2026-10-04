@@ -1,5 +1,6 @@
 package org.example.mq;
 
+import org.example.common.UserContext;
 import org.example.config.RabbitMQConfig;
 import org.example.entity.RecordDeleteMessage;
 import org.example.entity.RecordUpdateMessage;
@@ -20,32 +21,34 @@ public class RecordOperateMessageProducer {
 
     public boolean sendUpdateMessage(TestStatic record) {
         try {
-            RecordUpdateMessage message = new RecordUpdateMessage(record, System.currentTimeMillis());
+            String username = UserContext.getUsername();
+            RecordUpdateMessage message = new RecordUpdateMessage(record, System.currentTimeMillis(), username);
             rabbitTemplate.convertAndSend(
                     RabbitMQConfig.UPDATE_EXCHANGE,
                     RabbitMQConfig.UPDATE_ROUTING_KEY,
                     message
             );
-            log.info("更新消息已投递至RabbitMQ, URL: {}", record.getUrl());
+            log.info("更新消息已投递至RabbitMQ, URL: {}, user: {}", record.getUrl(), username);
             return true;
         } catch (Exception e) {
-            log.error("❌ 更新消息投递失败, URL: {}, 原因: {}", record.getUrl(), e.getMessage());
+            log.error("更新消息投递失败, URL: {}, 原因: {}", record.getUrl(), e.getMessage());
             return false;
         }
     }
 
     public boolean sendDeleteMessage(String hash) {
         try {
-            RecordDeleteMessage message = new RecordDeleteMessage(hash, System.currentTimeMillis());
+            String username = UserContext.getUsername();
+            RecordDeleteMessage message = new RecordDeleteMessage(hash, System.currentTimeMillis(), username);
             rabbitTemplate.convertAndSend(
                     RabbitMQConfig.DELETE_EXCHANGE,
                     RabbitMQConfig.DELETE_ROUTING_KEY,
                     message
             );
-            log.info("删除消息已投递至RabbitMQ, hash: {}", hash);
+            log.info("删除消息已投递至RabbitMQ, hash: {}, user: {}", hash, username);
             return true;
         } catch (Exception e) {
-            log.error("❌ 删除消息投递失败, hash: {}, 原因: {}", hash, e.getMessage());
+            log.error("删除消息投递失败, hash: {}, 原因: {}", hash, e.getMessage());
             return false;
         }
     }

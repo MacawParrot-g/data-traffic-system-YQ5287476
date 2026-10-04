@@ -12,4 +12,5 @@ import java.io.Serializable;
 public class RecordInsertMessage implements Serializable {
     private TestStatic record;
     private long timestamp;
+    private String username;
 }

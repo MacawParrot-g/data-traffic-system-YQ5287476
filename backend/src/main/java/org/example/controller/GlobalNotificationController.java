@@ -66,8 +66,10 @@ public class GlobalNotificationController {
 
     @GetMapping("/poll")
     @SkipRateLimit
-    public Result poll(@RequestParam(defaultValue = "0") long since) {
-        return globalNotificationService.pollNew(since);
+    public Result poll(HttpServletRequest request, @RequestParam(defaultValue = "0") long since) {
+        String userName = getUserName(request);
+        if (userName == null) return Result.fail("未登录");
+        return globalNotificationService.pollNew(userName, since);
     }
 
     private String getUserName(HttpServletRequest request) {

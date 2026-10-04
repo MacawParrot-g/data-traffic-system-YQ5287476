@@ -214,6 +214,7 @@ public class TableManageServiceImpl implements TableManageService {
         }
     }
 
+    // ... existing code ...
     @Override
     public Result batchImport(Map<String, Object> params) {
         String sourceUrl = (String) params.get("sourceUrl");
@@ -232,14 +233,14 @@ public class TableManageServiceImpl implements TableManageService {
             return Result.fail("请至少选择一张要导入的表");
         }
 
-        JdbcTemplate sourceJdbc = null;
+        DriverManagerDataSource sourceDs = new DriverManagerDataSource();
+        sourceDs.setDriverClassName("com.mysql.cj.jdbc.Driver");
+        sourceDs.setUrl(sourceUrl);
+        sourceDs.setUsername(sourceUsername);
+        sourceDs.setPassword(sourcePassword != null ? sourcePassword : "");
+        JdbcTemplate sourceJdbc = new JdbcTemplate(sourceDs);
+
         try {
-            DriverManagerDataSource sourceDs = new DriverManagerDataSource();
-            sourceDs.setDriverClassName("com.mysql.cj.jdbc.Driver");
-            sourceDs.setUrl(sourceUrl);
-            sourceDs.setUsername(sourceUsername);
-            sourceDs.setPassword(sourcePassword != null ? sourcePassword : "");
-            sourceJdbc = new JdbcTemplate(sourceDs);
             sourceJdbc.queryForObject("SELECT 1", Integer.class);
 
             Map<String, Object> importResult = new LinkedHashMap<>();
@@ -327,8 +328,15 @@ public class TableManageServiceImpl implements TableManageService {
         } catch (Exception e) {
             log.error("批量导入失败: {}", e.getMessage());
             return Result.fail("批量导入失败：" + e.getMessage());
+        } finally {
+            try {
+                java.sql.Connection conn = sourceDs.getConnection();
+                if (conn != null) conn.close();
+            } catch (Exception ignored) {
+            }
         }
     }
+// ... existing code ...
 
     private boolean isValidTableName(String name) {
         return name != null && name.matches("^[a-zA-Z_][a-zA-Z0-9_]{0,63}$");

@@ -7,5 +7,5 @@ public interface GlobalNotificationService {
     Result getGlobalHistory(int page, int size);
     Result getUserNotifications(String userName, int page, int size);
     Result deleteNotification(String id);
-    Result pollNew(long since);
+    Result pollNew(String userName, long since);
 }

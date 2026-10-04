@@ -46,6 +46,7 @@ public class UserContextInterceptor implements HandlerInterceptor {
 
         if (!"无用户参数".equals(username)) {
             dedupSessionService.checkAndRegenerateSession(username);
+            resolveUserDataSource(username);
         }
 
         String ip = request.getHeader("X-Forwarded-For");
@@ -61,8 +62,20 @@ public class UserContextInterceptor implements HandlerInterceptor {
         return true;
     }
 
+    private void resolveUserDataSource(String username) {
+        try {
+            Object switchVal = kickRedisTemplate.opsForValue().get("ds:switch:" + username);
+            if (Boolean.TRUE.equals(switchVal)) {
+                UserDataSourceContextHolder.set(username);
+            }
+        } catch (Exception e) {
+            // Redis异常不影响主流程，使用默认数据源
+        }
+    }
+
     @Override
     public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) {
         UserContext.clear();
+        UserDataSourceContextHolder.clear();
     }
 }
