@@ -28,7 +28,7 @@ public class DynamicDataSource extends AbstractRoutingDataSource {
     protected DataSource determineTargetDataSource() {
         String username = UserDataSourceContextHolder.get();
         if (username == null || username.isEmpty()) {
-            return (DataSource) getDefaultTargetDataSource();
+            return dataSourceManager.getDefaultDataSource();
         }
         return dataSourceManager.getDataSource(username);
     }
