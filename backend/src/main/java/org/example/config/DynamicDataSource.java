@@ -7,6 +7,8 @@ import org.springframework.jdbc.datasource.lookup.AbstractRoutingDataSource;
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.Map;
 
 public class DynamicDataSource extends AbstractRoutingDataSource {
 
@@ -17,6 +19,9 @@ public class DynamicDataSource extends AbstractRoutingDataSource {
     public DynamicDataSource(DataSource defaultDataSource, UserDataSourceManager dataSourceManager) {
         this.dataSourceManager = dataSourceManager;
         setDefaultTargetDataSource(defaultDataSource);
+        Map<Object, Object> placeholder = new HashMap<>();
+        placeholder.put("default", defaultDataSource);
+        setTargetDataSources(placeholder);
     }
 
     @Override
