@@ -3,7 +3,6 @@ package org.example.service.impl;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.example.common.Result;
-import org.example.config.ShutdownNotifier;
 import org.example.entity.SysUser;
 import org.example.mapper.SysUserMapper;
 import org.example.service.GlobalNotificationService;
@@ -29,16 +28,13 @@ public class GlobalNotificationServiceImpl implements GlobalNotificationService 
     private static final DateTimeFormatter DT_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     private final StringRedisTemplate notifRedis;
-    private final ShutdownNotifier shutdownNotifier;
     private final SysUserMapper sysUserMapper;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public GlobalNotificationServiceImpl(
             @Qualifier("globalNotificationRedisTemplate") StringRedisTemplate notifRedis,
-            ShutdownNotifier shutdownNotifier,
             SysUserMapper sysUserMapper) {
         this.notifRedis = notifRedis;
-        this.shutdownNotifier = shutdownNotifier;
         this.sysUserMapper = sysUserMapper;
     }
 
@@ -82,14 +78,12 @@ public class GlobalNotificationServiceImpl implements GlobalNotificationService 
             for (SysUser u : allUsers) {
                 if (u.getName().equals(sender)) continue;
                 notifRedis.opsForZSet().add(USER_ZSET_PREFIX + u.getName(), id, score);
-                shutdownNotifier.sendToUser(u.getName(), "global_notification", toJson(notif));
             }
         } else {
             for (String r : receivers.split(",")) {
                 String trimmed = r.trim();
                 if (trimmed.isEmpty() || trimmed.equals(sender)) continue;
                 notifRedis.opsForZSet().add(USER_ZSET_PREFIX + trimmed, id, score);
-                shutdownNotifier.sendToUser(trimmed, "global_notification", toJson(notif));
             }
         }
 
