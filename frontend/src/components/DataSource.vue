@@ -81,7 +81,11 @@ const canSubmit = ref(true)
 
 async function fetchStatus() {
   try {
-    const r = await fetch('/api/datasource/status')
+    const r = await fetch('/api/datasource/status', {
+      headers: {
+        'X-User-Name': encodeURIComponent(localStorage.getItem('userName') || 'anonymous')
+      }
+    })
     const json = await r.json()
     if (json.success && json.data) {
       status.hasConfig = json.data.hasConfig
@@ -93,7 +97,11 @@ async function fetchStatus() {
 
 async function fetchConfig() {
   try {
-    const r = await fetch('/api/datasource/config')
+    const r = await fetch('/api/datasource/config', {
+      headers: {
+        'X-User-Name': encodeURIComponent(localStorage.getItem('userName') || 'anonymous')
+      }
+    })
     const json = await r.json()
     if (json.success && json.data) {
       form.url = json.data.url || ''
@@ -114,7 +122,7 @@ async function testConnection() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-User-Name': encodeURIComponent(localStorage.getItem('userName') || '')
+        'X-User-Name': encodeURIComponent(localStorage.getItem('userName') || 'anonymous')
       },
       body: JSON.stringify({ url: form.url, username: form.username, password: form.password })
     })
@@ -140,7 +148,7 @@ async function saveConfig() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-User-Name': encodeURIComponent(localStorage.getItem('userName') || '')
+        'X-User-Name': encodeURIComponent(localStorage.getItem('userName') || 'anonymous')
       },
       body: JSON.stringify({ url: form.url, username: form.username, password: form.password })
     })
@@ -164,7 +172,7 @@ async function deleteConfig() {
     const r = await fetch('/api/datasource/config', {
       method: 'DELETE',
       headers: {
-        'X-User-Name': encodeURIComponent(localStorage.getItem('userName') || '')
+        'X-User-Name': encodeURIComponent(localStorage.getItem('userName') || 'anonymous')
       }
     })
     const json = await r.json()
@@ -186,7 +194,7 @@ async function doSwitch(useCustom) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-User-Name': encodeURIComponent(localStorage.getItem('userName') || '')
+        'X-User-Name': encodeURIComponent(localStorage.getItem('userName') || 'anonymous')
       },
       body: JSON.stringify({ useCustom })
     })

@@ -49,9 +49,6 @@ public class WebConfig implements WebMvcConfigurer {
                 .addPathPatterns("/**")
                 .excludePathPatterns("/actuator/**", "/swagger-ui/**", "/v3/api-docs/**");
 
-        registry.addInterceptor(new UserContextInterceptor(dedupSessionService, kickRedisTemplate,dataSourceRedisTemplate))
-                .addPathPatterns("/api/**")
-                .excludePathPatterns("/actuator/**", "/swagger-ui/**", "/v3/api-docs/**");
     }
 
     @Override
