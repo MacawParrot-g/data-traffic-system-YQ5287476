@@ -35,7 +35,8 @@ public class AdminRecordController {
             Integer isOutput = params.get("isOutput") != null ? ((Number) params.get("isOutput")).intValue() : null;
             int page = params.get("page") != null ? ((Number) params.get("page")).intValue() : 1;
             int size = params.get("size") != null ? ((Number) params.get("size")).intValue() : 20;
-            return databaseService.adminSearch(dateFrom, dateTo, bundleId, keyword, exceptionType, ascribe, frozenOnly, recorder, isOutput, page, size);
+            String dateSort = (String) params.get("dateSort");
+            return databaseService.adminSearch(dateFrom, dateTo, bundleId, keyword, exceptionType, ascribe, frozenOnly, recorder, isOutput, page, size, dateSort);
         } catch (Exception e) {
             return Result.fail("查询失败：" + e.getMessage());
         }

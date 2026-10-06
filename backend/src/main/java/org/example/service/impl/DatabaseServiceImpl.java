@@ -436,10 +436,10 @@ public class DatabaseServiceImpl implements DatabaseService, CommandLineRunner {
     @Transactional(readOnly = true)
     public Result adminSearch(String dateFrom, String dateTo, String bundleId, String keyword,
                               String exceptionType, String ascribe, boolean frozenOnly,
-                              String recorder, Integer isOutput, int page, int size) {
+                              String recorder, Integer isOutput, int page, int size, String dateSort) {
         int offset = (page - 1) * size;
         List<TestStatic> list = generanMapper.adminSearch(dateFrom, dateTo, bundleId, keyword,
-                exceptionType, ascribe, frozenOnly, recorder, isOutput, size, offset);
+                exceptionType, ascribe, frozenOnly, recorder, isOutput, size, offset, dateSort);
         long total = generanMapper.adminSearchCount(dateFrom, dateTo, bundleId, keyword,
                 exceptionType, ascribe, frozenOnly, recorder, isOutput);
         return Result.success("查询成功，共 " + total + " 条", list, DataViewType.ALL, total, page, size);

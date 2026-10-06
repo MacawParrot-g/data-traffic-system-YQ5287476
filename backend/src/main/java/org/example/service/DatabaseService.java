@@ -37,7 +37,7 @@ public interface DatabaseService {
 
     Result adminSearch(String dateFrom, String dateTo, String bundleId, String keyword,
                        String exceptionType, String ascribe, boolean frozenOnly,
-                       String recorder, Integer isOutput, int page, int size);
+                       String recorder, Integer isOutput, int page, int size, String dateSort);
 
     Result adminStats();
 

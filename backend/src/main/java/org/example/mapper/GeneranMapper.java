@@ -144,7 +144,11 @@ public interface GeneranMapper extends BaseMapper<TestStatic> {
             "<if test='frozenOnly'> AND remark LIKE '%已冻结%'</if>" +
             "<if test='recorder != null and recorder != \"\"'> AND recorder LIKE CONCAT('%', #{recorder}, '%')</if>" +
             "<if test='isOutput != null'> AND isOutput = #{isOutput}</if>" +
-            " ORDER BY URL DESC" +
+            "<choose>" +
+            "<when test='dateSort == \"asc\"'> ORDER BY COALESCE(STR_TO_DATE(REPLACE(REPLACE(record_data,'/','-'),'T',' '),'%Y-%m-%d %H:%i:%s'), STR_TO_DATE(REPLACE(REPLACE(LEFT(record_data,10),'/','-'),'T',' '),'%Y-%m-%d')) ASC, hash ASC</when>" +
+            "<when test='dateSort == \"desc\"'> ORDER BY COALESCE(STR_TO_DATE(REPLACE(REPLACE(record_data,'/','-'),'T',' '),'%Y-%m-%d %H:%i:%s'), STR_TO_DATE(REPLACE(REPLACE(LEFT(record_data,10),'/','-'),'T',' '),'%Y-%m-%d')) DESC, hash DESC</when>" +
+            "<otherwise> ORDER BY URL DESC</otherwise>" +
+            "</choose>" +
             " LIMIT #{size} OFFSET #{offset}" +
             "</script>")
     List<TestStatic> adminSearch(@Param("dateFrom") String dateFrom,
@@ -157,7 +161,8 @@ public interface GeneranMapper extends BaseMapper<TestStatic> {
                                  @Param("recorder") String recorder,
                                  @Param("isOutput") Integer isOutput,
                                  @Param("size") int size,
-                                 @Param("offset") int offset);
+                                 @Param("offset") int offset,
+                                 @Param("dateSort") String dateSort);
 
     @Select("<script>" +
             "SELECT COUNT(*) FROM test_static WHERE 1=1" +

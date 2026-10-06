@@ -130,7 +130,6 @@ const reportLoading = ref(false)
 const reportData = ref(null)
 
 const currentUserRole = ref(localStorage.getItem('accType') || '')
-
 const dateSortOrder = ref(null)
 
 const viewTypeLabel = {
@@ -144,6 +143,7 @@ function toggleDateSort() {
   if (dateSortOrder.value === null) dateSortOrder.value = 'asc'
   else if (dateSortOrder.value === 'asc') dateSortOrder.value = 'desc'
   else dateSortOrder.value = null
+  fetchData(true)
 }
 
 function normalizeRecordData(recordData) {
@@ -173,17 +173,7 @@ function extractTimePart(recordData) {
   return normalized.substring(tIdx + 1)
 }
 
-const sortedList = computed(() => {
-  if (!dateSortOrder.value || list.value.length === 0) return list.value
-  const sorted = [...list.value]
-  sorted.sort((a, b) => {
-    const ta = extractTimePart(a.record_data)
-    const tb = extractTimePart(b.record_data)
-    const cmp = ta.localeCompare(tb)
-    return dateSortOrder.value === 'asc' ? cmp : -cmp
-  })
-  return sorted
-})
+const sortedList = computed(() => list.value)
 
 function resetFilters() {
   advFilters.dateFrom = getTodayDateStr()
@@ -222,7 +212,7 @@ async function fetchData(resetPage = false) {
   }
   try {
     const promises = [
-      adminRecordSearch({ ...filterParams, page: currentPage.value, size: pageSize.value }),
+      adminRecordSearch({ ...filterParams, page: currentPage.value, size: pageSize.value, dateSort: dateSortOrder.value }),
       adminRecordSummary(filterParams)
     ]
     if (activeTab.value === 'report') {
@@ -817,7 +807,6 @@ async function handleBatchImport() {
   }
 }
 
-
 async function handleCreateUser() {
   if (!createForm.name.trim() || !createForm.pwd.trim()) {
     emit('error', '姓名和密码不能为空')
@@ -1318,6 +1307,17 @@ onUnmounted(() => {
           <div class="state-text">没有符合条件的数据</div>
         </div>
 
+        <div v-if="total > 0" class="pagination pagination-top">
+          <button class="page-btn" :disabled="currentPage <= 1" @click="prevPage">‹ 上一页</button>
+          <span class="page-info">第 {{ currentPage }} / {{ totalPages }} 页，共 {{ total }} 条</span>
+          <button class="page-btn" :disabled="currentPage >= totalPages" @click="nextPage">下一页 ›</button>
+          <label class="page-size-label">
+            每页
+            <input class="page-size-input" type="number" v-model="pageSizeInput" @keydown.enter="applyPageSize" @blur="applyPageSize" min="1" max="500" />
+            条
+          </label>
+        </div>
+
         <div v-if="list.length > 0" class="table-wrapper">
           <table class="data-table">
             <thead>
@@ -1404,18 +1404,6 @@ onUnmounted(() => {
             </tbody>
           </table>
         </div>
-
-        <div v-if="total > 0" class="pagination">
-          <button class="page-btn" :disabled="currentPage <= 1" @click="prevPage">‹ 上一页</button>
-          <span class="page-info">第 {{ currentPage }} / {{ totalPages }} 页，共 {{ total }} 条</span>
-          <button class="page-btn" :disabled="currentPage >= totalPages" @click="nextPage">下一页 ›</button>
-          <label class="page-size-label">
-            每页
-            <input class="page-size-input" type="number" v-model="pageSizeInput" @keydown.enter="applyPageSize" @blur="applyPageSize" min="1" max="500" />
-            条
-          </label>
-        </div>
-
         <div class="import-section" v-if="currentUserRole === 'DEVELOPER'">
           <div class="import-toggle" @click="importExpanded = !importExpanded">
             <span class="import-toggle-icon">{{ importExpanded ? '▼' : '▶' }}</span>
@@ -1902,7 +1890,8 @@ onUnmounted(() => {
 .btn-save:hover:not(:disabled) { box-shadow: 0 4px 12px rgba(67,233,123,0.4); }
 .btn-cancel { background: linear-gradient(135deg, #f87171, #ef4444); color: #fff; }
 .btn-cancel:hover:not(:disabled) { box-shadow: 0 4px 12px rgba(239,68,68,0.4); }
-
+.pagination { display: flex; justify-content: center; align-items: center; gap: 16px; padding: 14px 0; }
+.pagination-top { padding: 8px 0 12px; }
 /* ========== 通用卡片 ========== */
 .card { background: #fff; border-radius: 14px; padding: 0; margin-bottom: 20px; border: 1px solid #eaeaea; box-shadow: 0 1px 4px rgba(0,0,0,0.04); overflow: hidden; }
 .card-header { display: flex; align-items: center; gap: 8px; padding: 16px 20px; border-bottom: 1px solid #f0f0f0; }
