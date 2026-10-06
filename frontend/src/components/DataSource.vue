@@ -188,6 +188,8 @@ async function deleteConfig() {
 
 async function doSwitch(useCustom) {
   if (status.useCustom === useCustom) return
+  const confirmed = confirm('数据源切换会丢失当前未保存的数据，请确保数据已保存，是否继续？')
+  if (!confirmed) return
   switching.value = true
   try {
     const r = await fetch('/api/datasource/switch', {
@@ -201,15 +203,18 @@ async function doSwitch(useCustom) {
     const json = await r.json()
     if (json.success) {
       await fetchStatus()
-    }
-    testResult.value = {
-      success: json.success,
-      message: json.success ? (useCustom ? '已切换到自定义数据源' : '已切换到默认数据源') : (json.message || '切换失败')
+      alert('数据源已切换成功，页面即将刷新以应用新数据源')
+      window.location.reload()
+    } else {
+      switching.value = false
+      testResult.value = {
+        success: false,
+        message: json.message || '切换失败'
+      }
     }
   } catch (e) {
-    testResult.value = { success: false, message: '请求失败: ' + e.message }
-  } finally {
     switching.value = false
+    testResult.value = { success: false, message: '请求失败: ' + e.message }
   }
 }
 
