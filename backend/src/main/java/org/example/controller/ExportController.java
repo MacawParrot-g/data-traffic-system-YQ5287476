@@ -1,6 +1,7 @@
 package org.example.controller;
 
 import org.example.annotation.LogExecutionTime;
+import org.example.annotation.SkipRateLimit;
 import org.example.common.Result;
 import org.example.service.ExportService;
 import jakarta.servlet.http.HttpServletResponse;
@@ -18,7 +19,7 @@ public class ExportController {
     private ExportService exportService;
 
     @GetMapping("/unexported")
-    @LogExecutionTime("查询未导出数据")
+    @SkipRateLimit
     public Result getUnexported(@RequestParam String recorder) {
         return exportService.getUnexportedByUser(recorder);
     }

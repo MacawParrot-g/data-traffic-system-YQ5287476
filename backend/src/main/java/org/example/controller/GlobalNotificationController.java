@@ -49,7 +49,7 @@ public class GlobalNotificationController {
     }
 
     @GetMapping("/my")
-    @LogExecutionTime("查询个人通知")
+    @SkipRateLimit
     public Result myNotifications(HttpServletRequest request,
                                   @RequestParam(defaultValue = "1") int page,
                                   @RequestParam(defaultValue = "20") int size) {
