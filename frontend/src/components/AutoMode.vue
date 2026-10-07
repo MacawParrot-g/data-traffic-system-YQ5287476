@@ -93,9 +93,10 @@
           <div class="event-result no-event" v-if="eventResult === 'no_event'">
             <div class="event-label">查询结果</div>
             <div class="event-value">✅ 无事件</div>
-            <button class="btn-frozen" @click="doFrozen" :disabled="frozenLoading">
+            <button class="btn-frozen" @click="doFrozen" :disabled="frozenLoading" v-if="!isRetestMode">
               {{ frozenLoading ? '冻结中...' : '冻结应用' }}
             </button>
+            <div class="retest-frozen-tip" v-else>复测模式下已禁用冻结功能</div>
             <div class="frozen-result" v-if="frozenMsg">
               <div class="frozen-label">冻结结果</div>
               <div class="frozen-value">{{ frozenMsg }}</div>
@@ -555,6 +556,8 @@
     border-color: #fca5a5;
     color: #991b1b;
   }
+  .retest-date { background: #eef2ff !important; color: #4f46e5 !important; border-color: #c7d2fe !important; font-family: monospace; letter-spacing: 0.5px; }
+  .retest-frozen-tip { margin-top: 8px; font-size: 12px; color: #94a3b8; font-weight: 600; }
   .grade-detail-header {
     display: flex;
     align-items: center;
@@ -619,11 +622,13 @@ import QRCode from 'qrcode'
 import {
   fetchTask,
   fetchEvent,
+  fetchObtain,
   fetchAllAttributions,
   fetchFrozen,
   insertRecord,
   fetchCountByRecorder,
   fetchRandomForRetest,
+  fetchRetestBundle,
   fetchAppGrade,
   saveAppGrade,
   fetchUnexportedByUser,
@@ -811,30 +816,35 @@ async function retestFlow() {
   resetState()
   isRetestMode.value = true
   try {
-    const dates = getPast3DaysDates()
-    const json = await fetchRandomForRetest(dates)
-    if (json.success && json.data) {
+    const json = await fetchRetestBundle()
+    if (json.success && json.data && json.data.bundleId) {
       showRetestModal.value = false
-      downloadUrl.value = json.data.downloadUrl || ''
-      bundleId.value = json.data.bundleId || ''
-      taskId.value = json.data.id ?? null
+      bundleId.value = json.data.bundleId
       form.record_data = generateCurrentTimestamp()
-      const jsons = await fetchEvent(bundleId.value)
-      try{
-        if (jsons.success) {
+      try {
+        const jsons = await fetchEvent(bundleId.value)
+        if (jsons.success && jsons.data) {
           originalCurrentTargetNum.value = jsons.data.currentTargetNum ?? null
           appId.value = jsons.data.appId || ''
         }
+        if (appId.value) {
+          const obt = await fetchObtain(appId.value)
+          if (obt.success && obt.data) {
+            downloadUrl.value = obt.data.downloadUrl || ''
+          }
+        }
         loadGradeInfo(bundleId.value)
-      }catch (e) {
+      } catch (e) {
         appId.value = '此为复测内容，暂无appid'
         alert('服务器无响应，请联系技术人员')
       }
       isSubmit = false
     } else {
-      emit('error', json.message || '获取复测数据失败')
+      isRetestMode.value = false
+      emit('error', json.message || '获取复测数据失败，Redis中暂无可复测数据')
     }
   } catch (e) {
+    isRetestMode.value = false
     emit('error', '复测请求失败：' + e.message)
   } finally {
     retestLoading.value = false

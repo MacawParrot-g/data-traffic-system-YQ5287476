@@ -612,3 +612,43 @@ export function deleteGlobalNotification(id) {
 export function pollGlobalNotifications(since) {
     return fetchWithTimeout('/api/global-notification/poll?since=' + since, {}, 10000).then(safeJson)
 }
+// ==================== 复测数据缓存 ====================
+
+export function fetchRetestBundle() {
+    return fetchWithTimeout('/api/retest/random-bundle', {}, 15000).then(safeJson)
+}
+
+export function fetchRetestCacheList() {
+    return fetchWithTimeout('/api/retest/cache/list', {}, 15000).then(safeJson)
+}
+
+export function warmupRetestCache() {
+    return fetchWithTimeout('/api/retest/cache/warmup', { method: 'POST' }, 60000).then(safeJson)
+}
+
+export function addRetestBundle(bundleId, grade) {
+    return fetchWithTimeout('/api/retest/cache/add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bundleId, grade })
+    }, 15000).then(safeJson)
+}
+
+export function updateRetestBundle(bundleId, grade) {
+    return fetchWithTimeout('/api/retest/cache/update', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bundleId, grade })
+    }, 15000).then(safeJson)
+}
+
+export function deleteRetestBundle(bundleId) {
+    return fetchWithTimeout('/api/retest/cache/delete?bundleId=' + encodeURIComponent(bundleId), {
+        method: 'DELETE'
+    }, 15000).then(safeJson)
+}
+
+export function clearRetestCache() {
+    return fetchWithTimeout('/api/retest/cache/clear', { method: 'DELETE' }, 15000).then(safeJson)
+}
+

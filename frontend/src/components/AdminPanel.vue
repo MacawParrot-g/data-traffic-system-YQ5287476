@@ -23,7 +23,13 @@ import {
   updateRecord,
   adminAppIdLookup,
   adminAppIdSave,
-  fetchEvent
+  fetchEvent,
+  fetchRetestCacheList,
+  warmupRetestCache,
+  addRetestBundle,
+  updateRetestBundle,
+  deleteRetestBundle,
+  clearRetestCache
 } from '../api/index.js'
 
 import { Chart, registerables } from 'chart.js'
@@ -132,11 +138,110 @@ const reportData = ref(null)
 const currentUserRole = ref(localStorage.getItem('accType') || '')
 const dateSortOrder = ref(null)
 
+const retestList = ref([])
+const retestLoading = ref(false)
+const retestTotal = ref(0)
+const retestTtl = ref(0)
+const retestWarming = ref(false)
+const retestMsg = ref('')
+const retestAddForm = reactive({ bundleId: '', grade: 'B' })
+const retestEditing = ref(null)
+const retestEditGrade = ref('B')
+
 const viewTypeLabel = {
   ALL: '全部数据', APPFLYER: 'appflyer', ADJUST: 'adjust',
   SINGULAR: 'singular', TENJIN: 'tenjin', FROZEN: '已冻结数据',
   APPFLYER_FROZEN: 'appflyer · 已冻结', ADJUST_FROZEN: 'adjust · 已冻结',
   SINGULAR_FROZEN: 'singular · 已冻结', TENJIN_FROZEN: 'tenjin · 已冻结'
+}
+
+async function loadRetestCache() {
+  retestLoading.value = true
+  try {
+    const json = await fetchRetestCacheList()
+    if (json.success && json.data) {
+      retestList.value = json.data.list || []
+      retestTotal.value = json.data.total || 0
+      retestTtl.value = json.data.ttlSeconds || 0
+    } else {
+      emit('error', json.message || '查询复测缓存失败')
+    }
+  } catch (e) {
+    emit('error', '查询复测缓存请求失败：' + e.message)
+  } finally {
+    retestLoading.value = false
+  }
+}
+
+async function doRetestWarmup() {
+  retestWarming.value = true
+  retestMsg.value = ''
+  try {
+    const json = await warmupRetestCache()
+    retestMsg.value = (json.success ? '✅ ' : '❌ ') + (json.message || '')
+    await loadRetestCache()
+  } catch (e) {
+    retestMsg.value = '❌ 预热请求失败：' + e.message
+  } finally {
+    retestWarming.value = false
+  }
+}
+
+async function doRetestAdd() {
+  const bid = retestAddForm.bundleId.trim()
+  if (!bid) { retestMsg.value = '❌ 请输入 Bundle ID'; return }
+  try {
+    const json = await addRetestBundle(bid, retestAddForm.grade)
+    retestMsg.value = (json.success ? '✅ ' : '❌ ') + (json.message || '')
+    if (json.success) { retestAddForm.bundleId = ''; await loadRetestCache() }
+  } catch (e) {
+    retestMsg.value = '❌ 新增请求失败：' + e.message
+  }
+}
+
+function startRetestEdit(item) {
+  retestEditing.value = item.bundleId
+  retestEditGrade.value = item.grade || 'B'
+}
+
+async function saveRetestEdit() {
+  try {
+    const json = await updateRetestBundle(retestEditing.value, retestEditGrade.value)
+    retestMsg.value = (json.success ? '✅ ' : '❌ ') + (json.message || '')
+    retestEditing.value = null
+    if (json.success) await loadRetestCache()
+  } catch (e) {
+    retestMsg.value = '❌ 更新请求失败：' + e.message
+  }
+}
+
+async function doRetestDelete(bundleId) {
+  if (!confirm('确认从复测缓存中删除 ' + bundleId + ' ？')) return
+  try {
+    const json = await deleteRetestBundle(bundleId)
+    retestMsg.value = (json.success ? '✅ ' : '❌ ') + (json.message || '')
+    if (json.success) await loadRetestCache()
+  } catch (e) {
+    retestMsg.value = '❌ 删除请求失败：' + e.message
+  }
+}
+
+async function doRetestClear() {
+  if (!confirm('确认清空全部复测缓存数据？')) return
+  try {
+    const json = await clearRetestCache()
+    retestMsg.value = (json.success ? '✅ ' : '❌ ') + (json.message || '')
+    if (json.success) await loadRetestCache()
+  } catch (e) {
+    retestMsg.value = '❌ 清空请求失败：' + e.message
+  }
+}
+
+function formatRetestTtl(sec) {
+  if (!sec || sec <= 0) return '已过期 / 无'
+  const h = Math.floor(sec / 3600)
+  const m = Math.floor((sec % 3600) / 60)
+  return h + ' 小时 ' + m + ' 分'
 }
 
 function toggleDateSort() {
@@ -978,6 +1083,20 @@ onUnmounted(() => {
   stopUnexportedPolling()
   destroyCharts()
 })
+
+watch(activeTab, async (newTab) => {
+  if (newTab === 'report') {
+    await nextTick()
+    if (summaryData.value || recorderSummary.value.length > 0) {
+      renderCharts()
+    } else {
+      fetchData(true)
+    }
+  }
+  if (newTab === 'retest') {
+    loadRetestCache()
+  }
+})
 </script>
 
 <template>
@@ -996,6 +1115,9 @@ onUnmounted(() => {
       </button>
       <button class="admin-tab" :class="{ active: activeTab === 'appid' }" @click="activeTab = 'appid'">
         <span class="tab-icon">A</span><span class="tab-text">App信息</span>
+      </button>
+      <button class="admin-tab" :class="{ active: activeTab === 'retest' }" @click="activeTab = 'retest'">
+        <span class="tab-icon">R</span><span class="tab-text">查看复测数据</span>
       </button>
       <button class="admin-tab" :class="{ active: activeTab === 'users' }" @click="activeTab = 'users'">
         <span class="tab-icon">U</span><span class="tab-text">用户管理</span>
@@ -1611,6 +1733,105 @@ onUnmounted(() => {
       </div>
     </div>
   </template>
+
+    <template v-if="activeTab === 'retest'">
+      <div class="admin-section">
+        <div class="appid-lookup-card">
+          <div class="appid-lookup-header">
+            <span class="appid-lookup-icon">R</span>
+            <div>
+              <h3 class="appid-lookup-title">复测数据缓存（Redis DB12）</h3>
+              <p class="appid-lookup-desc">仅缓存过去三天、评级 B 级以上的 bundleId，每条 TTL 24 小时，过期后自动重新预热</p>
+            </div>
+          </div>
+
+          <div class="retest-stat-row">
+            <div class="retest-stat-box">
+              <div class="retest-stat-value">{{ retestTotal }}</div>
+              <div class="retest-stat-label">缓存条目数</div>
+            </div>
+            <div class="retest-stat-box">
+              <div class="retest-stat-value">{{ formatRetestTtl(retestTtl) }}</div>
+              <div class="retest-stat-label">剩余存活时间</div>
+            </div>
+            <div class="retest-stat-actions">
+              <button class="btn-action btn-create" @click="doRetestWarmup" :disabled="retestWarming">
+                {{ retestWarming ? '预热中...' : '手动预热' }}
+              </button>
+              <button class="btn-action" @click="loadRetestCache" :disabled="retestLoading">
+                {{ retestLoading ? '刷新中...' : '刷新' }}
+              </button>
+              <button class="btn-action" style="background:#ef4444;color:#fff" @click="doRetestClear">清空缓存</button>
+            </div>
+          </div>
+
+          <div v-if="retestMsg" class="feedback" :class="{ 'feedback-ok': retestMsg.startsWith('✅'), 'feedback-err': retestMsg.startsWith('❌') }" style="margin:12px 0">
+            {{ retestMsg }}
+          </div>
+
+          <div class="retest-add-row">
+            <input v-model="retestAddForm.bundleId" class="appid-search-input" placeholder="手动新增 Bundle ID" @keyup.enter="doRetestAdd" />
+            <select v-model="retestAddForm.grade" class="filter-input" style="width:120px">
+              <option value="A">A级</option>
+              <option value="B">B级</option>
+            </select>
+            <button class="appid-search-btn" @click="doRetestAdd">新增</button>
+          </div>
+
+          <div v-if="retestLoading" class="state-block">
+            <div class="state-spinner"></div>
+            <div class="state-text">正在加载...</div>
+          </div>
+
+          <div v-else-if="retestList.length > 0" class="table-wrapper" style="margin-top:16px">
+            <table class="data-table">
+              <thead>
+              <tr>
+                <th style="width:60px">#</th>
+                <th>Bundle ID</th>
+                <th style="width:160px">评级</th>
+                <th style="width:180px">操作</th>
+              </tr>
+              </thead>
+              <tbody>
+              <tr v-for="(item, idx) in retestList" :key="item.bundleId">
+                <td>{{ idx + 1 }}</td>
+                <td class="appid-field-mono" style="word-break:break-all">{{ item.bundleId }}</td>
+                <td>
+                  <template v-if="retestEditing === item.bundleId">
+                    <select v-model="retestEditGrade" class="filter-input" style="width:90px">
+                      <option value="A">A级</option>
+                      <option value="B">B级</option>
+                    </select>
+                  </template>
+                  <template v-else>
+                    <span class="grade-badge" :class="'grade-' + (item.grade || '').toLowerCase()">{{ item.grade }}级</span>
+                  </template>
+                </td>
+                <td>
+                  <template v-if="retestEditing === item.bundleId">
+                    <button class="btn-link" @click="saveRetestEdit">保存</button>
+                    <button class="btn-link" @click="retestEditing = null">取消</button>
+                  </template>
+                  <template v-else>
+                    <button class="btn-link" @click="startRetestEdit(item)">编辑</button>
+                    <button class="btn-link" style="color:#ef4444" @click="doRetestDelete(item.bundleId)">删除</button>
+                  </template>
+                </td>
+              </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div v-else class="appid-result-notfound" style="margin-top:16px">
+            <div class="appid-notfound-icon">Q</div>
+            <div class="appid-notfound-text">复测缓存为空</div>
+            <div class="appid-notfound-hint">点击「手动预热」从数据库加载过去三天 B 级以上的 bundleId</div>
+          </div>
+        </div>
+      </div>
+    </template>
+
     <!-- ==================== 用户管理 Tab ==================== -->
     <div v-if="activeTab === 'users'" class="admin-section">
 
@@ -1854,6 +2075,16 @@ onUnmounted(() => {
 .chart-filter-select { padding: 7px 14px; font-size: 13px; font-weight: 600; border: 2px solid #e0e0e0; border-radius: 10px; outline: none; background: #fff; cursor: pointer; transition: border-color 0.2s, box-shadow 0.2s; color: #333; min-width: 180px; }
 .chart-filter-select:focus { border-color: #667eea; box-shadow: 0 0 0 3px rgba(102,126,234,0.12); }
 .chart-filter-hint { font-size: 11px; color: #999; margin-left: auto; }
+
+.retest-stat-row { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin: 16px 0; }
+.retest-stat-box { background: #f1f5f9; border-radius: 12px; padding: 12px 20px; text-align: center; min-width: 120px; }
+.retest-stat-value { font-size: 20px; font-weight: 700; color: #1a1a2e; }
+.retest-stat-label { font-size: 12px; color: #64748b; margin-top: 4px; }
+.retest-stat-actions { display: flex; gap: 10px; margin-left: auto; flex-wrap: wrap; }
+.retest-add-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 8px; }
+.grade-badge { display: inline-block; padding: 3px 14px; border-radius: 8px; font-size: 14px; font-weight: 700; }
+.grade-a { background: #dcfce7; color: #166534; }
+.grade-b { background: #dbeafe; color: #1e40af; }
 
 /* ========== 记录人饼图网格 ========== */
 .recorder-pies-section { margin-bottom: 24px; }
