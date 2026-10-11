@@ -1,5 +1,6 @@
 package org.example.service.impl;
 
+import org.example.annotation.*;
 import org.example.entity.AppIdRecord;
 import org.example.mapper.AppIdMapper;
 import org.example.service.AppIdService;
@@ -14,6 +15,8 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 @Service
 public class AppIdServiceImpl implements AppIdService {
@@ -111,6 +114,13 @@ public class AppIdServiceImpl implements AppIdService {
     }
 
     @Override
+    @LogExecutionTime("保存AppId")
+    @SensitiveLog(maskKeywords = {"token"})           // 60 最内层：日志脱敏
+    @Retryable(maxAttempts = 3, delay = 500)          // 50：失败重试
+    @Timeout(value = 5, unit = SECONDS)               // 40：单次超时
+    @MethodCache(key = "#bundleId", ttl = 60)         // 30：结果缓存
+    @Idempotent(key = "'appid:' + #bundleId", ttl = 10) // 20：防重
+    @DistributedLock(key = "'appid:' + #bundleId")
     public boolean saveIfNotExist(String bundleId, Long appId) {
         if (bundleId == null || appId == null) return false;
         try {

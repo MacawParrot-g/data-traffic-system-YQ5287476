@@ -7,6 +7,7 @@ import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Pointcut;
+import org.example.util.LogMasker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -90,6 +91,7 @@ public class LogExecutionTimeAspect {
                             try { return a.toString().substring(0, Math.min(a.toString().length(), 200)); }
                             catch (Exception e) { return a.getClass().getSimpleName(); }
                         })
+                        .map(LogMasker::mask)
                         .collect(Collectors.joining(", "));
 
                 AuditLog auditLog = new AuditLog();

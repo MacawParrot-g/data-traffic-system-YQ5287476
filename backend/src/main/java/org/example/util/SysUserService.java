@@ -173,6 +173,7 @@ package org.example.util;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.example.annotation.SensitiveLog;
 import org.example.common.Result;
 import org.example.entity.SysUser;
 import org.example.mapper.SysUserMapper;
@@ -206,7 +207,7 @@ public class SysUserService {
         this.kickRedisTemplate = kickRedisTemplate;
         this.userManageService = userManageService;
     }
-
+    @SensitiveLog(maskParams = {"pwd", "password", "newPwd"})
     public Result login(String uid, String rawPwd, HttpServletRequest request, HttpServletResponse response) {
         if (uid == null || uid.isBlank() || rawPwd == null || rawPwd.isBlank()) {
             return Result.fail("账号和密码不能为空");
@@ -290,6 +291,7 @@ public class SysUserService {
         return Result.success("未登录", Map.of("loggedIn", false));
     }
 
+    @SensitiveLog(maskParams = {"name", "rawPwd", "type"})
     public Result createUser(String name, String rawPwd, String type, HttpServletRequest request) {
         String operatorType = getOperatorType(request);
         if (operatorType == null) {
