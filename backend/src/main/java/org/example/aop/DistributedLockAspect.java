@@ -42,7 +42,7 @@ public class DistributedLockAspect {
     @Around("@annotation(lock)")
     public Object around(ProceedingJoinPoint joinPoint, DistributedLock lock) throws Throwable {
         String lockKey = buildKey(joinPoint, lock);
-        String lockValue = UUID.randomUUID() + ":" + Thread.currentThread().threadId();
+        String lockValue = UUID.randomUUID() + ":" + System.nanoTime();
         Duration expire = Duration.ofMillis(lock.unit().toMillis(lock.expire()));
         int retryTimes = lock.retryTimes();
         long retryWait = lock.retryWait();
