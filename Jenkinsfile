@@ -99,7 +99,9 @@ pipeline {
                     mkdir -p ${DEPLOY_DIR}/persistent-data/{mysql,redis,rabbitmq,export,nginx-logs}
                     mkdir -p ${DEPLOY_DIR}/mysql/initsql
                     cp -f docker-compose.cicd.yml ${DEPLOY_DIR}/
-                    cp -rf nginx ${DEPLOY_DIR}/
+                    mkdir -p ${DEPLOY_DIR}/frontend/deploy
+                    cp -rf frontend/deploy ${DEPLOY_DIR}/frontend/
+                    cp -rf frontend/dist ${DEPLOY_DIR}/frontend/
                     cp -rf mysql ${DEPLOY_DIR}/ 2>/dev/null || true
                     cp -rf redis ${DEPLOY_DIR}/ 2>/dev/null || true
                 """
