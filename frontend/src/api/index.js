@@ -626,6 +626,10 @@ export function warmupRetestCache() {
     return fetchWithTimeout('/api/retest/cache/warmup', { method: 'POST' }, 60000).then(safeJson)
 }
 
+export function fetchCheckVersion(appId, bundleId, checkVersion) {
+    return fetchWithTimeout('/api/proxy/check-version?appId=' + encodeURIComponent(appId) + '&bundleId=' + encodeURIComponent(bundleId) + '&checkVersion=' + encodeURIComponent(checkVersion), {}, 30000).then(safeJson)
+}
+
 export function addRetestBundle(bundleId, grade) {
     return fetchWithTimeout('/api/retest/cache/add', {
         method: 'POST',

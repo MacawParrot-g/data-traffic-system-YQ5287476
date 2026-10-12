@@ -8,4 +8,5 @@ public interface URLService {
     Map<String, Object> proxyAttribution(String bundleId, String type);
     Map<String, Object> proxyFrozen(Long id);
     Map<String, Object> proxyTaskCount();
+    Map<String, Object> proxyCheckVersion(String appId, String bundleId, String checkVersion);
 }

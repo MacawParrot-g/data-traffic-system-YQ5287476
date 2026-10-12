@@ -57,6 +57,14 @@ public class URLServiceImpl implements URLService {
     }
 
     @Override
+    public Map<String, Object> proxyCheckVersion(String appId, String bundleId, String checkVersion) {
+        String url = "https://d-reporter.de123.net/ad/event/target/check-version?appId=" + appId
+                + "&bundleId=" + bundleId + "&checkVersion=" + checkVersion;
+        Map<String, Object> response = rk.safeRemoteGet(url);
+        return response != null ? response : rk.errorResponse("版本校验接口返回空响应");
+    }
+
+    @Override
     public Map<String, Object> proxyEvent(String bundleId) {
         String url = "https://d-reporter.de123.net/ad/event/target?bundleId=" + bundleId;
         Map<String, Object> response = rk.safeRemoteGet(url);

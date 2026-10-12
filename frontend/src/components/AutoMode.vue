@@ -53,6 +53,19 @@
           <div class="info-card-value">{{ originalCurrentTargetNum }}</div>
         </div>
 
+        <div class="info-card version-card" v-if="currentVersion || checkVerion">
+          <div class="info-card-label">版本比对</div>
+          <div class="version-value">
+            <span class="ver-item">current: {{ currentVersion || '-' }}</span>
+            <span class="ver-item">check: {{ checkVerion || '-' }}</span>
+            <span class="ver-mismatch" v-if="versionMismatch">版本不一致</span>
+          </div>
+          <button v-if="versionMismatch" class="btn-stop-delivery" @click="stopDelivery" :disabled="stopDeliveryLoading">
+            {{ stopDeliveryLoading ? '停止中...' : '停止二次下发' }}
+          </button>
+          <div class="stop-delivery-msg" v-if="stopDeliveryMsg">{{ stopDeliveryMsg }}</div>
+        </div>
+
         <div class="info-card grade-card" @click="gradeData && (showGradeDetailModal = true)" :style="gradeData ? { cursor: 'pointer' } : {}">
           <div class="info-card-label">应用评级</div>
           <div class="info-card-value" v-if="gradeLoading" style="font-size:12px;color:#94a3b8">加载中...</div>
@@ -63,6 +76,11 @@
           <div v-else class="grade-none">无评级</div>
         </div>
 
+        <form class="hidden-version-form" style="display:none" aria-hidden="true">
+          <input name="appId" v-model="versionForm.appId" />
+          <input name="bundleId" v-model="versionForm.bundleId" />
+          <input name="checkVersion" v-model="versionForm.checkVersion" />
+        </form>
       </div>
     </div>
 
@@ -336,25 +354,25 @@
 .side-info {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
   justify-content: center;
 }
 .info-card {
   border: 1px solid var(--border-color);
-  border-radius: 12px;
-  padding: 16px 20px;
+  border-radius: 10px;
+  padding: 10px 14px;
   background: var(--bg-primary);
 }
 .info-card-label {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
 .info-card-value {
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--text-primary);
   word-break: break-all;
@@ -365,6 +383,45 @@
   margin-bottom: 16px;
   flex-wrap: wrap;
 }
+
+.version-card .version-value {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.version-card .ver-item {
+  background: #f1f5f9;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-family: monospace;
+}
+.version-card .ver-mismatch {
+  color: #991b1b;
+  background: #fee2e2;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-weight: 700;
+}
+.btn-stop-delivery {
+  margin-top: 8px;
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: #fff;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-stop-delivery:hover:not(:disabled) { box-shadow: 0 4px 12px rgba(239,68,68,0.35); }
+.btn-stop-delivery:disabled { opacity: 0.5; cursor: not-allowed; }
+.stop-delivery-msg { margin-top: 6px; font-size: 11px; color: #166534; font-weight: 600; }
+
 .timer-panel {
   display: flex;
   align-items: center;
@@ -635,7 +692,8 @@ import {
   executeExportByUser,
   fetchExportStatus,
   getExportDownloadUrl,
-  fetchInventoryCount
+  fetchInventoryCount,
+  fetchCheckVersion
 } from '../api/index.js'
 
 const emit = defineEmits(['error'])
@@ -677,6 +735,12 @@ let pollTimer = null
 let timerMsg = ref('')
 let timerInterval = null
 let isFrozen=ref('')
+const currentVersion = ref('')
+const checkVerion = ref('')
+const versionMismatch = ref(false)
+const stopDeliveryLoading = ref(false)
+const stopDeliveryMsg = ref('')
+const versionForm = reactive({ appId: '', bundleId: '', checkVersion: '' })
 let isSubmit=true
 const MAX_RETRIES = 5
 let retryCount = 0
@@ -930,6 +994,8 @@ async function queryEvent() {
   eventLoading.value = true
   emit('error', '')
   eventResult.value = ''; newCurrentTargetNum.value = null; attributions.value = []; eventId.value = null; frozenMsg.value = ''
+  currentVersion.value = ''; checkVerion.value = ''; versionMismatch.value = false; stopDeliveryMsg.value = ''
+  versionForm.appId = ''; versionForm.bundleId = ''; versionForm.checkVersion = ''
   lastReportTime.value = ''
   try {
     const [eventJson, attrResults] = await Promise.all([
@@ -939,6 +1005,16 @@ async function queryEvent() {
     if (eventJson.success && eventJson.data) {
       const newCurrent = eventJson.data.currentTargetNum
       eventId.value = eventJson.data.id ?? null
+      currentVersion.value = eventJson.data.currentVersion || ''
+      checkVerion.value = eventJson.data.checkVerion || ''
+      if (currentVersion.value && checkVerion.value && currentVersion.value !== checkVerion.value) {
+        versionMismatch.value = true
+        versionForm.appId = eventJson.data.appId || appId.value
+        versionForm.bundleId = eventJson.data.bundleId || bundleId.value
+        versionForm.checkVersion = eventJson.data.checkVerion || ''
+      } else {
+        versionMismatch.value = false
+      }
       if (originalCurrentTargetNum.value !== null) {
         if (newCurrent !== originalCurrentTargetNum.value) {
           eventResult.value = 'has_event'
@@ -1026,6 +1102,11 @@ function resetState() {
   form.record_data = getTodayStr()
   isFrozen.value=''
   gradeData.value = null
+  currentVersion.value = ''
+  checkVerion.value = ''
+  versionMismatch.value = false
+  stopDeliveryMsg.value = ''
+  versionForm.appId = ''; versionForm.bundleId = ''; versionForm.checkVersion = ''
 }
 
 function generateSubmissionId() {
@@ -1183,6 +1264,29 @@ async function submitGrade() {
     gradeMsg.value = '❌ 评级请求失败：' + e.message
   } finally {
     gradeSaving.value = false
+  }
+}
+
+async function stopDelivery() {
+  if (!versionForm.appId || !versionForm.bundleId || !versionForm.checkVersion) {
+    emit('error', '版本校验信息不完整，无法停止下发')
+    return
+  }
+  stopDeliveryLoading.value = true
+  stopDeliveryMsg.value = ''
+  emit('error', '')
+  try {
+    const json = await fetchCheckVersion(versionForm.appId, versionForm.bundleId, versionForm.checkVersion)
+    if (json.success) {
+      versionMismatch.value = false
+      stopDeliveryMsg.value = '✅ 已停止该应用二次下发'
+    } else {
+      emit('error', '停止下发失败：' + (json.resultMsg || '未知错误'))
+    }
+  } catch (e) {
+    emit('error', '停止下发请求失败：' + e.message)
+  } finally {
+    stopDeliveryLoading.value = false
   }
 }
 

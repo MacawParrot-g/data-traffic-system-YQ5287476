@@ -49,6 +49,13 @@ public class URLController {
         return urlService.proxyAttribution(bundleId, type);
     }
 
+    @GetMapping("/api/proxy/check-version")
+    @LogExecutionTime("代理停止版本下发")
+    @Timeout(value = 8,unit=SECONDS)
+    public Map<String, Object> proxyCheckVersion(@RequestParam String appId, @RequestParam String bundleId, @RequestParam String checkVersion) {
+        return urlService.proxyCheckVersion(appId, bundleId, checkVersion);
+    }
+
     @GetMapping("/api/proxy/frozen")
     @LogExecutionTime("代理冻结任务")
     @Retryable(maxAttempts=3)
