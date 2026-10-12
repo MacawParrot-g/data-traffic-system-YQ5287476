@@ -1,44 +1,31 @@
 <template>
   <div class="auto-mode">
     <div class="top-bar">
-      <div class="realtime-stats">
-        <div class="realtime-item">
-          <span class="realtime-label">实时库存</span>
-          <span class="realtime-value" :class="{ 'realtime-muted': inventoryUnavailable }">{{ inventoryUnavailable ? '—' : inventoryCount }}</span>
-        </div>
-        <span class="realtime-sep"></span>
-        <div class="realtime-item">
-          <span class="realtime-label">今日入库</span>
-          <span class="realtime-value">{{ todayCount }}</span>
-        </div>
-        <span class="realtime-refresh-hint">每10秒自动刷新<template v-if="lastRealtimeUpdate"> · {{ lastRealtimeUpdate }}</template></span>
-      </div>
       <div v-if="duplicateTip" class="duplicate-tip">⚠️ {{ duplicateTip }}</div>
-      <!-- ... existing code ... -->
-    </div>
-    <!-- ... existing code ... -->
-    <div class="combined-action-bar" v-if="currentUser">
-      <div class="combined-left">
-        <button class="btn-refresh" @click="comfirm()" :disabled="loading">
-          {{ loading ? '加载中...' : '刷新下载任务' }}
-        </button>
-        <!-- Deleted:<button class="btn-quick-refresh-count" @click="fetchDataByName()" :disabled="quickExportPolling" title="查看入库数量">🔄</button> -->
-        <!-- Deleted:<button class="btn-inventory" @click="showInventoryCount" :disabled="inventoryLoading"> -->
-        <!-- Deleted:  {{ inventoryLoading ? '查询中...' : '查看库存' }} -->
-        <!-- Deleted:</button> -->
-      </div>
-    </div>
     <div v-if="loading && !downloadUrl" class="loading">正在获取数据...</div>
     <div class="combined-action-bar" v-if="currentUser">
       <div class="combined-left">
         <button class="btn-refresh" @click="comfirm()" :disabled="loading">
           {{ loading ? '加载中...' : '刷新下载任务' }}
         </button>
-        <button class="btn-quick-refresh-count" @click="fetchDataByName()" :disabled="quickExportPolling" title="查看入库数量">🔄</button>
-        <button class="btn-inventory" @click="showInventoryCount" :disabled="inventoryLoading">
-          {{ inventoryLoading ? '查询中...' : '查看库存' }}
-        </button>
+<!--        <button class="btn-quick-refresh-count" @click="fetchDataByName()" :disabled="quickExportPolling" title="查看入库数量">🔄</button>-->
+<!--        <button class="btn-inventory" @click="showInventoryCount" :disabled="inventoryLoading">-->
+<!--          {{ inventoryLoading ? '查询中...' : '查看库存' }}-->
+<!--        </button>-->
+        <div class="realtime-stats">
+          <div class="realtime-item">
+            <span class="realtime-label">实时库存</span>
+            <span class="realtime-value" :class="{ 'realtime-muted': inventoryUnavailable }">{{ inventoryUnavailable ? '—' : inventoryCount }}</span>
+          </div>
+          <span class="realtime-sep"></span>
+          <div class="realtime-item">
+            <span class="realtime-label">今日入库</span>
+            <span class="realtime-value">{{ todayCount }}</span>
+          </div>
+          <span class="realtime-refresh-hint">每10秒自动刷新<template v-if="lastRealtimeUpdate"> · {{ lastRealtimeUpdate }}</template></span>
+        </div>
       </div>
+    </div>
     </div>
     <div class="empty-placeholder" v-if="!downloadUrl && !loading">
       <div class="empty-icon">404 NO FOUND</div>
