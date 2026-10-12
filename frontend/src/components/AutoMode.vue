@@ -60,9 +60,10 @@
             <span class="ver-item">check: {{ checkVerion || '-' }}</span>
             <span class="ver-mismatch" v-if="versionMismatch">版本不一致</span>
           </div>
-          <button v-if="versionMismatch" class="btn-stop-delivery" @click="stopDelivery" :disabled="stopDeliveryLoading">
+          <button v-if="versionMismatch && !isRetestMode" class="btn-stop-delivery" @click="stopDelivery" :disabled="stopDeliveryLoading">
             {{ stopDeliveryLoading ? '停止中...' : '停止二次下发' }}
           </button>
+          <div class="retest-frozen-tip" v-else-if="versionMismatch && isRetestMode">复测模式数据源为本地Redis，已禁用停止下发功能</div>
           <div class="stop-delivery-msg" v-if="stopDeliveryMsg">{{ stopDeliveryMsg }}</div>
         </div>
 
