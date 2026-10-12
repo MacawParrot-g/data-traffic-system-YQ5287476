@@ -26,7 +26,7 @@
 
       <div class="sidebar-stats" v-if="!sidebarCollapsed">
         <div class="stat-card">
-          <div class="stat-icon">📊</div>
+          <div class="stat-icon">T</div>
           <div class="stat-body">
             <div class="stat-label">今日入库</div>
             <div class="stat-value">{{ todayCount }} <span class="stat-unit">条</span></div>
@@ -99,7 +99,7 @@
     <div class="login-card">
       <img src="/icon.png" alt="公司Logo" class="login-logo" />
       <h1>游戏测试数据TDM系统</h1>
-      <div class="login-subtitle">请登录后使用</div>
+      <div class="login-subtitle">测试服</div>
       <div class="login-form">
         <div class="login-field">
           <label>账号</label>
