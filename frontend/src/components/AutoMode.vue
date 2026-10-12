@@ -1,16 +1,32 @@
 <template>
   <div class="auto-mode">
     <div class="top-bar">
-      <div v-if="duplicateTip" class="duplicate-tip">⚠️ {{ duplicateTip }}</div>
-      <div v-if="polling" class="polling-section">
-        <span class="polling-status">🔄 正在每10秒自动获取下载任务...（第{{ pollCount }}次）</span>
-        <button class="btn-timer-cancel" @click="stopPolling">停止轮询</button>
+      <div class="realtime-stats">
+        <div class="realtime-item">
+          <span class="realtime-label">实时库存</span>
+          <span class="realtime-value" :class="{ 'realtime-muted': inventoryUnavailable }">{{ inventoryUnavailable ? '—' : inventoryCount }}</span>
+        </div>
+        <span class="realtime-sep"></span>
+        <div class="realtime-item">
+          <span class="realtime-label">今日入库</span>
+          <span class="realtime-value">{{ todayCount }}</span>
+        </div>
+        <span class="realtime-refresh-hint">每10秒自动刷新<template v-if="lastRealtimeUpdate"> · {{ lastRealtimeUpdate }}</template></span>
       </div>
-      <!--      <div class="top-actions">-->
-      <!--        <button class="btn-refresh" @click="comfirm()" :disabled="loading">-->
-      <!--          {{ loading ? '加载中...' : '刷新数据' }}-->
-      <!--        </button>-->
-      <!--      </div>-->
+      <div v-if="duplicateTip" class="duplicate-tip">⚠️ {{ duplicateTip }}</div>
+      <!-- ... existing code ... -->
+    </div>
+    <!-- ... existing code ... -->
+    <div class="combined-action-bar" v-if="currentUser">
+      <div class="combined-left">
+        <button class="btn-refresh" @click="comfirm()" :disabled="loading">
+          {{ loading ? '加载中...' : '刷新下载任务' }}
+        </button>
+        <!-- Deleted:<button class="btn-quick-refresh-count" @click="fetchDataByName()" :disabled="quickExportPolling" title="查看入库数量">🔄</button> -->
+        <!-- Deleted:<button class="btn-inventory" @click="showInventoryCount" :disabled="inventoryLoading"> -->
+        <!-- Deleted:  {{ inventoryLoading ? '查询中...' : '查看库存' }} -->
+        <!-- Deleted:</button> -->
+      </div>
     </div>
     <div v-if="loading && !downloadUrl" class="loading">正在获取数据...</div>
     <div class="combined-action-bar" v-if="currentUser">
@@ -285,7 +301,13 @@
   font-size: 48px;
   margin-bottom: 16px;
 }
-
+.realtime-stats { display: flex; align-items: center; gap: 16px; padding: 12px 18px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+.realtime-item { display: flex; align-items: baseline; gap: 8px; }
+.realtime-label { font-size: 12px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+.realtime-value { font-size: 18px; font-weight: 700; color: var(--text-primary); }
+.realtime-value.realtime-muted { color: #94a3b8; }
+.realtime-sep { width: 1px; height: 20px; background: var(--border-color); }
+.realtime-refresh-hint { margin-left: auto; font-size: 11px; color: var(--text-secondary); }
 .graded-warning { background: #fef3c7; border: 1px solid #fde68a; border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; font-size: 13px; color: #92400e; }
 .auto-normal-tag { display: inline-block; padding: 6px 18px; background: #dcfce7; color: #166534; border-radius: 8px; font-size: 14px; font-weight: 600; border: 1px solid #86efac; }
 .retest-date { background: #eef2ff !important; color: #4f46e5 !important; border-color: #c7d2fe !important; font-family: monospace; letter-spacing: 0.5px; }
@@ -694,6 +716,7 @@ import {
   fetchExportStatus,
   getExportDownloadUrl,
   fetchInventoryCount,
+  fetchRealtimeStats,
   fetchCheckVersion
 } from '../api/index.js'
 
@@ -745,6 +768,13 @@ const versionForm = reactive({ appId: '', bundleId: '', checkVersion: '' })
 let isSubmit=true
 const MAX_RETRIES = 5
 let retryCount = 0
+
+const inventoryCount = ref(null)
+const todayCount = ref(0)
+const inventoryUnavailable = ref(false)
+const lastRealtimeUpdate = ref('')
+let realtimeTimer = null
+
 const gradeData = ref(null)
 const gradeLoading = ref(false)
 const showGradeModal = ref(false)
@@ -925,6 +955,34 @@ function getPast3DaysDates() {
     dates.push(t.getFullYear() + '/' + (t.getMonth() + 1) + '/' + t.getDate())
   }
   return dates
+}
+
+async function loadRealtimeStats() {
+  try {
+    const json = await fetchRealtimeStats()
+    if (json.success && json.data) {
+      inventoryUnavailable.value = json.data.inventory == null
+      inventoryCount.value = json.data.inventory
+      todayCount.value = json.data.todayCount ?? 0
+      lastRealtimeUpdate.value = new Date().toLocaleTimeString('zh-CN', { hour12: false })
+    } else {
+      inventoryUnavailable.value = true
+    }
+  } catch (e) {
+    inventoryUnavailable.value = true
+  }
+}
+
+function startRealtimeRefresh() {
+  loadRealtimeStats()
+  realtimeTimer = setInterval(loadRealtimeStats, 10000)
+}
+
+function stopRealtimeRefresh() {
+  if (realtimeTimer) {
+    clearInterval(realtimeTimer)
+    realtimeTimer = null
+  }
 }
 
 async function showInventoryCount() {
@@ -1359,13 +1417,15 @@ async function stopDelivery() {
 //   }, 1500)
 // }
 
-onUnmounted(() => { cancelTimer(); stopPolling() })
+onUnmounted(() => { cancelTimer(); stopPolling(); stopRealtimeRefresh() })
 // onUnmounted(() => { stopQuickExportPolling() })
 // onMounted(() => {
 //   timerMsg.value='计时结束后内容会在这里显示'
 //   loadQuickExportCount()
 // })
 onMounted(() => {
-  timerMsg.value='计时结束后内容会在这里显示' }
+  timerMsg.value='计时结束后内容会在这里显示'
+  startRealtimeRefresh()}
+
 )
 </script>

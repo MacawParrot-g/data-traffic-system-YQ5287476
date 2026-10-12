@@ -656,3 +656,11 @@ export function clearRetestCache() {
     return fetchWithTimeout('/api/retest/cache/clear', { method: 'DELETE' }, 15000).then(safeJson)
 }
 
+export function fetchRealtimeStats() {
+    const params = new URLSearchParams({
+        recorder: localStorage.getItem('userName') || '',
+        recordData: getTodayStr()
+    })
+    return fetchWithTimeout('/api/realtime/stats?' + params.toString(), {}, 15000).then(safeJson)
+}
+
