@@ -288,13 +288,13 @@
   font-size: 48px;
   margin-bottom: 16px;
 }
-.realtime-stats { display: flex; align-items: center; gap: 16px; padding: 12px 18px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+.realtime-stats { display: flex; align-items: center; gap: 14px; padding: 0 16px; min-height: 42px; box-sizing: border-box; background: rgba(255,255,255,0.75); border: 1px solid #c7d2fe; border-radius: 10px; }
 .realtime-item { display: flex; align-items: baseline; gap: 8px; }
 .realtime-label { font-size: 12px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
-.realtime-value { font-size: 18px; font-weight: 700; color: var(--text-primary); }
+.realtime-value { font-size: 18px; font-weight: 700; color: var(--text-primary); line-height: 1; }
 .realtime-value.realtime-muted { color: #94a3b8; }
 .realtime-sep { width: 1px; height: 20px; background: var(--border-color); }
-.realtime-refresh-hint { margin-left: auto; font-size: 11px; color: var(--text-secondary); }
+.realtime-refresh-hint { font-size: 11px; color: var(--text-secondary); }
 .graded-warning { background: #fef3c7; border: 1px solid #fde68a; border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; font-size: 13px; color: #92400e; }
 .auto-normal-tag { display: inline-block; padding: 6px 18px; background: #dcfce7; color: #166534; border-radius: 8px; font-size: 14px; font-weight: 600; border: 1px solid #86efac; }
 .retest-date { background: #eef2ff !important; color: #4f46e5 !important; border-color: #c7d2fe !important; font-family: monospace; letter-spacing: 0.5px; }
