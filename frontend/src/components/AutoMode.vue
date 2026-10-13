@@ -761,6 +761,8 @@ const inventoryUnavailable = ref(false)
 const lastRealtimeUpdate = ref('')
 let realtimeTimer = null
 
+let retryTimer = null
+
 const gradeData = ref(null)
 const gradeLoading = ref(false)
 const showGradeModal = ref(false)
@@ -854,6 +856,8 @@ async function fetchData() {
   loading.value = true
   emit('error', '')
   resetState()
+  if (retryTimer) { clearTimeout(retryTimer); retryTimer = null }
+  retryCount = 0
   try {
     const json = await fetchTask()
     if (json.data) {
@@ -865,7 +869,7 @@ async function fetchData() {
           return
         }
         duplicateTip.value = '检测到重复URL（第' + retryCount + '次），正在为您自动刷新...'
-        setTimeout(() => fetchData(), 1500)
+        retryTimer = setTimeout(() => fetchData(), 1500)
         return
       }
       retryCount = 0
@@ -988,6 +992,7 @@ async function showInventoryCount() {
 }
 
 function startPolling() {
+  stopPolling()
   polling.value = true
   pollCount.value = 0
   pollTimer = setInterval(async () => {
@@ -995,10 +1000,7 @@ function startPolling() {
     try {
       const json = await fetchTask()
       if (json.data && !json.duplicate) {
-        // 获取到有效数据，立即停止轮询
-        clearInterval(pollTimer)
-        polling.value = false
-        pollCount.value = 0
+        stopPolling()
         downloadUrl.value = json.data.downloadUrl || ''
         bundleId.value = json.data.bundleId || ''
         appId.value = json.data.appId || ''
@@ -1403,12 +1405,13 @@ async function stopDelivery() {
 //   }, 1500)
 // }
 
-onUnmounted(() => { cancelTimer(); stopPolling(); stopRealtimeRefresh() })
-// onUnmounted(() => { stopQuickExportPolling() })
-// onMounted(() => {
-//   timerMsg.value='计时结束后内容会在这里显示'
-//   loadQuickExportCount()
-// })
+onUnmounted(() => {
+  cancelTimer()
+  stopPolling()
+  stopRealtimeRefresh()
+  if (retryTimer) { clearTimeout(retryTimer); retryTimer = null }
+})
+
 onMounted(() => {
   timerMsg.value='计时结束后内容会在这里显示'
   startRealtimeRefresh()}
