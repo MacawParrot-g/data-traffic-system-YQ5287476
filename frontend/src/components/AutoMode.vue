@@ -685,7 +685,6 @@
 .auto-normal-tag { display: inline-block; padding: 6px 18px; background: #dcfce7; color: #166534; border-radius: 8px; font-size: 14px; font-weight: 600; border: 1px solid #86efac; }
 </style>
 <script setup>import { ref, reactive, onMounted, watch, nextTick, onUnmounted } from 'vue'
-import QRCode from 'qrcode'
 import {
   fetchTask,
   fetchEvent,
@@ -706,7 +705,7 @@ import {
   fetchRealtimeStats,
   fetchCheckVersion
 } from '../api/index.js'
-
+import { renderQRToCanvas } from '../utils/qrcode.js'
 const emit = defineEmits(['error'])
 
 const exceptionOptions = ['正常','iOS16闪退','iOS13/14/16均闪退','需要iOS18以上','地区不支持','硬件版本过低','超过10分钟0上报','越狱检测','其他','验证已解决','测试']
@@ -827,14 +826,14 @@ async function fetchDataByName(){
   }
 }
 
-async function renderQR(url) {
-  await nextTick()
-  if (url && qrCanvas.value) {
-    try {
-      await QRCode.toCanvas(qrCanvas.value, url, { width: 256, margin: 2, color: { dark: '#000000', light: '#ffffff' } })
-    } catch (e) { console.error('QR码生成失败:', e) }
-  }
-}
+// async function renderQR(url) {
+//   await nextTick()
+//   if (url && qrCanvas.value) {
+//     try {
+//       await QRCode.toCanvas(qrCanvas.value, url, { width: 256, margin: 2, color: { dark: '#000000', light: '#ffffff' } })
+//     } catch (e) { console.error('QR码生成失败:', e) }
+//   }
+// }
 
 watch(downloadUrl, (val) => { renderQR(val) })
 
@@ -1413,6 +1412,7 @@ onUnmounted(() => { cancelTimer(); stopPolling(); stopRealtimeRefresh() })
 onMounted(() => {
   timerMsg.value='计时结束后内容会在这里显示'
   startRealtimeRefresh()}
-
 )
+
+watch(downloadUrl, async (val) => { await nextTick(); renderQRToCanvas(qrCanvas.value, val) })
 </script>

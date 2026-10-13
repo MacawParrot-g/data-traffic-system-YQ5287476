@@ -461,7 +461,7 @@
 
 <script setup>
 import { ref, reactive, onMounted, watch, nextTick, onUnmounted } from 'vue'
-import QRCode from 'qrcode'
+import { renderQRToCanvas } from '../utils/qrcode.js'
 
 import {
   fetchTask, fetchObtain, fetchEvent, fetchAllAttributions, fetchAttribution,
@@ -584,14 +584,7 @@ function formatAttrValue(val) {
   return String(val)
 }
 
-async function renderQR(url) {
-  await nextTick()
-  if (url && qrCanvas.value) {
-    try {
-      await QRCode.toCanvas(qrCanvas.value, url, { width: 256, margin: 2, color: { dark: '#000000', light: '#ffffff' } })
-    } catch (e) { console.error('QR码生成失败:', e) }
-  }
-}
+watch(downloadUrl, async (val) => { await nextTick(); renderQRToCanvas(qrCanvas.value, val) })
 
 watch(downloadUrl, (val) => { renderQR(val) })
 watch(devActiveTab, (val) => {

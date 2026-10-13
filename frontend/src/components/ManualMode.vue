@@ -348,7 +348,7 @@
 
 <script setup>
 import {ref, reactive, watch, nextTick, onUnmounted, onMounted} from 'vue'
-import QRCode from 'qrcode'
+import { renderQRToCanvas } from '../utils/qrcode.js'
 import {
   fetchObtain,
   fetchEvent,
@@ -417,21 +417,21 @@ function trimApplyTime(raw) {
   return idx > -1 ? raw.substring(0, idx) : raw
 }
 
-async function renderQR(url) {
-  await nextTick()
-  if (url && qrCanvas.value) {
-    try {
-      await QRCode.toCanvas(qrCanvas.value, url, {
-        width: 256,
-        margin: 2,
-        color: {
-          dark: '#000000',
-          light: '#ffffff'
-        }
-      })
-    } catch (e) { console.error('QR码生成失败:', e) }
-  }
-}
+// async function renderQR(url) {
+//   await nextTick()
+//   if (url && qrCanvas.value) {
+//     try {
+//       await QRCode.toCanvas(qrCanvas.value, url, {
+//         width: 256,
+//         margin: 2,
+//         color: {
+//           dark: '#000000',
+//           light: '#ffffff'
+//         }
+//       })
+//     } catch (e) { console.error('QR码生成失败:', e) }
+//   }
+// }
 
 watch(downloadUrl, (val) => { renderQR(val) })
 
@@ -660,4 +660,5 @@ onUnmounted(() => { cancelTimer() })
 onMounted(() => {
   timerMsg.value='计时结束后内容会在这里显示' }
 )
+watch(downloadUrl, async (val) => { await nextTick(); renderQRToCanvas(qrCanvas.value, val) })
 </script>
