@@ -1154,7 +1154,7 @@ function resetState() {
   versionMismatch.value = false
   stopDeliveryMsg.value = ''
   versionForm.appId = ''; versionForm.bundleId = ''; versionForm.checkVersion = ''
-  gradeForm = reactive({ grade: '', remark: '' })
+  gradeForm.grade = ''; gradeForm.remark = ''
 }
 
 function generateSubmissionId() {
