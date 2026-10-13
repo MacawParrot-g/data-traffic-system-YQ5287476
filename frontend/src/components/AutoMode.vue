@@ -148,7 +148,7 @@
         <div class="modal-title">库存已耗尽</div>
         <div class="modal-desc">当前没有可用的下载任务，请选择操作：</div>
         <div class="modal-actions">
-          <button class="btn-modal btn-poll" @click="showRetestModal = false; startPolling()">继续轮询</button>
+<!--          <button class="btn-modal btn-poll" @click="showRetestModal = false; startPolling()">继续轮询</button>-->
           <button class="btn-modal btn-retest" @click="retestFlow" :disabled="retestLoading">
             {{ retestLoading ? '获取中...' : '复测' }}
           </button>
@@ -737,11 +737,11 @@ const qrCanvas = ref(null)
 const timerSeconds = ref(60)
 const timerCountdown = ref(0)
 const bundleIdAlreadyGraded = ref(false)
-const polling = ref(false)
-const pollCount = ref(0)
+// const polling = ref(false)
+// const pollCount = ref(0)
 const appId = ref('')
 const taskId = ref(null)
-let pollTimer = null
+// let pollTimer = null
 let timerMsg = ref('')
 let timerInterval = null
 let isFrozen=ref('')
@@ -991,39 +991,39 @@ async function showInventoryCount() {
   }
 }
 
-function startPolling() {
-  stopPolling()
-  polling.value = true
-  pollCount.value = 0
-  pollTimer = setInterval(async () => {
-    pollCount.value++
-    try {
-      const json = await fetchTask()
-      if (json.data && !json.duplicate) {
-        stopPolling()
-        downloadUrl.value = json.data.downloadUrl || ''
-        bundleId.value = json.data.bundleId || ''
-        appId.value = json.data.appId || ''
-        originalCurrentTargetNum.value = json.data.currentTargetNum ?? null
-        isSubmit = false
-        if (originalCurrentTargetNum.value <= 1 || originalCurrentTargetNum.value === 0) {
-          alert("初始originalCurrentTargetNum数小于等于1或等于0，后续测试期间可能会没有归因，请注意")
-        }
-      }
-    } catch (e) {
-      console.error('轮询请求失败:', e)
-    }
-  }, 10000)
-}
+// function startPolling() {
+//   stopPolling()
+//   polling.value = true
+//   pollCount.value = 0
+//   pollTimer = setInterval(async () => {
+//     pollCount.value++
+//     try {
+//       const json = await fetchTask()
+//       if (json.data && !json.duplicate) {
+//         stopPolling()
+//         downloadUrl.value = json.data.downloadUrl || ''
+//         bundleId.value = json.data.bundleId || ''
+//         appId.value = json.data.appId || ''
+//         originalCurrentTargetNum.value = json.data.currentTargetNum ?? null
+//         isSubmit = false
+//         if (originalCurrentTargetNum.value <= 1 || originalCurrentTargetNum.value === 0) {
+//           alert("初始originalCurrentTargetNum数小于等于1或等于0，后续测试期间可能会没有归因，请注意")
+//         }
+//       }
+//     } catch (e) {
+//       console.error('轮询请求失败:', e)
+//     }
+//   }, 10000)
+// }
 
-function stopPolling() {
-  if (pollTimer) {
-    clearInterval(pollTimer)
-    pollTimer = null
-  }
-  polling.value = false
-  pollCount.value = 0
-}
+// function stopPolling() {
+//   if (pollTimer) {
+//     clearInterval(pollTimer)
+//     pollTimer = null
+//   }
+//   polling.value = false
+//   pollCount.value = 0
+// }
 
 async function queryEventWithFullMsg() {
   try {
@@ -1407,7 +1407,6 @@ async function stopDelivery() {
 
 onUnmounted(() => {
   cancelTimer()
-  stopPolling()
   stopRealtimeRefresh()
   if (retryTimer) { clearTimeout(retryTimer); retryTimer = null }
 })

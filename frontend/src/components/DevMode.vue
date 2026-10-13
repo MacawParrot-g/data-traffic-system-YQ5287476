@@ -20,10 +20,10 @@
     <div v-if="devActiveTab === 'test'">
       <div class="top-bar">
         <div v-if="duplicateTip" class="duplicate-tip">⚠️ {{ duplicateTip }}</div>
-        <div v-if="polling" class="polling-section">
-          <span class="polling-status">🔄 正在每10秒自动获取下载任务...（第{{ pollCount }}次）</span>
-          <button class="btn-timer-cancel" @click="stopPolling">停止轮询</button>
-        </div>
+<!--        <div v-if="polling" class="polling-section">-->
+<!--          <span class="polling-status">🔄 正在每10秒自动获取下载任务...（第{{ pollCount }}次）</span>-->
+<!--          <button class="btn-timer-cancel" @click="stopPolling">停止轮询</button>-->
+<!--        </div>-->
         <div class="top-actions">
           <button class="btn-refresh" @click="confirmRefresh" :disabled="loading">
             {{ loading ? '加载中...' : '🔄 刷新数据' }}
@@ -700,38 +700,38 @@ async function fetchByAppId() {
   }
 }
 
-function startPolling() {
-  polling.value = true
-  pollCount.value = 0
-  pollTimer = setInterval(async () => {
-    pollCount.value++
-    try {
-      const json = await fetchTask()
-      if (json.data && !json.duplicate) {
-        clearInterval(pollTimer)
-        polling.value = false
-        pollCount.value = 0
-        downloadUrl.value = json.data.downloadUrl || ''
-        appIds.value = json.data.appId || ''
-        bundleId.value = json.data.bundleId || ''
-        originalCurrentTargetNum.value = json.data.currentTargetNum ?? null
-        isSubmit = false
-        fillAttrBundleIds(bundleId.value)
-        if (originalCurrentTargetNum.value <= 1 || originalCurrentTargetNum.value === 0) {
-          alert('初始originalCurrentTargetNum数小于等于1或等于0，后续测试期间可能会没有归因，请注意')
-        }
-      }
-    } catch (e) {
-      console.error('轮询请求失败:', e)
-    }
-  }, 10000)
-}
-
-function stopPolling() {
-  if (pollTimer) { clearInterval(pollTimer); pollTimer = null }
-  polling.value = false
-  pollCount.value = 0
-}
+// function startPolling() {
+//   polling.value = true
+//   pollCount.value = 0
+//   pollTimer = setInterval(async () => {
+//     pollCount.value++
+//     try {
+//       const json = await fetchTask()
+//       if (json.data && !json.duplicate) {
+//         clearInterval(pollTimer)
+//         polling.value = false
+//         pollCount.value = 0
+//         downloadUrl.value = json.data.downloadUrl || ''
+//         appIds.value = json.data.appId || ''
+//         bundleId.value = json.data.bundleId || ''
+//         originalCurrentTargetNum.value = json.data.currentTargetNum ?? null
+//         isSubmit = false
+//         fillAttrBundleIds(bundleId.value)
+//         if (originalCurrentTargetNum.value <= 1 || originalCurrentTargetNum.value === 0) {
+//           alert('初始originalCurrentTargetNum数小于等于1或等于0，后续测试期间可能会没有归因，请注意')
+//         }
+//       }
+//     } catch (e) {
+//       console.error('轮询请求失败:', e)
+//     }
+//   }, 10000)
+// }
+//
+// function stopPolling() {
+//   if (pollTimer) { clearInterval(pollTimer); pollTimer = null }
+//   polling.value = false
+//   pollCount.value = 0
+// }
 
 async function retestFlow() {
   retestLoading.value = true
