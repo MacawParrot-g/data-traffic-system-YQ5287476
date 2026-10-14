@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick, computed } from 'vue'
 import { fetchSystemInfo, fetchRedisInfo, fetchRedisKeys, fetchLogTail, fetchLogSearch, terminalExec } from '../api/index.js'
 
 const emit = defineEmits(['error'])
@@ -22,6 +22,7 @@ const logSearchMode = ref(false)
 const logSearchLoading = ref(false)
 const logSearchRecords = ref([])
 const logSearchTotal = ref(0)
+const logSearchQueried = ref(false)
 const logSearchFilters = ref({
   level: 'ALL',
   user: '',
@@ -32,6 +33,21 @@ const logSearchFilters = ref({
   minDuration: '',
   maxDuration: '',
   lines: 500
+})
+
+
+const activeFilterCount = computed(() => {
+  const f = logSearchFilters.value
+  let count = 0
+  if (f.level !== 'ALL') count++
+  if (f.user.trim()) count++
+  if (f.function.trim()) count++
+  if (f.clazz.trim()) count++
+  if (f.method.trim()) count++
+  if (f.status) count++
+  if (f.minDuration !== '' && f.minDuration !== null) count++
+  if (f.maxDuration !== '' && f.maxDuration !== null) count++
+  return count
 })
 
 const redisInfo = ref(null)
@@ -90,8 +106,10 @@ function toggleLogSearchMode() {
   if (!logSearchMode.value) {
     logSearchRecords.value = []
     logSearchTotal.value = 0
+    logSearchQueried.value = false
   }
 }
+
 
 function resetLogSearchFilters() {
   logSearchFilters.value = {
@@ -105,10 +123,14 @@ function resetLogSearchFilters() {
     maxDuration: '',
     lines: 500
   }
+  logSearchRecords.value = []
+  logSearchTotal.value = 0
+  logSearchQueried.value = false
 }
 
 async function doLogSearch() {
   logSearchLoading.value = true
+  logSearchQueried.value = true
   try {
     const json = await fetchLogSearch(logSearchFilters.value)
     if (json.success) {
@@ -411,10 +433,16 @@ onUnmounted(() => {
         <template v-else>
           <div class="card-body">
             <div class="log-search-filters">
+              <div class="lsf-hint">
+                <span class="lsf-hint-icon">L</span>
+                <span>填写任意一个或多个条件均可查询，留空的条件不参与过滤。支持输入框回车键直接发起查询。</span>
+                <span v-if="activeFilterCount > 0" class="lsf-active-badge">已启用 {{ activeFilterCount }} 个条件</span>
+                <span v-else class="lsf-active-badge lsf-active-badge-none">未设置条件，将返回全部结构化日志</span>
+              </div>
               <div class="lsf-row">
                 <div class="lsf-item">
                   <label>日志级别</label>
-                  <select v-model="logSearchFilters.level" class="lsf-input">
+                  <select v-model="logSearchFilters.level" class="lsf-input" @change="doLogSearch">
                     <option value="ALL">全部级别</option>
                     <option value="INFO">INFO</option>
                     <option value="WARN">WARN</option>
@@ -423,26 +451,26 @@ onUnmounted(() => {
                   </select>
                 </div>
                 <div class="lsf-item">
-                  <label>用户</label>
-                  <input v-model="logSearchFilters.user" class="lsf-input" placeholder="输入用户名" />
+                  <label>用户 <span class="lsf-optional">可选</span></label>
+                  <input v-model="logSearchFilters.user" class="lsf-input" placeholder="模糊匹配用户名" @keyup.enter="doLogSearch" />
                 </div>
                 <div class="lsf-item">
-                  <label>功能</label>
-                  <input v-model="logSearchFilters.function" class="lsf-input" placeholder="输入功能名" />
+                  <label>功能 <span class="lsf-optional">可选</span></label>
+                  <input v-model="logSearchFilters.function" class="lsf-input" placeholder="模糊匹配功能名" @keyup.enter="doLogSearch" />
                 </div>
               </div>
               <div class="lsf-row">
                 <div class="lsf-item">
-                  <label>方法所属类</label>
-                  <input v-model="logSearchFilters.clazz" class="lsf-input" placeholder="如 AdminRecordController" />
+                  <label>方法所属类 <span class="lsf-optional">可选</span></label>
+                  <input v-model="logSearchFilters.clazz" class="lsf-input" placeholder="如 AdminRecordController" @keyup.enter="doLogSearch" />
                 </div>
                 <div class="lsf-item">
-                  <label>方法</label>
-                  <input v-model="logSearchFilters.method" class="lsf-input" placeholder="如 search" />
+                  <label>方法 <span class="lsf-optional">可选</span></label>
+                  <input v-model="logSearchFilters.method" class="lsf-input" placeholder="如 search" @keyup.enter="doLogSearch" />
                 </div>
                 <div class="lsf-item">
                   <label>状态</label>
-                  <select v-model="logSearchFilters.status" class="lsf-input">
+                  <select v-model="logSearchFilters.status" class="lsf-input" @change="doLogSearch">
                     <option value="">全部</option>
                     <option value="SUCCESS">SUCCESS</option>
                     <option value="FAIL">FAIL</option>
@@ -451,16 +479,16 @@ onUnmounted(() => {
               </div>
               <div class="lsf-row">
                 <div class="lsf-item">
-                  <label>耗时 >= (ms)</label>
-                  <input v-model="logSearchFilters.minDuration" type="number" class="lsf-input" placeholder="最小耗时" min="0" />
+                  <label>耗时 >= ms <span class="lsf-optional">可选</span></label>
+                  <input v-model="logSearchFilters.minDuration" type="number" class="lsf-input" placeholder="如 500" min="0" @keyup.enter="doLogSearch" />
                 </div>
                 <div class="lsf-item">
-                  <label>耗时 <= (ms)</label>
-                  <input v-model="logSearchFilters.maxDuration" type="number" class="lsf-input" placeholder="最大耗时" min="0" />
+                  <label>耗时 <= ms <span class="lsf-optional">可选</span></label>
+                  <input v-model="logSearchFilters.maxDuration" type="number" class="lsf-input" placeholder="如 2000" min="0" @keyup.enter="doLogSearch" />
                 </div>
                 <div class="lsf-item">
                   <label>扫描行数</label>
-                  <input v-model="logSearchFilters.lines" type="number" class="lsf-input" placeholder="500" min="100" max="5000" />
+                  <input v-model="logSearchFilters.lines" type="number" class="lsf-input" placeholder="500" min="100" max="5000" @keyup.enter="doLogSearch" />
                 </div>
               </div>
               <div class="lsf-actions">
@@ -476,6 +504,13 @@ onUnmounted(() => {
             <div v-if="logSearchLoading && logSearchRecords.length === 0" class="log-empty">
               <div class="state-spinner"></div>
               <div>正在查询日志...</div>
+            </div>
+            <div v-else-if="!logSearchQueried" class="log-empty">
+              <div class="log-search-init-hint">
+                <div class="lsih-icon">Q</div>
+                <div class="lsih-text">点击「查询」按钮或在任意输入框按 Enter 发起查询</div>
+                <div class="lsih-sub">无需填写全部条件，填写单个字段即可检索</div>
+              </div>
             </div>
             <div v-else-if="logSearchRecords.length > 0" class="log-search-result">
               <table class="lsr-table">
@@ -507,7 +542,16 @@ onUnmounted(() => {
                 </tbody>
               </table>
             </div>
-            <div v-else class="log-empty">暂无匹配的日志记录，请调整筛选条件后查询</div>
+            <div v-else class="log-empty">
+              <div class="log-search-empty-result">
+                <div class="lser-icon">N</div>
+                <div class="lser-text">未找到符合条件的日志记录</div>
+                <div class="lser-hint">
+                  <template v-if="activeFilterCount > 0">当前已启用 {{ activeFilterCount }} 个条件，尝试减少条件或扩大扫描行数</template>
+                  <template v-else>结构化日志仅包含由 LogExecutionTimeAspect 记录的接口调用，请确认日志文件中存在相关记录</template>
+                </div>
+              </div>
+            </div>
             <div class="log-footer" v-if="logSearchRecords.length > 0">
               <span class="log-count">共 {{ logSearchTotal }} 条记录</span>
             </div>
@@ -719,6 +763,31 @@ onUnmounted(() => {
 .lsf-input { padding: 8px 12px; font-size: 13px; border: 2px solid #e8e8e8; border-radius: 8px; outline: none; background: #fff; transition: border-color 0.2s; }
 .lsf-input:focus { border-color: #667eea; }
 .lsf-actions { display: flex; gap: 8px; margin-top: 4px; }
+.btn-sm-active { background: #667eea !important; color: #fff !important; border-color: #667eea !important; }
+.log-search-result { overflow-x: auto; }
+.log-search-filters { margin-bottom: 16px; }
+.lsf-hint { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 10px 14px; background: #eef2ff; border-radius: 8px; border: 1px solid #c7d2fe; margin-bottom: 14px; font-size: 12px; color: #4338ca; line-height: 1.6; }
+.lsf-hint-icon { font-weight: 800; font-size: 14px; }
+.lsf-active-badge { margin-left: auto; padding: 2px 10px; background: #667eea; color: #fff; border-radius: 20px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+.lsf-active-badge-none { background: #94a3b8; }
+
+.lsf-row { display: flex; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+.lsf-item { flex: 1; min-width: 160px; display: flex; flex-direction: column; gap: 4px; }
+.lsf-item label { font-size: 11px; color: #888; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; display: flex; align-items: center; gap: 6px; }
+.lsf-optional { font-size: 10px; color: #bbb; font-weight: 400; text-transform: none; letter-spacing: 0; background: #f4f4f4; padding: 1px 6px; border-radius: 4px; }
+.lsf-input { padding: 8px 12px; font-size: 13px; border: 2px solid #e8e8e8; border-radius: 8px; outline: none; background: #fff; transition: border-color 0.2s; }
+.lsf-input:focus { border-color: #667eea; }
+.lsf-actions { display: flex; gap: 8px; margin-top: 4px; align-items: center; }
+
+.log-search-init-hint { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 50px 20px; gap: 10px; }
+.lsih-icon { font-size: 36px; opacity: 0.3; }
+.lsih-text { font-size: 14px; color: #888; font-weight: 600; }
+.lsih-sub { font-size: 12px; color: #bbb; }
+
+.log-search-empty-result { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px; gap: 8px; }
+.lser-icon { font-size: 32px; opacity: 0.3; }
+.lser-text { font-size: 14px; color: #888; font-weight: 600; }
+.lser-hint { font-size: 12px; color: #bbb; text-align: center; max-width: 400px; line-height: 1.6; }
 
 .log-search-result { overflow-x: auto; }
 .lsr-table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: left; }
@@ -740,6 +809,7 @@ onUnmounted(() => {
 .lsr-duration-warn { color: #f59e0b; }
 .lsr-duration-slow { color: #ef4444; }
 .lsr-ip { font-family: 'SF Mono', monospace; font-size: 11px; color: #888; }
+
 
 .btn-action { border: none; padding: 10px 24px; font-size: 13px; border-radius: 10px; cursor: pointer; font-weight: 600; transition: transform 0.15s, box-shadow 0.15s; }
 .btn-action:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
