@@ -664,3 +664,17 @@ export function fetchRealtimeStats() {
     return fetchWithTimeout('/api/realtime/stats?' + params.toString(), {}, 15000).then(safeJson)
 }
 
+export function fetchLogSearch(params) {
+    const qs = new URLSearchParams()
+    qs.append('lines', params.lines || 500)
+    qs.append('level', params.level || 'ALL')
+    if (params.user) qs.append('user', params.user)
+    if (params.function) qs.append('function', params.function)
+    if (params.clazz) qs.append('clazz', params.clazz)
+    if (params.method) qs.append('method', params.method)
+    if (params.status) qs.append('status', params.status)
+    if (params.minDuration != null && params.minDuration !== '') qs.append('minDuration', params.minDuration)
+    if (params.maxDuration != null && params.maxDuration !== '') qs.append('maxDuration', params.maxDuration)
+    return fetchWithTimeout('/api/system/log/search?' + qs.toString(), {}, 30000).then(safeJson)
+}
+

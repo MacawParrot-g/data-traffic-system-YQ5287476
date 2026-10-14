@@ -32,6 +32,19 @@ public class SystemMonitorController {
         return systemMonitorService.getRedisKeys(db, limit);
     }
 
+    @GetMapping("/log/search")
+    public Result searchLogs(@RequestParam(defaultValue = "500") int lines,
+                             @RequestParam(defaultValue = "ALL") String level,
+                             @RequestParam(required = false) String user,
+                             @RequestParam(required = false) String function,
+                             @RequestParam(required = false) String clazz,
+                             @RequestParam(required = false) String method,
+                             @RequestParam(required = false) String status,
+                             @RequestParam(required = false) Integer minDuration,
+                             @RequestParam(required = false) Integer maxDuration) {
+        return systemMonitorService.searchLogs(lines, level, user, function, clazz, method, status, minDuration, maxDuration);
+    }
+
     @GetMapping("/log/tail")
     public Result tailLog(@RequestParam(defaultValue = "200") int lines,
                           @RequestParam(defaultValue = "ALL") String level) {

@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted, onUnmounted, nextTick } from 'vue'
-import { fetchSystemInfo, fetchRedisInfo, fetchRedisKeys, fetchLogTail, terminalExec } from '../api/index.js'
+import { fetchSystemInfo, fetchRedisInfo, fetchRedisKeys, fetchLogTail, fetchLogSearch, terminalExec } from '../api/index.js'
 
 const emit = defineEmits(['error'])
 
@@ -17,6 +17,22 @@ const logPaused = ref(false)
 const logTailCount = ref(300)
 let logTimer = null
 const logContainer = ref(null)
+
+const logSearchMode = ref(false)
+const logSearchLoading = ref(false)
+const logSearchRecords = ref([])
+const logSearchTotal = ref(0)
+const logSearchFilters = ref({
+  level: 'ALL',
+  user: '',
+  function: '',
+  clazz: '',
+  method: '',
+  status: '',
+  minDuration: '',
+  maxDuration: '',
+  lines: 500
+})
 
 const redisInfo = ref(null)
 const redisLoading = ref(false)
@@ -66,6 +82,41 @@ async function loadRedisKeys(db) {
 function closeKeyViewer() {
   selectedDb.value = -1
   redisKeys.value = []
+}
+
+
+function toggleLogSearchMode() {
+  logSearchMode.value = !logSearchMode.value
+  if (!logSearchMode.value) {
+    logSearchRecords.value = []
+    logSearchTotal.value = 0
+  }
+}
+
+function resetLogSearchFilters() {
+  logSearchFilters.value = {
+    level: 'ALL',
+    user: '',
+    function: '',
+    clazz: '',
+    method: '',
+    status: '',
+    minDuration: '',
+    maxDuration: '',
+    lines: 500
+  }
+}
+
+async function doLogSearch() {
+  logSearchLoading.value = true
+  try {
+    const json = await fetchLogSearch(logSearchFilters.value)
+    if (json.success) {
+      logSearchRecords.value = json.data?.records || []
+      logSearchTotal.value = json.data?.total || 0
+    }
+  } catch (e) { /* silent */ }
+  finally { logSearchLoading.value = false }
 }
 
 async function loadLogs() {
@@ -211,22 +262,22 @@ onUnmounted(() => {
 <template>
   <div class="monitor-page">
     <div class="page-header">
-      <h2>🖥️ 系统监控面板</h2>
+      <h2>🖥系统监控面板</h2>
       <div class="page-header-sub">实时日志 · Redis监控 · 服务器状态 · 远程终端</div>
     </div>
 
     <div class="monitor-tabs">
       <button class="monitor-tab" :class="{ active: activeTab === 'server' }" @click="activeTab = 'server'; loadSystemInfo()">
-        <span class="tab-icon">📊</span><span>服务器状态</span>
+        <span class="tab-icon">S</span><span>服务器状态</span>
       </button>
       <button class="monitor-tab" :class="{ active: activeTab === 'logs' }" @click="activeTab = 'logs'">
-        <span class="tab-icon">📜</span><span>实时日志</span>
+        <span class="tab-icon">L</span><span>实时日志</span>
       </button>
       <button class="monitor-tab" :class="{ active: activeTab === 'redis' }" @click="activeTab = 'redis'; loadRedisInfo()">
-        <span class="tab-icon">🗄️</span><span>Redis监控</span>
+        <span class="tab-icon">M</span><span>Redis监控</span>
       </button>
       <button class="monitor-tab" :class="{ active: activeTab === 'terminal' }" @click="activeTab = 'terminal'">
-        <span class="tab-icon">💻</span><span>远程终端</span>
+        <span class="tab-icon">R</span><span>远程终端</span>
       </button>
     </div>
 
@@ -235,11 +286,11 @@ onUnmounted(() => {
       <div class="card">
         <div class="card-header card-header-between">
           <div class="card-header-left">
-            <span class="card-icon">📊</span>
+            <span class="card-icon"></span>
             <h3>服务器运行状态</h3>
           </div>
           <button class="btn-action btn-refresh" @click="loadSystemInfo" :disabled="sysLoading">
-            {{ sysLoading ? '加载中...' : '🔄 刷新' }}
+            {{ sysLoading ? '加载中...' : '刷新' }}
           </button>
         </div>
         <div class="card-body">
@@ -310,44 +361,158 @@ onUnmounted(() => {
       <div class="card">
         <div class="card-header card-header-between">
           <div class="card-header-left">
-            <span class="card-icon">📜</span>
+            <span class="card-icon"></span>
             <h3>实时日志</h3>
-            <span class="log-status-dot" :class="{ 'log-paused': logPaused }"></span>
-            <span class="log-status-text">{{ logPaused ? '已暂停' : '实时监控中' }}</span>
+            <span class="log-status-dot" :class="{ 'log-paused': logPaused || logSearchMode }"></span>
+            <span class="log-status-text">{{ logSearchMode ? '结构化查询模式' : (logPaused ? '已暂停' : '实时监控中') }}</span>
           </div>
           <div class="card-header-right">
-            <select v-model="logLevel" class="log-level-select" @change="loadLogs()">
-              <option value="ALL">全部级别</option>
-              <option value="INFO">INFO</option>
-              <option value="WARN">WARN</option>
-              <option value="ERROR">ERROR</option>
-              <option value="DEBUG">DEBUG</option>
-            </select>
-            <button class="btn-action btn-sm-action" @click="togglePause">
-              {{ logPaused ? '▶ 恢复' : '⏸ 暂停' }}
+            <button class="btn-sm-action" :class="{ 'btn-sm-active': logSearchMode }" @click="toggleLogSearchMode">
+              {{ logSearchMode ? '切换实时' : '结构化查询' }}
             </button>
-            <button class="btn-action btn-refresh" @click="loadLogs" :disabled="logLoading">
-              {{ logLoading ? '刷新中...' : '🔄 刷新' }}
-            </button>
+            <template v-if="!logSearchMode">
+              <select v-model="logLevel" class="log-level-select" @change="loadLogs()">
+                <option value="ALL">全部级别</option>
+                <option value="INFO">INFO</option>
+                <option value="WARN">WARN</option>
+                <option value="ERROR">ERROR</option>
+                <option value="DEBUG">DEBUG</option>
+              </select>
+              <button class="btn-action btn-sm-action" @click="togglePause">
+                {{ logPaused ? '▶ 恢复' : '⏸ 暂停' }}
+              </button>
+              <button class="btn-action btn-refresh" @click="loadLogs" :disabled="logLoading">
+                {{ logLoading ? '刷新中...' : '刷新' }}
+              </button>
+            </template>
           </div>
         </div>
-        <div class="card-body log-card-body">
-          <div class="log-viewer" ref="logContainer">
-            <div v-if="logLines.length === 0 && !logLoading" class="log-empty">暂无日志数据...</div>
-            <div v-for="(line, i) in logLines" :key="i" class="log-line" :class="getLogLineClass(line)">{{ line }}</div>
-            <div v-if="logLoading && logLines.length === 0" class="log-empty">
-              <div class="state-spinner"></div>
-              <div>正在加载日志...</div>
+
+        <template v-if="!logSearchMode">
+          <div class="card-body log-card-body">
+            <div class="log-viewer" ref="logContainer">
+              <div v-if="logLines.length === 0 && !logLoading" class="log-empty">暂无日志数据...</div>
+              <div v-for="(line, i) in logLines" :key="i" class="log-line" :class="getLogLineClass(line)">{{ line }}</div>
+              <div v-if="logLoading && logLines.length === 0" class="log-empty">
+                <div class="state-spinner"></div>
+                <div>正在加载日志...</div>
+              </div>
+            </div>
+            <div class="log-footer">
+              <label class="log-auto-scroll-label">
+                <input type="checkbox" v-model="logAutoScroll" />
+                <span>自动滚动</span>
+              </label>
+              <span class="log-count">共 {{ logLines.length }} 行</span>
             </div>
           </div>
-          <div class="log-footer">
-            <label class="log-auto-scroll-label">
-              <input type="checkbox" v-model="logAutoScroll" />
-              <span>自动滚动</span>
-            </label>
-            <span class="log-count">共 {{ logLines.length }} 行</span>
+        </template>
+
+        <template v-else>
+          <div class="card-body">
+            <div class="log-search-filters">
+              <div class="lsf-row">
+                <div class="lsf-item">
+                  <label>日志级别</label>
+                  <select v-model="logSearchFilters.level" class="lsf-input">
+                    <option value="ALL">全部级别</option>
+                    <option value="INFO">INFO</option>
+                    <option value="WARN">WARN</option>
+                    <option value="ERROR">ERROR</option>
+                    <option value="DEBUG">DEBUG</option>
+                  </select>
+                </div>
+                <div class="lsf-item">
+                  <label>用户</label>
+                  <input v-model="logSearchFilters.user" class="lsf-input" placeholder="输入用户名" />
+                </div>
+                <div class="lsf-item">
+                  <label>功能</label>
+                  <input v-model="logSearchFilters.function" class="lsf-input" placeholder="输入功能名" />
+                </div>
+              </div>
+              <div class="lsf-row">
+                <div class="lsf-item">
+                  <label>方法所属类</label>
+                  <input v-model="logSearchFilters.clazz" class="lsf-input" placeholder="如 AdminRecordController" />
+                </div>
+                <div class="lsf-item">
+                  <label>方法</label>
+                  <input v-model="logSearchFilters.method" class="lsf-input" placeholder="如 search" />
+                </div>
+                <div class="lsf-item">
+                  <label>状态</label>
+                  <select v-model="logSearchFilters.status" class="lsf-input">
+                    <option value="">全部</option>
+                    <option value="SUCCESS">SUCCESS</option>
+                    <option value="FAIL">FAIL</option>
+                  </select>
+                </div>
+              </div>
+              <div class="lsf-row">
+                <div class="lsf-item">
+                  <label>耗时 >= (ms)</label>
+                  <input v-model="logSearchFilters.minDuration" type="number" class="lsf-input" placeholder="最小耗时" min="0" />
+                </div>
+                <div class="lsf-item">
+                  <label>耗时 <= (ms)</label>
+                  <input v-model="logSearchFilters.maxDuration" type="number" class="lsf-input" placeholder="最大耗时" min="0" />
+                </div>
+                <div class="lsf-item">
+                  <label>扫描行数</label>
+                  <input v-model="logSearchFilters.lines" type="number" class="lsf-input" placeholder="500" min="100" max="5000" />
+                </div>
+              </div>
+              <div class="lsf-actions">
+                <button class="btn-action btn-refresh" @click="doLogSearch" :disabled="logSearchLoading">
+                  {{ logSearchLoading ? '查询中...' : '查询' }}
+                </button>
+                <button class="btn-sm-action" @click="resetLogSearchFilters">重置</button>
+              </div>
+            </div>
           </div>
-        </div>
+
+          <div class="card-body log-card-body" style="padding-top:0">
+            <div v-if="logSearchLoading && logSearchRecords.length === 0" class="log-empty">
+              <div class="state-spinner"></div>
+              <div>正在查询日志...</div>
+            </div>
+            <div v-else-if="logSearchRecords.length > 0" class="log-search-result">
+              <table class="lsr-table">
+                <thead>
+                <tr>
+                  <th>时间</th>
+                  <th>级别</th>
+                  <th>功能</th>
+                  <th>用户</th>
+                  <th>类</th>
+                  <th>方法</th>
+                  <th>状态</th>
+                  <th>耗时(ms)</th>
+                  <th>IP</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr v-for="(r, i) in logSearchRecords" :key="i" :class="'lsr-status-' + r.status?.toLowerCase()">
+                  <td class="lsr-time">{{ r.timestamp }}</td>
+                  <td><span class="lsr-level" :class="'lsr-level-' + r.level?.toLowerCase()">{{ r.level }}</span></td>
+                  <td>{{ r.function }}</td>
+                  <td>{{ r.user }}</td>
+                  <td class="lsr-clazz">{{ r.clazz }}</td>
+                  <td class="lsr-method">{{ r.method }}</td>
+                  <td><span class="lsr-status" :class="r.status === 'SUCCESS' ? 'lsr-status-ok' : 'lsr-status-fail'">{{ r.status }}</span></td>
+                  <td class="lsr-duration" :class="{ 'lsr-duration-slow': r.duration >= 1000, 'lsr-duration-warn': r.duration >= 500 && r.duration < 1000 }">{{ r.duration }}</td>
+                  <td class="lsr-ip">{{ r.ip }}</td>
+                </tr>
+                </tbody>
+              </table>
+            </div>
+            <div v-else class="log-empty">暂无匹配的日志记录，请调整筛选条件后查询</div>
+            <div class="log-footer" v-if="logSearchRecords.length > 0">
+              <span class="log-count">共 {{ logSearchTotal }} 条记录</span>
+            </div>
+          </div>
+        </template>
       </div>
     </div>
 
@@ -356,12 +521,12 @@ onUnmounted(() => {
       <div class="card">
         <div class="card-header card-header-between">
           <div class="card-header-left">
-            <span class="card-icon">🗄️</span>
+            <span class="card-icon"></span>
             <h3>Redis 数据库监控</h3>
             <span v-if="redisInfo" class="redis-host-badge">{{ redisInfo.host }}</span>
           </div>
           <button class="btn-action btn-refresh" @click="loadRedisInfo" :disabled="redisLoading">
-            {{ redisLoading ? '加载中...' : '🔄 刷新' }}
+            {{ redisLoading ? '加载中...' : '刷新' }}
           </button>
         </div>
         <div class="card-body">
@@ -402,7 +567,7 @@ onUnmounted(() => {
 
             <div v-if="selectedDb >= 0" class="redis-key-viewer">
               <div class="rkv-header">
-                <h4>🔑 DB{{ selectedDb }} 的键</h4>
+                <h4> DB{{ selectedDb }} 的键</h4>
                 <button class="btn-sm-action" @click="closeKeyViewer">✕ 关闭</button>
               </div>
               <div v-if="redisKeysLoading" class="rkv-loading">
@@ -443,7 +608,7 @@ onUnmounted(() => {
       <div class="card">
         <div class="card-header card-header-between">
           <div class="card-header-left">
-            <span class="card-icon">💻</span>
+            <span class="card-icon"></span>
             <h3>远程终端</h3>
             <span class="term-warning-badge">⚠️ 谨慎操作</span>
           </div>
@@ -454,7 +619,7 @@ onUnmounted(() => {
         <div class="card-body term-card-body">
           <div class="term-output-area" ref="termContainer">
             <div v-if="!termOutput && !termExecuting" class="term-placeholder">
-              <div class="term-placeholder-icon">💻</div>
+              <div class="term-placeholder-icon"></div>
               <div class="term-placeholder-text">在下方输入命令，按 Enter 执行</div>
               <div class="term-placeholder-hint">支持 ↑↓ 键浏览历史命令 · Ctrl+Enter 换行</div>
             </div>
@@ -544,6 +709,37 @@ onUnmounted(() => {
 .state-text { color: #aaa; font-size: 14px; }
 .state-spinner { width: 32px; height: 32px; border: 3px solid #e0e0e0; border-top-color: #667eea; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 12px; }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+.btn-sm-active { background: #667eea !important; color: #fff !important; border-color: #667eea !important; }
+
+.log-search-filters { margin-bottom: 16px; }
+.lsf-row { display: flex; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+.lsf-item { flex: 1; min-width: 160px; display: flex; flex-direction: column; gap: 4px; }
+.lsf-item label { font-size: 11px; color: #888; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; }
+.lsf-input { padding: 8px 12px; font-size: 13px; border: 2px solid #e8e8e8; border-radius: 8px; outline: none; background: #fff; transition: border-color 0.2s; }
+.lsf-input:focus { border-color: #667eea; }
+.lsf-actions { display: flex; gap: 8px; margin-top: 4px; }
+
+.log-search-result { overflow-x: auto; }
+.lsr-table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: left; }
+.lsr-table th { background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; padding: 10px 12px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; position: sticky; top: 0; z-index: 1; white-space: nowrap; }
+.lsr-table td { padding: 8px 12px; border-bottom: 1px solid #f0f0f0; color: #333; white-space: nowrap; }
+.lsr-table tbody tr:hover td { background: #f8f9ff; }
+.lsr-time { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 11px; color: #666; }
+.lsr-level { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 700; }
+.lsr-level-info { background: #dbeafe; color: #1d4ed8; }
+.lsr-level-warn { background: #fef3c7; color: #92400e; }
+.lsr-level-error { background: #fee2e2; color: #991b1b; }
+.lsr-level-debug { background: #ede9fe; color: #5b21b6; }
+.lsr-clazz { font-family: 'SF Mono', monospace; font-size: 11px; color: #555; }
+.lsr-method { font-family: 'SF Mono', monospace; font-size: 11px; color: #667eea; font-weight: 600; }
+.lsr-status { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 700; }
+.lsr-status-ok { background: #dcfce7; color: #166534; }
+.lsr-status-fail { background: #fee2e2; color: #991b1b; }
+.lsr-duration { font-family: 'SF Mono', monospace; font-weight: 600; color: #333; }
+.lsr-duration-warn { color: #f59e0b; }
+.lsr-duration-slow { color: #ef4444; }
+.lsr-ip { font-family: 'SF Mono', monospace; font-size: 11px; color: #888; }
 
 .btn-action { border: none; padding: 10px 24px; font-size: 13px; border-radius: 10px; cursor: pointer; font-weight: 600; transition: transform 0.15s, box-shadow 0.15s; }
 .btn-action:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }

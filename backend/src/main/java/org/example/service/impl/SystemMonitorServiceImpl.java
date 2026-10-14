@@ -17,6 +17,8 @@ import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Service
 public class SystemMonitorServiceImpl implements SystemMonitorService {
@@ -41,6 +43,8 @@ public class SystemMonitorServiceImpl implements SystemMonitorService {
     public SystemMonitorServiceImpl(RedisTemplate<String, Object> redisTemplate) {
         this.redisTemplate = redisTemplate;
     }
+
+    private static final Pattern FIELD_PATTERN = Pattern.compile("([^|:]+?):\\s*([^|]+)");
 
     @Override
     public Result getSystemInfo() {
@@ -182,6 +186,91 @@ public class SystemMonitorServiceImpl implements SystemMonitorService {
             return Result.success("日志获取成功", filtered);
         } catch (IOException e) {
             return Result.fail("日志读取失败: " + e.getMessage());
+        }
+    }
+
+    private static final Pattern LOG_STRUCT_PATTERN = Pattern.compile(
+            "^(\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3}) " +
+                    "\\[([^]]*)] " +
+                    "\\[([^]]*)] " +
+                    "(\\w+)\\s+" +
+                    "(\\S+) - " +
+                    "【日志】(.+)"
+    );
+
+    @Override
+    public Result searchLogs(int lines, String level, String user, String function,
+                             String clazz, String method, String status,
+                             Integer minDuration, Integer maxDuration) {
+        try {
+            java.io.File logFile = new java.io.File(logFilePath);
+            if (!logFile.exists()) {
+                return Result.success("日志文件不存在", Map.of("records", List.of(), "total", 0));
+            }
+            List<String> allLines = readLastLines(logFile, lines * 5);
+
+            List<Map<String, Object>> records = new ArrayList<>();
+            for (String line : allLines) {
+                Matcher m = LOG_STRUCT_PATTERN.matcher(line);
+                if (!m.matches()) continue;
+
+                String logLevel = m.group(4);
+                if (level != null && !level.isEmpty() && !"ALL".equals(level) && !level.equals(logLevel)) continue;
+
+                String content = m.group(6);
+                Map<String, String> fields = new LinkedHashMap<>();
+                String[] parts = content.split("\\|");
+                String funcName = parts[0].trim();
+                for (int i = 1; i < parts.length; i++) {
+                    Matcher fm = FIELD_PATTERN.matcher(parts[i]);
+                    if (fm.find()) {
+                        fields.put(fm.group(1).trim(), fm.group(2).trim());
+                    }
+                }
+
+                String logUser = fields.getOrDefault("用户", "");
+                String logFunc = funcName;
+                String logClass = fields.getOrDefault("方法所属类", "");
+                String logMethod = fields.getOrDefault("方法", "");
+                String logStatus = fields.getOrDefault("状态", "");
+                int logDuration = 0;
+                String durationStr = fields.getOrDefault("耗费时间(ms)", "0ms");
+                try {
+                    logDuration = Integer.parseInt(durationStr.replaceAll("[^0-9]", ""));
+                } catch (NumberFormatException ignored) {}
+
+                if (user != null && !user.isEmpty() && !logUser.contains(user)) continue;
+                if (function != null && !function.isEmpty() && !logFunc.contains(function)) continue;
+                if (clazz != null && !clazz.isEmpty() && !logClass.contains(clazz)) continue;
+                if (method != null && !method.isEmpty() && !logMethod.contains(method)) continue;
+                if (status != null && !status.isEmpty() && !logStatus.equalsIgnoreCase(status)) continue;
+                if (minDuration != null && logDuration < minDuration) continue;
+                if (maxDuration != null && logDuration > maxDuration) continue;
+
+                Map<String, Object> record = new LinkedHashMap<>();
+                record.put("timestamp", m.group(1));
+                record.put("thread", m.group(2));
+                record.put("level", logLevel);
+                record.put("logger", m.group(5));
+                record.put("function", logFunc);
+                record.put("user", logUser);
+                record.put("ip", fields.getOrDefault("ip", ""));
+                record.put("clazz", logClass);
+                record.put("method", logMethod);
+                record.put("status", logStatus);
+                record.put("duration", logDuration);
+                record.put("rawLine", line);
+                records.add(record);
+
+                if (records.size() >= lines) break;
+            }
+
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("records", records);
+            result.put("total", records.size());
+            return Result.success("日志查询成功", result);
+        } catch (IOException e) {
+            return Result.fail("日志查询失败: " + e.getMessage());
         }
     }
 
