@@ -5,6 +5,7 @@ import org.example.util.RequestKil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
@@ -18,12 +19,15 @@ public class URLServiceImpl implements URLService {
     @Autowired
     private CacheStrategyService cacheStrategyService;
 
+    @Value("${upstream.base-url}")
+    private String upstreamBaseUrl;
+
     @Autowired
     private RequestKil rk;
 
     @Override
     public Map<String, Object> proxyTask() {
-        String remoteUrl = "https://d-reporter.de123.net/ad/play/task";
+        String remoteUrl = upstreamBaseUrl + "/ad/play/task";
         Map<String, Object> response = rk.safeRemoteGet(remoteUrl);
 
         if (response != null && Boolean.TRUE.equals(response.get("success")) && response.get("data") != null) {
@@ -51,14 +55,14 @@ public class URLServiceImpl implements URLService {
 
     @Override
     public Map<String, Object> proxyObtain(Long appleid) {
-        String remoteUrl = "https://d-reporter.de123.net/ad/play/task?appId=" + appleid;
+        String remoteUrl = upstreamBaseUrl + "/ad/play/task?appId=" + appleid;
         Map<String, Object> response = rk.safeRemoteGet(remoteUrl);
         return response != null ? response : rk.errorResponse("远程接口返回空响应，请稍后重试");
     }
 
     @Override
     public Map<String, Object> proxyCheckVersion(String appId, String bundleId, String checkVersion) {
-        String url = "https://d-reporter.de123.net/ad/event/target/check-version?appId=" + appId
+        String url = upstreamBaseUrl + "/ad/event/target/check-version?appId=" + appId
                 + "&bundleId=" + bundleId + "&checkVersion=" + checkVersion;
         Map<String, Object> response = rk.safeRemoteGet(url);
         return response != null ? response : rk.errorResponse("版本校验接口返回空响应");
@@ -66,28 +70,28 @@ public class URLServiceImpl implements URLService {
 
     @Override
     public Map<String, Object> proxyEvent(String bundleId) {
-        String url = "https://d-reporter.de123.net/ad/event/target?bundleId=" + bundleId;
+        String url = upstreamBaseUrl + "/ad/event/target?bundleId=" + bundleId;
         Map<String, Object> response = rk.safeRemoteGet(url);
         return response != null ? response : rk.errorResponse("事件接口返回空响应");
     }
 
     @Override
     public Map<String, Object> proxyAttribution(String bundleId, String type) {
-        String url = "https://d-reporter.de123.net/ad/" + type + "/event/?bundleId=" + bundleId;
+        String url = upstreamBaseUrl + "/ad/" + type + "/event/?bundleId=" + bundleId;
         Map<String, Object> response = rk.safeRemoteGet(url);
         return response != null ? response : rk.errorResponse("归因接口返回空响应");
     }
 
     @Override
     public Map<String, Object> proxyFrozen(Long id) {
-        String url = "https://d-reporter.de123.net/ad/play/task/frozen?id=" + id;
+        String url = upstreamBaseUrl + "/ad/play/task/frozen?id=" + id;
         Map<String, Object> response = rk.safeRemoteGet(url);
         return response != null ? response : rk.errorResponse("冻结接口返回空响应");
     }
 
     @Override
     public Map<String, Object> proxyTaskCount() {
-        String remoteUrl = "https://d-reporter.de123.net/ad/play/task/count";
+        String remoteUrl = upstreamBaseUrl + "/ad/play/task/count";
         Map<String, Object> response = rk.safeRemoteGet(remoteUrl);
         return response != null ? response : rk.errorResponse("库存接口返回空响应");
     }

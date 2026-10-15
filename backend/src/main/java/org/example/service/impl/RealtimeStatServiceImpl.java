@@ -4,6 +4,7 @@ import org.example.common.Result;
 import org.example.mapper.GeneranMapper;
 import org.example.service.RealtimeStatService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -13,10 +14,16 @@ import java.util.Map;
 @Service
 public class RealtimeStatServiceImpl implements RealtimeStatService {
 
-    private static final String INVENTORY_URL = "https://d-reporter.de123.net/ad/play/task/count";
 
     @Autowired
     private RestTemplate restTemplate;
+
+    @Value("${upstream.base-url}")
+    private String upstreamBaseUrl;
+
+    private String getInventoryUrl() {
+        return upstreamBaseUrl + "/ad/play/task/count";
+    }
 
     @Autowired
     private GeneranMapper generanMapper;
@@ -34,7 +41,7 @@ public class RealtimeStatServiceImpl implements RealtimeStatService {
     @SuppressWarnings("unchecked")
     private Object fetchInventorySilently() {
         try {
-            Map<String, Object> resp = restTemplate.getForObject(INVENTORY_URL, Map.class);
+            Map<String, Object> resp = restTemplate.getForObject(getInventoryUrl(), Map.class);
             if (resp != null && Boolean.TRUE.equals(resp.get("success"))) {
                 return resp.get("data");
             }

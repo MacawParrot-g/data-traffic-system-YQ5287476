@@ -1,5 +1,19 @@
 # data-traffic-system-YQ5287476
 
+## 法律声明与许可条款
+
+本仓库（包括但不限于源代码、架构设计、配置文件、文档、脚本及数据模型）为**深圳市慧动创想科技有限公司**的专有保密资产，受《中华人民共和国著作权法》《计算机软件保护条例》《反不正当竞争法》及相关国际知识产权条约的保护。
+
+**使用限制：**
+
+1. **仅限查阅**：本仓库仅向经深圳市慧动创想科技有限公司书面授权的人员开放查阅权限。未经公司书面许可，任何个人或组织不得以任何形式复制、转载、修改、分发、展示、传播、派生或商业利用本仓库的任何内容。
+2. **禁止克隆与派生**：严禁对本仓库执行 `git clone`、`git fork`、镜像同步或任何形式的代码拉取操作，仅限于在线浏览查阅。
+3. **保密义务**：访问本仓库即表示您同意对其中的全部信息承担保密义务。任何未经授权的泄露、使用或传播行为均可能构成对公司商业秘密的侵犯。
+4. **违约责任**：违反本声明的任何行为，深圳市慧动创想科技有限公司保留依法追究其民事及刑事责任的全部权利，包括但不限于要求停止侵害、赔偿损失及承担相关法律费用。
+5. **适用范围**：本声明适用于全球范围内的一切个人与组织，不因任何地域、时间或使用场景而失效。
+
+**版权声明**：Copyright (c) 2024-2026 深圳市慧动创想科技有限公司。保留所有权利。
+
 自动化测试数据管理系统（Automated Test Data Management System）
 
 面向广告投放测试场景的一体化数据管理平台：覆盖任务领取、测试执行、事件与归因查询、数据入库、评级复测、异步导出与统计报表的完整业务闭环。本文档定位为开发与运维交接手册，同时可作为技术面试的架构展示材料。
@@ -25,7 +39,7 @@
 
 ## 项目简介
 
-系统面向广告投放测试团队：测试人员通过平台领取上游归因平台（d-reporter.de123.net）分发的测试任务，获得被测应用的下载链接与二维码，完成装机与测试后，平台一键查询事件数据与四家第三方归因渠道（AppsFlyer、Adjust、Singular、Tenjin）的归因结果，并将测试记录持久化入库；管理员在此基础上进行评级管理、复测调度、统计报表与数据导出，取代人工逐平台查询与手工整理数据的工作方式。
+系统面向广告投放测试团队：测试人员通过平台领取上游归因平台分发的测试任务，获得被测应用的下载链接与二维码，完成装机与测试后，平台一键查询事件数据与四家第三方归因渠道（AppsFlyer、Adjust、Singular、Tenjin）的归因结果，并将测试记录持久化入库；管理员在此基础上进行评级管理、复测调度、统计报表与数据导出，取代人工逐平台查询与手工整理数据的工作方式。
 
 系统解决的核心问题：多归因渠道结果分散导致查询重复劳动；测试数据缺乏统一存储与管理；报表导出效率低；重复领取任务造成数据污染；多用户共用一套数据源的隔离问题。
 
@@ -201,7 +215,7 @@ graph TB
     RD -.-> VOL
     MQ -.-> VOL
     ENV -.-> HOST
-    BE -->|"出站 HTTP 代理"| UP["上游归因平台<br/>d-reporter.de123.net"]
+    BE -->|"出站 HTTP 代理"| UP["上游归因平台"]
 ```
 
 端口映射：
@@ -421,6 +435,20 @@ MySQL 数据库名：test_data（由 Compose 初始化创建）。表清单：
 
 ## English Version
 
+## Legal Notice and License Terms
+
+This repository — including but not limited to its source code, architecture designs, configuration files, documentation, scripts, and data models — is the exclusive proprietary and confidential asset of **Shenzhen Huidong Chuangxiang Technology Co., Ltd.** (深圳市慧动创想科技有限公司), protected by the Copyright Law of the People's Republic of China, the Regulations on Computer Software Protection, the Anti-Unfair Competition Law, and applicable international intellectual property treaties.
+
+**Restrictions:**
+
+1. **View-only access**: This repository is open for review exclusively to personnel who have received written authorization from Shenzhen Huidong Chuangxiang Technology Co., Ltd. Without prior written consent, no individual or organization may copy, reproduce, modify, distribute, display, transmit, create derivative works from, or commercially exploit any content of this repository in any form or by any means.
+2. **No cloning or forking**: Performing `git clone`, `git fork`, mirror synchronization, or any form of code replication from this repository is strictly prohibited. Online browsing for review purposes only.
+3. **Confidentiality obligation**: By accessing this repository, you agree to maintain the confidentiality of all information contained herein. Any unauthorized disclosure, use, or dissemination may constitute an infringement of the company's trade secrets.
+4. **Liability for breach**: Shenzhen Huidong Chuangxiang Technology Co., Ltd. reserves the right to pursue all available civil and/or criminal remedies against any party that violates this notice, including but not limited to seeking injunctive relief, damages, and recovery of legal costs.
+5. **Scope**: This notice applies to all individuals and organizations worldwide and shall not be rendered invalid by any geographic, temporal, or situational context.
+
+**Copyright Notice**: Copyright (c) 2024-2026 Shenzhen Huidong Chuangxiang Technology Co., Ltd. All rights reserved.
+
 ### Table of Contents
 
 - [Project Overview](#project-overview)
@@ -439,7 +467,7 @@ MySQL 数据库名：test_data（由 Compose 初始化创建）。表清单：
 
 ### Project Overview
 
-An integrated data management platform for ad-campaign testing scenarios. Testers claim tasks distributed by the upstream attribution platform (d-reporter.de123.net), receive the download link and QR code of the application under test, and after installation and testing, the platform queries event data and attribution results from four MMP channels (AppsFlyer, Adjust, Singular, Tenjin) in one step, then persists the test records. Administrators further perform grade management, retest scheduling, statistics, and data export on top of it, replacing manual per-platform querying and spreadsheet-based data handling.
+An integrated data management platform for ad-campaign testing scenarios. Testers claim tasks distributed by the upstream attribution platform, receive the download link and QR code of the application under test, and after installation and testing, the platform queries event data and attribution results from four MMP channels (AppsFlyer, Adjust, Singular, Tenjin) in one step, then persists the test records. Administrators further perform grade management, retest scheduling, statistics, and data export on top of it, replacing manual per-platform querying and spreadsheet-based data handling.
 
 Core problems addressed: scattered attribution results across channels causing repetitive manual queries; lack of unified storage and management of test data; low efficiency of report export; data pollution from duplicate task claiming; and missing isolation when multiple users share a single data source.
 
@@ -615,7 +643,7 @@ graph TB
     RD -.-> VOL
     MQ -.-> VOL
     ENV -.-> HOST
-    BE -->|"Outbound HTTP proxy"| UP["Upstream attribution platform<br/>d-reporter.de123.net"]
+    BE -->|"Outbound HTTP proxy"| UP["Upstream attribution platform<br/>"]
 ```
 
 Port mapping:
@@ -830,3 +858,17 @@ Note: table schemas are created by the init scripts under mysql/initsql on the d
 | Configuration management | mysql/conf/my.cnf and mysql/initsql are not versioned in the repository; application.yml has no per-environment profiles | Version the init scripts; split configuration by environment |
 | Frontend engineering | No router or state management (component-switching model); a few unused utility modules; static assets depend on the Google Fonts CDN | Introduce Vue Router / Pinia as needed, localize fonts, remove dead code |
 | Build scripts | The Jenkinsfile frontend stage still copies dist to ../nginx/html/dist (legacy path; Compose now builds from the frontend context) | Remove the legacy path and keep the pipeline consistent with Compose |
+
+
+
+> **CONFIDENTIAL & PROPRIETARY**
+>
+> Copyright (c) 2024-2026 深圳市慧动创想科技有限公司 (Shenzhen Huidong Chuangxiang Technology Co., Ltd.). All rights reserved.
+>
+> This repository is the exclusive proprietary and confidential software of 深圳市慧动创想科技有限公司. It is provided solely for authorized internal review purposes. **No part of this repository may be copied, reproduced, distributed, republished, downloaded, displayed, posted, transmitted, forked, cloned, or used in any form or by any means — electronic, mechanical, photocopying, recording, or otherwise — without the prior written consent of 深圳市慧动创想科技有限公司.**
+>
+> Unauthorized access, use, duplication, or distribution of this repository or any of its contents is strictly prohibited and may result in civil and/or criminal liability. This repository and all of its contents — including but not limited to source code, architecture designs, configuration files, documentation, scripts, and data models — constitute trade secrets and confidential information of 深圳市慧动创想科技有限公司.
+>
+> By accessing this repository, you acknowledge that you have read, understood, and agreed to be bound by these terms. If you are not an authorized employee, contractor, or agent of 深圳市慧动创想科技有限公司, you must immediately cease all access to this repository.
+>
+> **View-only access is permitted. Cloning, forking, mirroring, or any form of replication for external use is expressly forbidden.**

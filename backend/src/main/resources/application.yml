@@ -96,6 +96,9 @@ logging:
 export:
   file-dir: /data/export
 
+upstream:
+  base-url: ${UPSTREAM_BASE_URL:https://upstream-attribution.example.com}
+
 springdoc:
   api-docs:
     enabled: true
