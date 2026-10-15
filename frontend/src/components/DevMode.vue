@@ -1,32 +1,28 @@
 
 <template>
   <div class="dev-mode">
-    <div class="dev-badge">🛠️ 开发者模式</div>
+    <div class="dev-badge">开发者模式</div>
     <div class="dev-top-bar">
       <button class="dev-guide-btn" @click="guideVisible = true">
-        <span class="dev-guide-icon">📖</span><span>使用指南</span>
+        <span>使用指南</span>
       </button>
     </div>
     <div class="dev-tabs">
       <button class="dev-tab" :class="{ active: devActiveTab === 'test' }" @click="devActiveTab = 'test'">
-        <span class="dev-tab-icon">🧪</span><span>专业测试</span>
+        <span>专业测试</span>
       </button>
       <button class="dev-tab" :class="{ active: devActiveTab === 'governance' }" @click="devActiveTab = 'governance'; loadTableList()">
-        <span class="dev-tab-icon">🗄️</span><span>数据建表和治理</span>
+        <span>数据建表和治理</span>
       </button>
     </div>
 
     <!-- ==================== 专业测试 Tab ==================== -->
-    <div v-if="devActiveTab === 'test'">
+    <div v-if="devActiveTab === 'test'" class="test-tab">
       <div class="top-bar">
-        <div v-if="duplicateTip" class="duplicate-tip">⚠️ {{ duplicateTip }}</div>
-<!--        <div v-if="polling" class="polling-section">-->
-<!--          <span class="polling-status">🔄 正在每10秒自动获取下载任务...（第{{ pollCount }}次）</span>-->
-<!--          <button class="btn-timer-cancel" @click="stopPolling">停止轮询</button>-->
-<!--        </div>-->
+        <div v-if="duplicateTip" class="duplicate-tip">{{ duplicateTip }}</div>
         <div class="top-actions">
           <button class="btn-refresh" @click="confirmRefresh" :disabled="loading">
-            {{ loading ? '加载中...' : '🔄 刷新数据' }}
+            {{ loading ? '加载中...' : '刷新数据' }}
           </button>
         </div>
       </div>
@@ -43,14 +39,13 @@
       <div v-if="loading && !downloadUrl" class="loading">正在获取数据...</div>
 
       <div class="empty-placeholder" v-if="!downloadUrl && !loading">
-        <div class="empty-icon">🔧</div>
+        <div class="empty-icon">404 NO FOUND</div>
         <div class="empty-text">点击刷新数据获取任务，或输入 App ID 生成下载链接</div>
       </div>
 
       <div class="qr-info-section" v-if="downloadUrl">
         <div class="qr-card">
           <div class="qr-card-header">
-            <span class="qr-card-icon">📱</span>
             <span class="qr-card-title">扫描二维码下载APP进行测试</span>
           </div>
           <div class="qrcode-container">
@@ -99,10 +94,11 @@
           <template v-if="eventResult">
             <div class="event-result no-event" v-if="eventResult === 'no_event'">
               <div class="event-label">查询结果</div>
-              <div class="event-value">✅ 无事件</div>
-              <button class="btn-frozen" @click="doFrozen" :disabled="frozenLoading">
+              <div class="event-value">无事件</div>
+              <button class="btn-frozen" @click="doFrozen" :disabled="frozenLoading" v-if="!isRetestMode">
                 {{ frozenLoading ? '冻结中...' : '冻结应用' }}
               </button>
+              <div class="retest-frozen-tip" v-else>复测模式下已禁用冻结功能</div>
               <div class="frozen-result" v-if="frozenMsg">
                 <div class="frozen-label">冻结结果</div>
                 <div class="frozen-value">{{ frozenMsg }}</div>
@@ -112,16 +108,15 @@
               <div class="event-label">最新 currentTargetNum</div>
               <div class="event-value highlight">{{ newCurrentTargetNum }}</div>
               <div class="event-compare">
-                原始值：<span class="diff">{{ originalCurrentTargetNum }}</span> → 最新值：<span class="diff">{{ newCurrentTargetNum }}</span>
+                原始值：<span class="diff">{{ originalCurrentTargetNum }}</span> -> 最新值：<span class="diff">{{ newCurrentTargetNum }}</span>
               </div>
               <div class="attribution-tags" v-if="attributions.length > 0">
                 <span class="attr-tag" v-for="attr in attributions" :key="attr" :class="attr">{{ attr }}</span>
               </div>
-              <div class="no-attribution" v-if="attributions.length === 0">⚠️ 无归因</div>
+              <div class="no-attribution" v-if="attributions.length === 0">无归因</div>
             </div>
           </template>
           <div class="event-placeholder" v-else>
-            <span class="event-placeholder-icon">🔍</span>
             <span>查询的事件会在这里显示</span>
           </div>
         </div>
@@ -129,16 +124,15 @@
 
       <!-- Four Attribution Panels -->
       <div class="attr-section">
-        <h3 class="section-title">🔍 归因查询</h3>
+        <h3 class="section-title">归因查询</h3>
         <div class="attr-grid">
           <div v-for="type in ATTR_TYPES" :key="type" class="attr-panel" :class="type">
             <div class="attr-panel-header">
-              <span class="attr-panel-icon">{{ attrIcon(type) }}</span>
               <span class="attr-panel-title">{{ type.toUpperCase() }}</span>
               <span class="attr-count" v-if="attrStates[type].count !== null">({{ attrStates[type].count }}条)</span>
             </div>
             <div class="attr-input-row">
-              <input v-model="attrStates[type].bundleId" :placeholder="'Bundle ID'" @keyup.enter="querySingleAttr(type)" />
+              <input v-model="attrStates[type].bundleId" placeholder="Bundle ID" @keyup.enter="querySingleAttr(type)" />
               <button class="btn-attr-query" @click="querySingleAttr(type)" :disabled="attrStates[type].loading || !attrStates[type].bundleId">
                 {{ attrStates[type].loading ? '...' : '查询' }}
               </button>
@@ -177,33 +171,38 @@
             <option v-for="opt in templateOptions" :key="opt" :value="opt">{{ opt }}</option>
           </select>
         </div>
-        <div style="display:flex; gap:12px;">
-          <div class="form-group" style="flex:1">
+        <div class="form-row-2col">
+          <div class="form-group">
             <label>记录人</label>
             <input v-model="form.recorder" />
           </div>
-          <div class="form-group" style="flex:1">
+          <div class="form-group">
             <label>记录日期</label>
-            <template v-if="applyTime">
+            <template v-if="isRetestMode">
+              <input :value="form.record_data" disabled class="date-readonly retest-date" title="复测自动生成时间戳" />
+            </template>
+            <template v-else-if="applyTime">
               <div class="date-source-toggle">
-                <button type="button" class="date-source-btn" :class="{ active: dateSource === 'applyTime' }" @click="dateSource = 'applyTime'; form.record_data = applyTime">📅 applyTime</button>
-                <button type="button" class="date-source-btn" :class="{ active: dateSource === 'today' }" @click="dateSource = 'today'; form.record_data = getTodayStr()">📅 今日日期</button>
+                <button type="button" class="date-source-btn" :class="{ active: dateSource === 'applyTime' }" @click="dateSource = 'applyTime'; form.record_data = applyTime">applyTime</button>
+                <button type="button" class="date-source-btn" :class="{ active: dateSource === 'today' }" @click="dateSource = 'today'; form.record_data = getTodayStr()">今日日期</button>
               </div>
               <input :value="form.record_data" disabled class="date-readonly" />
             </template>
             <input v-else v-model="form.record_data" />
           </div>
         </div>
-        <button class="btn-save" @click="saveToMySQL" :disabled="saving">
-          {{ saving ? '入库中...' : '直接入库' }}
-        </button>
-        <div class="save-success" v-if="saveMsg">{{ saveMsg }}</div>
+        <div class="form-btn-row">
+          <button class="btn-save" @click="saveToMySQL" :disabled="saving || recordSubmitted">
+            {{ recordSubmitted ? '已入库' : saving ? '入库中...' : '直接入库' }}
+          </button>
+          <span class="save-success-tag" v-if="recordSubmitted">入库成功</span>
+        </div>
       </div>
 
       <!-- History Section -->
       <div class="history-section">
         <div class="history-header">
-          <h3 class="section-title">📋 今日测试历史</h3>
+          <h3 class="section-title">今日测试历史</h3>
           <div class="history-actions">
             <span v-if="redisStatusMsg" class="redis-status" :class="redisOk ? 'ok' : 'warn'">{{ redisStatusMsg }}</span>
             <button class="btn-history-action" @click="loadHistory">刷新</button>
@@ -241,7 +240,7 @@
               <td>{{ item.recorder || '-' }}</td>
               <td>{{ item.recordData || '-' }}</td>
               <td>
-                <button class="btn-del-row" @click="deleteHistoryRecord(item.timestamp)" title="删除">×</button>
+                <button class="btn-del-row" @click="deleteHistoryRecord(item.timestamp)" title="删除">x</button>
               </td>
             </tr>
             </tbody>
@@ -255,7 +254,6 @@
           <div class="modal-title">库存已耗尽</div>
           <div class="modal-desc">当前没有可用的下载任务，请选择操作：</div>
           <div class="modal-actions">
-            <button class="btn-modal btn-poll" @click="showRetestModal = false; startPolling()">继续轮询</button>
             <button class="btn-modal btn-retest" @click="retestFlow" :disabled="retestLoading">
               {{ retestLoading ? '获取中...' : '复测' }}
             </button>
@@ -272,7 +270,7 @@
       <div class="gov-card">
         <div class="gov-card-hd">
           <div class="gov-card-hd-left">
-            <span class="gov-icon">📋</span><h3>数据库表列表</h3>
+            <span class="gov-icon"></span><h3>数据库表列表</h3>
             <span class="gov-badge" v-if="govTables.length">{{ govTables.length }} 张表</span>
           </div>
           <button class="gov-btn-ghost" @click="loadTableList" :disabled="govTableLoading">
@@ -285,7 +283,7 @@
           <div v-else class="gov-tbl-list">
             <div v-for="t in govTables" :key="t" class="gov-tbl-item"
                  :class="{ 'gov-tbl-active': govSelectedTable === t }" @click="selectTable(t)">
-              <span class="gov-tbl-icon">📄</span>
+              <span class="gov-tbl-icon"></span>
               <span class="gov-tbl-name">{{ t }}</span>
               <button class="gov-btn-icon-del" @click.stop="handleDropTable(t)" title="删除表">🗑</button>
             </div>
@@ -317,11 +315,11 @@
       <div class="gov-card" v-if="govSelectedTable">
         <div class="gov-card-hd">
           <div class="gov-card-hd-left">
-            <span class="gov-icon">🔧</span><h3>表结构：{{ govSelectedTable }}</h3>
+            <span class="gov-icon"></span><h3>表结构：{{ govSelectedTable }}</h3>
             <span class="gov-badge" v-if="govColumns.length">{{ govColumns.length }} 个字段</span>
           </div>
           <button class="gov-btn-ghost" @click="describeTable(govSelectedTable)" :disabled="govDescLoading">
-            {{ govDescLoading ? '加载中...' : '🔄 刷新' }}
+            {{ govDescLoading ? '加载中...' : ' 刷新' }}
           </button>
         </div>
         <div class="gov-card-bd">
@@ -345,7 +343,7 @@
           </div>
 
           <div class="gov-sub">
-            <h4 class="gov-sub-title">➕ 新增字段</h4>
+            <h4 class="gov-sub-title">新增字段</h4>
             <div class="gov-inline-row">
               <input v-model="govAddColDef" class="gov-input gov-input-flex" placeholder="字段定义，例如: age INT NOT NULL DEFAULT 0" />
               <button class="gov-btn-primary gov-btn-sm" @click="handleAddColumn" :disabled="govAddColLoading">{{ govAddColLoading ? '...' : '添加' }}</button>
@@ -354,7 +352,7 @@
           </div>
 
           <div class="gov-sub">
-            <h4 class="gov-sub-title">✏️ 修改字段</h4>
+            <h4 class="gov-sub-title">修改字段</h4>
             <div class="gov-inline-row">
               <input v-model="govModifyColDef" class="gov-input gov-input-flex" placeholder="完整字段定义，例如: name VARCHAR(200) NOT NULL COMMENT '名称'" />
               <button class="gov-btn-primary gov-btn-sm" @click="handleModifyColumn" :disabled="govModifyColLoading">{{ govModifyColLoading ? '...' : '修改' }}</button>
@@ -408,7 +406,7 @@
 
       <!-- 批量导入 -->
       <div class="gov-card">
-        <div class="gov-card-hd"><span class="gov-icon">📥</span><h3>从其他数据库批量导入</h3></div>
+        <div class="gov-card-hd"><span class="gov-icon"></span><h3>从其他数据库批量导入</h3></div>
         <div class="gov-card-bd">
           <div class="gov-field">
             <label>源数据库 JDBC URL</label>
@@ -442,10 +440,10 @@
             </label>
             <button class="gov-btn-primary gov-btn-import" @click="handleBatchImport"
                     :disabled="govImport.importing || govImport.selectedTables.length === 0">
-              {{ govImport.importing ? '导入中...' : '📥 开始批量导入' }}
+              {{ govImport.importing ? '导入中...' : ' 开始批量导入' }}
             </button>
           </div>
-          <div v-if="govImport.msg" class="gov-fb" :class="govImport.msg.startsWith('✅') ? 'gov-fb-ok' : 'gov-fb-err'">{{ govImport.msg }}</div>
+          <div v-if="govImport.msg" class="gov-fb" :class="govImport.msg.startsWith('') ? 'gov-fb-ok' : 'gov-fb-err'">{{ govImport.msg }}</div>
           <div v-if="govImport.details.length > 0" class="gov-import-details">
             <div v-for="(d, idx) in govImport.details" :key="idx" class="gov-import-detail" :class="'gov-detail-' + d.status">
               <span class="gov-detail-tbl">{{ d.table }}</span>
@@ -464,12 +462,14 @@ import { ref, reactive, onMounted, watch, nextTick, onUnmounted } from 'vue'
 import { renderQRToCanvas } from '../utils/qrcode.js'
 
 import {
-  fetchTask, fetchObtain, fetchEvent, fetchAllAttributions, fetchAttribution,
+  fetchTask, fetchObtain, fetchEvent, fetchAllAttributions, fetchAttribution, fetchRetestBundle,
   fetchFrozen, insertRecord, fetchRandomForRetest,
   fetchDevHistory, saveDevHistory, clearDevHistory, fetchDevRedisStatus, deleteDevHistoryRecord,
   fetchTableList, fetchTableDescribe, createTable, dropTable,
   addColumn, modifyColumn, dropColumn, executeSQL, batchImport
 } from '../api/index.js'
+
+import { generateCurrentTimestamp, trimApplyTime, toStorageDate } from '../utils/date.js'
 import DevGuide from './DevGuide.vue'
 
 const emit = defineEmits(['error', 'record-saved'])
@@ -480,6 +480,7 @@ const exceptionOptions = ['正常','iOS16闪退','iOS13/14/16均闪退','需要i
 const templateOptions = ['需要iOS17以上','需要登陆后使用，无法注册','卡死在加载页进不去','非英语汉语软件，看不懂','网络检测，无法进入','需要订阅后使用','禁止入库']
 const ATTR_TYPES = ['appflyer', 'adjust', 'singular', 'tenjin']
 const MAX_RETRIES = 5
+
 const downloadUrl = ref('')
 const bundleId = ref('')
 const originalCurrentTargetNum = ref(null)
@@ -494,7 +495,6 @@ const loading = ref(false)
 const eventLoading = ref(false)
 const frozenLoading = ref(false)
 const saving = ref(false)
-const saveMsg = ref('')
 const appId = ref('')
 const showRetestModal = ref(false)
 const retestLoading = ref(false)
@@ -503,14 +503,15 @@ const timerSeconds = ref(60)
 const timerCountdown = ref(0)
 const timerMsg = ref('')
 const applyTime = ref('')
-const polling = ref(false)
-const pollCount = ref(0)
 const appIds = ref('')
-let pollTimer = null
+const recordSubmitted = ref(false)
+const isRetestMode = ref(false)
+
 let timerInterval = null
 let isFrozen = ref('')
 let isSubmit = true
 let retryCount = 0
+let retryTimer = null
 
 const attrStates = reactive({
   appflyer: { bundleId: '', data: [], loading: false, count: null, queried: false },
@@ -518,13 +519,6 @@ const attrStates = reactive({
   singular: { bundleId: '', data: [], loading: false, count: null, queried: false },
   tenjin: { bundleId: '', data: [], loading: false, count: null, queried: false }
 })
-
-function trimApplyTime(raw) {
-  if (!raw) return ''
-  const idx = raw.indexOf('.')
-  return idx > -1 ? raw.substring(0, idx) : raw
-}
-
 
 const form = reactive({
   exception_type: '',
@@ -538,7 +532,7 @@ const historyLoading = ref(false)
 const redisOk = ref(true)
 const redisStatusMsg = ref('')
 const lastReportTime = ref('')
-const dateSource = ref('lastReport')
+const dateSource = ref('applyTime')
 
 // ========== 数据治理 Tab 状态 ==========
 const govTables = ref([])
@@ -567,15 +561,13 @@ const govImport = reactive({
   fetching: false, importing: false, msg: '', details: []
 })
 
-// ========== 原有测试函数（完全不动） ==========
+// ========== 工具函数 ==========
 
 function getTodayStr() {
   const d = new Date()
-  return d.getFullYear() + '/' + (d.getMonth() + 1) + '/' + d.getDate()
-}
-
-function attrIcon(type) {
-  return { appflyer: '🟢', adjust: '🟡', singular: '🔵', tenjin: '🟣' }[type] || '⚪'
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  return d.getFullYear() + '-' + mm + '-' + dd
 }
 
 function formatAttrValue(val) {
@@ -584,14 +576,26 @@ function formatAttrValue(val) {
   return String(val)
 }
 
+function generateSubmissionId() {
+  const bytes = new Uint8Array(16)
+  crypto.getRandomValues(bytes)
+  return Array.from(bytes)
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('')
+}
+
+// ========== Watch ==========
+
 watch(downloadUrl, async (val) => { await nextTick(); renderQRToCanvas(qrCanvas.value, val) })
 
-watch(downloadUrl, (val) => { renderQR(val) })
 watch(devActiveTab, (val) => {
   if (val === 'test' && downloadUrl.value) {
-    nextTick(() => renderQR(downloadUrl.value))
+    nextTick(() => renderQRToCanvas(qrCanvas.value, downloadUrl.value))
   }
 })
+
+// ========== 测试 Tab 函数 ==========
+
 function fillAttrBundleIds(bid) {
   for (const type of ATTR_TYPES) {
     attrStates[type].bundleId = bid
@@ -612,6 +616,8 @@ async function fetchData() {
   loading.value = true
   emit('error', '')
   resetTaskState()
+  if (retryTimer) { clearTimeout(retryTimer); retryTimer = null }
+  retryCount = 0
   try {
     const json = await fetchTask()
     if (json.data) {
@@ -623,7 +629,7 @@ async function fetchData() {
           return
         }
         duplicateTip.value = '检测到重复URL（第' + retryCount + '次），正在为您自动刷新...'
-        setTimeout(() => fetchData(), 1500)
+        retryTimer = setTimeout(() => fetchData(), 1500)
         return
       }
       retryCount = 0
@@ -650,14 +656,6 @@ async function fetchData() {
   }
 }
 
-function generateSubmissionId() {
-  const bytes = new Uint8Array(16)
-  crypto.getRandomValues(bytes)
-  return Array.from(bytes)
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('')
-}
-
 async function fetchByAppId() {
   const id = appId.value.trim()
   if (!id) return
@@ -675,7 +673,7 @@ async function fetchByAppId() {
           return
         }
         duplicateTip.value = '检测到重复URL（第' + retryCount + '次），正在为您自动刷新...'
-        setTimeout(() => fetchByAppId(), 1500)
+        retryTimer = setTimeout(() => fetchByAppId(), 1500)
         return
       }
       retryCount = 0
@@ -700,80 +698,76 @@ async function fetchByAppId() {
   }
 }
 
-// function startPolling() {
-//   polling.value = true
-//   pollCount.value = 0
-//   pollTimer = setInterval(async () => {
-//     pollCount.value++
-//     try {
-//       const json = await fetchTask()
-//       if (json.data && !json.duplicate) {
-//         clearInterval(pollTimer)
-//         polling.value = false
-//         pollCount.value = 0
-//         downloadUrl.value = json.data.downloadUrl || ''
-//         appIds.value = json.data.appId || ''
-//         bundleId.value = json.data.bundleId || ''
-//         originalCurrentTargetNum.value = json.data.currentTargetNum ?? null
-//         isSubmit = false
-//         fillAttrBundleIds(bundleId.value)
-//         if (originalCurrentTargetNum.value <= 1 || originalCurrentTargetNum.value === 0) {
-//           alert('初始originalCurrentTargetNum数小于等于1或等于0，后续测试期间可能会没有归因，请注意')
-//         }
-//       }
-//     } catch (e) {
-//       console.error('轮询请求失败:', e)
-//     }
-//   }, 10000)
-// }
-//
-// function stopPolling() {
-//   if (pollTimer) { clearInterval(pollTimer); pollTimer = null }
-//   polling.value = false
-//   pollCount.value = 0
-// }
+function resetState() {
+  downloadUrl.value = ''
+  bundleId.value = ''
+  originalCurrentTargetNum.value = null
+  eventResult.value = ''
+  newCurrentTargetNum.value = null
+  attributions.value = []
+  eventId.value = null
+  frozenMsg.value = ''
+  taskId.value = null
+  duplicateTip.value = ''
+  dateSource.value = 'applyTime'
+  applyTime.value = ''
+  lastReportTime.value = ''
+  recordSubmitted.value = false
+  isRetestMode.value = false
+  form.exception_type = ''
+  form.remark = ''
+  form.recorder = localStorage.getItem('userName') || ''
+  form.record_data = getTodayStr()
+  isFrozen.value = ''
+}
+
+function resetTaskState() {
+  resetState()
+  for (const type of ATTR_TYPES) {
+    attrStates[type].data = []
+    attrStates[type].count = null
+    attrStates[type].queried = false
+  }
+}
 
 async function retestFlow() {
   retestLoading.value = true
-  resetTaskState()
+  resetState()
+  isRetestMode.value = true
   try {
-    const dates = getPast3DaysDates()
-    const json = await fetchRandomForRetest(dates)
-    if (json.success && json.data) {
+    const json = await fetchRetestBundle()
+    if (json.success && json.data && json.data.bundleId) {
       showRetestModal.value = false
-      downloadUrl.value = json.data.downloadUrl || ''
-      bundleId.value = json.data.bundleId || ''
-      appIds.value = json.data.appId || '复测数据，暂无appid'
-      taskId.value = json.data.id ?? null
-      fillAttrBundleIds(bundleId.value)
+      bundleId.value = json.data.bundleId
+      form.record_data = generateCurrentTimestamp()
       try {
         const jsons = await fetchEvent(bundleId.value)
-        if (jsons.success) {
+        if (jsons.success && jsons.data) {
           originalCurrentTargetNum.value = jsons.data.currentTargetNum ?? null
+          const rawAppId = jsons.data.appId || ''
+          appId.value = rawAppId
+        }
+        if (appId.value && !isNaN(Number(appId.value))) {
+          const obt = await fetchObtain(appId.value)
+          if (obt.success && obt.data) {
+            downloadUrl.value = obt.data.downloadUrl || ''
+          }
         }
       } catch (e) {
+        appId.value = ''
         alert('服务器无响应，请联系技术人员')
       }
       isSubmit = false
     } else {
-      emit('error', json.message || '获取复测数据失败')
+      isRetestMode.value = false
+      emit('error', json.message || '获取复测数据失败，Redis中暂无可复测数据')
     }
   } catch (e) {
+    isRetestMode.value = false
     emit('error', '复测请求失败：' + e.message)
   } finally {
     retestLoading.value = false
   }
-}
-
-function getPast3DaysDates() {
-  const dates = []
-  const d = new Date()
-  for (let i = 0; i < 3; i++) {
-    const t = new Date(d)
-    t.setDate(d.getDate() - i)
-    dates.push(t.getFullYear() + '/' + (t.getMonth() + 1) + '/' + t.getDate())
-  }
-  return dates
 }
 
 async function queryEvent() {
@@ -826,11 +820,16 @@ async function queryEvent() {
       }
     }
     lastReportTime.value = lrt
-      if (dateSource.value === 'lastReport') form.record_data = lrt
+    if (!isRetestMode.value) {
+      if (dateSource.value === 'applyTime') form.record_data = applyTime.value || lrt
       else form.record_data = getTodayStr()
+    }
   } catch (e) {
     emit('error', '事件查询失败：' + e.message)
   } finally {
+    if (isRetestMode.value) {
+      form.record_data = generateCurrentTimestamp()
+    }
     eventLoading.value = false
   }
 }
@@ -875,13 +874,6 @@ async function querySingleAttr(type) {
   }
 }
 
-
-function toStorageDate(isoDate) {
-  if (!isoDate) return ''
-  const parts = isoDate.split('-')
-  return parts[0] + '/' + parseInt(parts[1]) + '/' + parseInt(parts[2])
-}
-
 async function doFrozen() {
   if (!taskId.value) return
   frozenLoading.value = true; emit('error', '')
@@ -889,25 +881,24 @@ async function doFrozen() {
     const json = await fetchFrozen(taskId.value)
     if (json.success) {
       frozenMsg.value = json.resultMsg || '操作完成'
-      isFrozen.value=',已冻结'
-    }
-    else {
+      isFrozen.value = ',已冻结'
+    } else {
       emit('error', '冻结接口返回异常：' + (json.resultMsg || '未知错误'))
     }
   } catch (e) {
     emit('error', '冻结请求失败：' + e.message)
-  }
-  finally {
+  } finally {
     frozenLoading.value = false
   }
 }
 
 async function saveToMySQL() {
   emit('record-saved')
+  if (recordSubmitted.value) return
   if (!form.exception_type.trim()) { emit('error', '请选择异常类型'); return }
-  saving.value = true; saveMsg.value = ''
-  if(newCurrentTargetNum.value===0||newCurrentTargetNum.value===null){
-    attributions.value=[]
+  saving.value = true
+  if (newCurrentTargetNum.value === 0 || newCurrentTargetNum.value === null) {
+    attributions.value = []
     alert('无新增事件token，即使原本的token有归因，也不会被设置在字段内')
   }
   let finalRemark = form.remark.trim()
@@ -917,17 +908,22 @@ async function saveToMySQL() {
   if (newCurrentTargetNum.value > 0 && attributions.value.length === 0) {
     finalRemark += ',无事件归因'
   }
+  if (isRetestMode.value) {
+    form.record_data = generateCurrentTimestamp()
+  }
   const finalRecordData = form.record_data.includes('T')
       ? form.record_data
       : form.record_data.includes('/')
-          ? form.record_data
+          ? toStorageDate(form.record_data.split('/').reverse().join('-'))
           : toStorageDate(form.record_data)
+  const numericAppId = appId.value && !isNaN(Number(appId.value)) ? Number(appId.value) : null
   try {
     const json = await insertRecord({
       URL: downloadUrl.value,
       bundleId: bundleId.value,
       ascribe: (attributions.value || []).join(';'),
-      appId: appId.value,
+      appId: numericAppId,
+      taskId: taskId.value,
       event_number: newCurrentTargetNum.value,
       exception_type: form.exception_type.trim(),
       record_data: finalRecordData,
@@ -937,22 +933,28 @@ async function saveToMySQL() {
       submissionId: generateSubmissionId()
     })
     if (json.success) {
-      saveMsg.value = '✅ ' + (json.resultMsg || '入库成功')
-      isSubmit=true;
+      recordSubmitted.value = true
+      isSubmit = true
+      await saveToHistory(finalRemark, finalRecordData)
+      await loadHistory()
+    } else {
+      emit('error', json.resultMsg || '入库失败')
     }
-    else { emit('error', json.resultMsg || '入库失败') }
-  } catch (e) { emit('error', '入库请求失败：' + e.message) }
-  finally { saving.value = false }
+  } catch (e) {
+    emit('error', '入库请求失败：' + e.message)
+  } finally {
+    saving.value = false
+  }
 }
 
-async function saveToHistory(remark) {
+async function saveToHistory(remark, recordData) {
   try {
     await saveDevHistory({
       bundleId: bundleId.value,
       ascribe: (attributions.value || []).join(';'),
       eventNumber: newCurrentTargetNum.value,
       exceptionType: form.exception_type.trim(),
-      recordData: form.record_data,
+      recordData: recordData || form.record_data,
       recorder: form.recorder,
       remark: remark || form.remark.trim()
     })
@@ -969,10 +971,10 @@ async function loadHistory() {
       historyList.value = json.data || []
       if (json.message && json.message.includes('Redis不可用')) {
         redisOk.value = false
-        redisStatusMsg.value = '⚠️ Redis不可用，使用本地缓存'
+        redisStatusMsg.value = 'Redis不可用，使用本地缓存'
       } else {
         redisOk.value = true
-        redisStatusMsg.value = '✅ Redis正常'
+        redisStatusMsg.value = 'Redis正常'
       }
     }
   } catch (e) {
@@ -1002,33 +1004,6 @@ async function deleteHistoryRecord(timestamp) {
   }
 }
 
-function resetTaskState() {
-  downloadUrl.value = ''
-  bundleId.value = ''
-  originalCurrentTargetNum.value = null
-  eventResult.value = ''
-  newCurrentTargetNum.value = null
-  attributions.value = []
-  eventId.value = null
-  applyTime.value = ''
-  frozenMsg.value = ''
-  duplicateTip.value = ''
-  saveMsg.value = ''
-  isFrozen.value = ''
-  taskId.value = null;
-  lastReportTime.value = ''
-  dateSource.value = 'lastReport'
-  form.exception_type = ''
-  form.remark = ''
-  form.recorder = localStorage.getItem('userName') || ''
-  form.record_data = getTodayStr()
-  for (const type of ATTR_TYPES) {
-    attrStates[type].data = []
-    attrStates[type].count = null
-    attrStates[type].queried = false
-  }
-}
-
 function startTimer() {
   if (!timerSeconds.value || timerSeconds.value < 1) return
   timerCountdown.value = timerSeconds.value
@@ -1041,7 +1016,7 @@ function startTimer() {
       timerCountdown.value = 0
       timerMsg.value = '定时已到，正在自动查询事件...'
       queryEvent().then(() => {
-        timerMsg.value = '✅ 定时查询已完成'
+        timerMsg.value = '定时查询已完成'
         setTimeout(() => { timerMsg.value = '计时结束后内容会在这里显示' }, 5000)
       })
     }
@@ -1061,10 +1036,10 @@ onMounted(() => {
 
 onUnmounted(() => {
   cancelTimer()
-  stopPolling()
+  if (retryTimer) { clearTimeout(retryTimer); retryTimer = null }
 })
 
-// ========== 数据治理 Tab 函数 ==========
+// ========== 数据治理 Tab 函数（不动） ==========
 
 function formatSqlVal(val) {
   if (val === null || val === undefined) return 'NULL'
@@ -1253,6 +1228,7 @@ async function handleBatchImport() {
   }
 }
 </script>
+
 
 <style scoped>.dev-mode {
   max-width: 1100px;
