@@ -115,7 +115,7 @@ pipeline {
                                     string(credentialsId: 'tds-upstream-base-url', variable: 'UPSTREAM_URL')
                                 ]) {
                                     sh """
-                                        cat > ${DEPLOY_DIR}/.env << ENVEOF
+                cat > ${DEPLOY_DIR}/.env << ENVEOF
                 MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PWD}
                 MYSQL_USER=remote_user
                 MYSQL_PASSWORD=${MYSQL_USER_PWD}
@@ -123,8 +123,8 @@ pipeline {
                 RABBITMQ_PASSWORD=${RABBITMQ_PWD}
                 UPSTREAM_BASE_URL=${UPSTREAM_URL}
                 ENVEOF
-                                        chmod 600 ${DEPLOY_DIR}/.env
-                                    """
+                """
+                                    sh "chmod 600 ${DEPLOY_DIR}/.env"
                                 }
 
                 echo ">>> 部署范围: [${params.DEPLOY_SCOPE}]..."
