@@ -1,6 +1,7 @@
 package org.example.controller;
 
 import org.example.annotation.*;
+import org.example.common.Result;
 import org.example.service.URLService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,47 +22,53 @@ public class URLController {
     @SkipRateLimit
     @Retryable(maxAttempts=3, delay=500, backoffMultiplier=2.0, resultCheck=true)
     @Timeout(value=8, unit=SECONDS)
-    public Map<String, Object> proxyTask() {
-        return urlService.proxyTask();
+    public Result proxyTask() {
+        Map<String, Object> map = urlService.proxyTask();
+        return mapToResult(map);
     }
 
     @GetMapping("/api/proxy/obtain")
     @LogExecutionTime("代理获取详情")
     @Retryable(maxAttempts=3, delay=500, backoffMultiplier=2.0, resultCheck=true)
     @Timeout(value=8, unit=SECONDS)
-    public Map<String, Object> proxyObtain(@RequestParam Long appleid) {
-        return urlService.proxyObtain(appleid);
+    public Result proxyObtain(@RequestParam Long appleid) {
+        Map<String, Object> map = urlService.proxyObtain(appleid);
+        return mapToResult(map);
     }
 
     @GetMapping("/api/proxy/event")
     @LogExecutionTime("代理获取事件")
     @Retryable(maxAttempts=5, delay=300)
     @Timeout(value = 8,unit=SECONDS)
-    public Map<String, Object> proxyEvent(@RequestParam String bundleId) {
-        return urlService.proxyEvent(bundleId);
+    public Result proxyEvent(@RequestParam String bundleId) {
+        Map<String, Object> map = urlService.proxyEvent(bundleId);
+        return mapToResult(map);
     }
 
     @GetMapping("/api/proxy/attribution")
     @LogExecutionTime("代理获取归因")
     @Retryable(maxAttempts=5, delay=300)
     @Timeout(value = 8,unit=SECONDS)
-    public Map<String, Object> proxyAttribution(@RequestParam String bundleId, @RequestParam String type) {
-        return urlService.proxyAttribution(bundleId, type);
+    public Result proxyAttribution(@RequestParam String bundleId, @RequestParam String type) {
+        Map<String, Object> map = urlService.proxyAttribution(bundleId, type);
+        return mapToResult(map);
     }
 
     @GetMapping("/api/proxy/check-version")
     @LogExecutionTime("代理停止版本下发")
     @Timeout(value = 8,unit=SECONDS)
-    public Map<String, Object> proxyCheckVersion(@RequestParam String appId, @RequestParam String bundleId, @RequestParam String checkVersion) {
-        return urlService.proxyCheckVersion(appId, bundleId, checkVersion);
+    public Result proxyCheckVersion(@RequestParam String appId, @RequestParam String bundleId, @RequestParam String checkVersion) {
+        Map<String, Object> map = urlService.proxyCheckVersion(appId, bundleId, checkVersion);
+        return mapToResult(map);
     }
 
     @GetMapping("/api/proxy/frozen")
     @LogExecutionTime("代理冻结任务")
     @Retryable(maxAttempts=3)
     @Timeout(value = 6,unit=SECONDS)
-    public Map<String, Object> proxyFrozen(@RequestParam Long id) {
-        return urlService.proxyFrozen(id);
+    public Result proxyFrozen(@RequestParam Long id) {
+        Map<String, Object> map = urlService.proxyFrozen(id);
+        return mapToResult(map);
     }
 
     @GetMapping("/api/proxy/task/count")
@@ -70,7 +77,22 @@ public class URLController {
     @MethodCache(ttl=30)
     @Retryable(maxAttempts=2)
     @Timeout(value = 3,unit=SECONDS)
-    public Map<String, Object> proxyTaskCount() {
-        return urlService.proxyTaskCount();
+    public Result proxyTaskCount() {
+        Map<String, Object> map = urlService.proxyTaskCount();
+        return mapToResult(map);
+    }
+
+    private Result mapToResult(Map<String, Object> map) {
+        if (map == null) {
+            return Result.fail("远程接口返回空响应，请稍后重试");
+        }
+        boolean success = Boolean.TRUE.equals(map.get("success"));
+        String message = map.get("resultMsg") != null ? map.get("resultMsg").toString() : (success ? "操作成功" : "操作失败");
+        Object data = map.get("data");
+        if (success) {
+            return Result.success(message, data);
+        } else {
+            return Result.fail(message);
+        }
     }
 }
