@@ -15,8 +15,8 @@ services:
       - "13306:3305"
     volumes:
       - ./persistent-data/mysql:/var/lib/mysql
-      - ./mysql/initsql:/docker-entrypoint-initdb.d
-      - ./mysql/conf/my.cnf:/etc/mysql/conf.d/my.cnf
+      - ./backend/deploy/mysql/initsql:/docker-entrypoint-initdb.d
+      - ./backend/deploy/mysql/conf/my.cnf:/etc/mysql/conf.d/my.cnf
     networks:
       - traffic-data-system-dev-net
     healthcheck:
