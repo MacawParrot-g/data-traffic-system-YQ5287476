@@ -22,8 +22,8 @@ public class PyScriptServiceImpl implements PyScriptService {
     @Value("${pyscript.script-dir:/opt/pyscript/sc}")
     private String scriptDir;
 
-    @Value("${pyscript.venv-activate:source /opt/pyscript/venv/bin/activate}")
-    private String venvActivate;
+    @Value("${pyscript.python-bin:/opt/pyscript/venv/bin/python3}")
+    private String pythonBin;
 
     private static final long SCRIPT_TIMEOUT_SECONDS = 120;
 
@@ -67,9 +67,9 @@ public class PyScriptServiceImpl implements PyScriptService {
 
         long startTime = System.currentTimeMillis();
         try {
-            String command = venvActivate + " && python3 " + scriptPath.toAbsolutePath();
-            ProcessBuilder pb = new ProcessBuilder("bash", "-c", command);
+            ProcessBuilder pb = new ProcessBuilder(pythonBin, scriptPath.toAbsolutePath().toString());
             pb.redirectErrorStream(false);
+            pb.directory(new File(scriptDir));
             pb.directory(new File(scriptDir));
 
             Process process = pb.start();

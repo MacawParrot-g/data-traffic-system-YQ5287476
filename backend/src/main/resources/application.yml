@@ -98,9 +98,10 @@ export:
 
 upstream:
   base-url: ${UPSTREAM_BASE_URL:https://upstream-attribution.example.com}
+
 pyscript:
   script-dir: /opt/pyscript/sc
-  venv-activate: source /opt/pyscript/venv/bin/activate
+  python-bin: /opt/pyscript/venv/bin/python3
 
 springdoc:
   api-docs:
