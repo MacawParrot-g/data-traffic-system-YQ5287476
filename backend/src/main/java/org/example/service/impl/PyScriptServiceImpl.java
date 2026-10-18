@@ -5,6 +5,7 @@ import org.example.common.Result;
 import org.example.service.PyScriptService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -17,15 +18,20 @@ import java.util.concurrent.TimeUnit;
 public class PyScriptServiceImpl implements PyScriptService {
 
     private static final Logger log = LoggerFactory.getLogger(PyScriptServiceImpl.class);
-    private static final String SCRIPT_DIR = "/opt/pyscript/sc";
-    private static final String VENV_ACTIVATE = "source /opt/pyscript/venv/bin/activate";
+
+    @Value("${pyscript.script-dir:/opt/pyscript/sc}")
+    private String scriptDir;
+
+    @Value("${pyscript.venv-activate:source /opt/pyscript/venv/bin/activate}")
+    private String venvActivate;
+
     private static final long SCRIPT_TIMEOUT_SECONDS = 120;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
     public Result listScripts() {
-        File dir = new File(SCRIPT_DIR);
+        File dir = new File(scriptDir);
         if (!dir.exists() || !dir.isDirectory()) {
             return Result.success("脚本目录为空或不存在", List.of());
         }
@@ -54,17 +60,17 @@ public class PyScriptServiceImpl implements PyScriptService {
             return Result.fail("脚本名称包含非法字符");
         }
 
-        Path scriptPath = Paths.get(SCRIPT_DIR, scriptName);
+        Path scriptPath = Paths.get(scriptDir, scriptName);
         if (!Files.exists(scriptPath)) {
             return Result.fail("脚本不存在: " + scriptName);
         }
 
         long startTime = System.currentTimeMillis();
         try {
-            String command = VENV_ACTIVATE + " && python3 " + scriptPath.toAbsolutePath();
+            String command = venvActivate + " && python3 " + scriptPath.toAbsolutePath();
             ProcessBuilder pb = new ProcessBuilder("bash", "-c", command);
             pb.redirectErrorStream(false);
-            pb.directory(new File(SCRIPT_DIR));
+            pb.directory(new File(scriptDir));
 
             Process process = pb.start();
 
@@ -123,7 +129,7 @@ public class PyScriptServiceImpl implements PyScriptService {
         }
         String safeName = originalName.replaceAll("[^a-zA-Z0-9_\\-.]", "_");
         try {
-            Path dir = Paths.get(SCRIPT_DIR);
+            Path dir = Paths.get(scriptDir);
             Files.createDirectories(dir);
             Path target = dir.resolve(safeName);
             file.transferTo(target.toFile());
@@ -143,7 +149,7 @@ public class PyScriptServiceImpl implements PyScriptService {
         if (scriptName.contains("/") || scriptName.contains("\\") || scriptName.contains("..")) {
             return Result.fail("脚本名称包含非法字符");
         }
-        Path scriptPath = Paths.get(SCRIPT_DIR, scriptName);
+        Path scriptPath = Paths.get(scriptDir, scriptName);
         try {
             if (Files.deleteIfExists(scriptPath)) {
                 log.info("Python脚本已删除: {}", scriptName);

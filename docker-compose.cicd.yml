@@ -72,6 +72,7 @@ services:
       - .env
     volumes:
       - ./persistent-data/export:/data/export
+      - ./persistent-data/pyscript:/opt/pyscript
     environment:
       SPRING_REDIS_HOST: redis
       SPRING_REDIS_PORT: 6380
