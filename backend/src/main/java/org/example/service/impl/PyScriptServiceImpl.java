@@ -67,9 +67,10 @@ public class PyScriptServiceImpl implements PyScriptService {
 
         long startTime = System.currentTimeMillis();
         try {
-            ProcessBuilder pb = new ProcessBuilder(pythonBin, scriptPath.toAbsolutePath().toString());
+            String python = resolvePython();
+            log.info("执行脚本: {} (python={})", scriptName, python);
+            ProcessBuilder pb = new ProcessBuilder(python, scriptPath.toAbsolutePath().toString());
             pb.redirectErrorStream(false);
-            pb.directory(new File(scriptDir));
             pb.directory(new File(scriptDir));
 
             Process process = pb.start();
@@ -116,6 +117,26 @@ public class PyScriptServiceImpl implements PyScriptService {
             log.error("执行Python脚本异常: {}", scriptName, e);
             return Result.fail("执行异常: " + e.getMessage());
         }
+    }
+
+    private String resolvePython() {
+        Path configured = Paths.get(pythonBin);
+        try {
+            if (Files.exists(configured) && !Files.isSymbolicLink(configured)) {
+                return pythonBin;
+            }
+            if (Files.isSymbolicLink(configured)) {
+                Path target = Files.readSymbolicLink(configured);
+                if (Files.exists(target)) {
+                    return pythonBin;
+                }
+                log.warn("Python虚拟环境符号链接断裂: {} -> {}，降级使用系统python3", pythonBin, target);
+            }
+        } catch (Exception e) {
+            log.warn("检查python路径异常: {}", e.getMessage());
+        }
+        log.info("使用系统python3替代venv（venv未创建或符号链接不可用）");
+        return "python3";
     }
 
     @Override
