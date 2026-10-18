@@ -677,4 +677,23 @@ export function fetchLogSearch(params) {
     if (params.maxDuration != null && params.maxDuration !== '') qs.append('maxDuration', params.maxDuration)
     return fetchWithTimeout('/api/system/log/search?' + qs.toString(), {}, 30000).then(safeJson)
 }
+// ==================== Python脚本管理 ====================
+
+export function fetchPyScriptList() {
+    return fetchWithTimeout('/api/pyscript/list', {}, 15000).then(safeJson)
+}
+
+export function executePyScript(scriptName) {
+    return fetchWithTimeout('/api/pyscript/execute?scriptName=' + encodeURIComponent(scriptName), { method: 'POST' }, 130000).then(safeJson)
+}
+
+export function uploadPyScript(file) {
+    const formData = new FormData()
+    formData.append('file', file)
+    return fetchWithTimeout('/api/pyscript/upload', { method: 'POST', body: formData }, 30000).then(safeJson)
+}
+
+export function deletePyScript(scriptName) {
+    return fetchWithTimeout('/api/pyscript/delete?scriptName=' + encodeURIComponent(scriptName), { method: 'DELETE' }, 15000).then(safeJson)
+}
 

@@ -137,6 +137,7 @@ import NotificationCenter from "./components/NotificationCenter.vue";
 import NotificationManager from "./components/NotificationManager.vue";
 import MQPanel from "./components/MQPanel.vue";
 import DataSource from "./components/DataSource.vue";
+import PyScriptPanel from "./components/PyScriptPanel.vue";
 const notifCount = ref(0)
 let bellPollTimer = null
 const mode = ref('auto')
@@ -169,7 +170,8 @@ const tabIcons = {
   ncenter: 'H',
   notify: 'N',
   mq: 'L',
-  source: 'S'
+  source: 'S',
+  py: 'P'
 }
 
 const componentMap = computed(() => {
@@ -190,6 +192,7 @@ const componentMap = computed(() => {
     map.develop = DevMode
     map.mon = MonitorPanel
     map.mq = MQPanel
+    map.py = PyScriptPanel
   }
   if (accType.value === 'USER' || accType.value === 'ADMIN' || accType.value === 'DEVELOPER') {
     map.grade = GradeManage
@@ -222,6 +225,7 @@ const tabs = [
   { key: 'notify', label: '通知管理' },
   { key: 'mq', label: 'MQ监控' },
   { key: 'source', label: '数据源切换' },
+  { key: 'py', label: 'Python脚本' },
 ]
 
 
