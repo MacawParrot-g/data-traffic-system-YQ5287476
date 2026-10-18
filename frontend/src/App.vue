@@ -98,7 +98,7 @@
   <div class="login-overlay" v-if="!loggedIn">
     <div class="login-card">
       <img src="/icon.png" alt="公司Logo" class="login-logo" />
-      <h1>游戏测试数据TDM系统</h1>
+      <h1>广告事件归因TDM系统</h1>
       <div class="login-subtitle">测试服</div>
       <div class="login-form">
         <div class="login-field">
