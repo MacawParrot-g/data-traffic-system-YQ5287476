@@ -6,6 +6,7 @@ RUN apk add --no-cache python3 && python3 -c "import ensurepip; ensurepip._main(
 # 3. 设置容器内的工作目录
 WORKDIR /app
 RUN date +"%Y-%m-%d %H:%M:%S" > /app/build_time.txt
+RUN apk add --no-cache mysql-client
 # 4. 复制入口点脚本
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh

@@ -696,4 +696,17 @@ export function uploadPyScript(file) {
 export function deletePyScript(scriptName) {
     return fetchWithTimeout('/api/pyscript/delete?scriptName=' + encodeURIComponent(scriptName), { method: 'DELETE' }, 15000).then(safeJson)
 }
+// ==================== MySQL 监控与备份 ====================
+
+export function fetchMySQLMonitorStatus() {
+    return fetchWithTimeout('/api/mysql/monitor', {}, 15000).then(safeJson)
+}
+
+export function executeMySQLBackup() {
+    return fetchWithTimeout('/api/mysql/backup', { method: 'POST' }, 1800000).then(safeJson)
+}
+
+export function fetchMySQLBackupList() {
+    return fetchWithTimeout('/api/mysql/backups', {}, 15000).then(safeJson)
+}
 

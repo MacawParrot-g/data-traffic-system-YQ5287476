@@ -99,6 +99,11 @@ export:
 upstream:
   base-url: ${UPSTREAM_BASE_URL:https://upstream-attribution.example.com}
 
+backup:
+  dir: ${BACKUP_DIR:./backup}
+  retain: 3
+  cron: "0 0 3 */3 * ?"
+
 pyscript:
   script-dir: /opt/pyscript/sc
   python-bin: /opt/pyscript/venv/bin/python3

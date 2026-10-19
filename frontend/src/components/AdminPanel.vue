@@ -29,7 +29,10 @@ import {
   addRetestBundle,
   updateRetestBundle,
   deleteRetestBundle,
-  clearRetestCache
+  clearRetestCache,
+  fetchMySQLMonitorStatus,
+  executeMySQLBackup,
+  fetchMySQLBackupList
 } from '../api/index.js'
 
 import { Chart, registerables } from 'chart.js'
@@ -63,7 +66,12 @@ const appIdResult = ref(null)
 const appIdOnlineResult = ref(null)
 const appIdSaving = ref(false)
 const appIdSaveMsg = ref('')
-
+const dbMonitor = ref(null)
+const dbBackupList = ref([])
+const dbMonitorLoading = ref(false)
+const dbBackupRunning = ref(false)
+const dbMsg = ref('')
+const dbMsgOk = ref(false)
 let attrPieChart = null
 let recorderBarChart = null
 const advExpanded = ref(true)
@@ -242,6 +250,50 @@ function formatRetestTtl(sec) {
   const h = Math.floor(sec / 3600)
   const m = Math.floor((sec % 3600) / 60)
   return h + ' 小时 ' + m + ' 分'
+}
+
+async function loadDbMonitor() {
+  dbMonitorLoading.value = true
+  try {
+    const [statusJson, listJson] = await Promise.all([fetchMySQLMonitorStatus(), fetchMySQLBackupList()])
+    if (statusJson.success) {
+      dbMonitor.value = statusJson.data
+    } else {
+      emit('error', statusJson.message || '获取数据库监控信息失败')
+    }
+    if (listJson.success && listJson.data) {
+      dbBackupList.value = listJson.data.backups || []
+    }
+  } catch (e) {
+    emit('error', '获取数据库监控信息失败：' + e.message)
+  } finally {
+    dbMonitorLoading.value = false
+  }
+}
+
+async function doManualBackup() {
+  if (dbBackupRunning.value) return
+  if (!confirm('确认立即对生产库执行一次全量备份？备份完成后将自动清理最旧版本，仅保留最近 ' + (dbMonitor.value?.retainCount || 3) + ' 个')) return
+  dbBackupRunning.value = true
+  dbMsg.value = ''
+  try {
+    const json = await executeMySQLBackup()
+    dbMsgOk.value = !!json.success
+    dbMsg.value = json.message || (json.success ? '备份成功' : '备份失败')
+    if (json.success) await loadDbMonitor()
+  } catch (e) {
+    dbMsgOk.value = false
+    dbMsg.value = '备份请求失败：' + e.message
+  } finally {
+    dbBackupRunning.value = false
+  }
+}
+
+function usageLevel(percent) {
+  if (percent == null) return 'level-normal'
+  if (percent >= 80) return 'level-danger'
+  if (percent >= 50) return 'level-warn'
+  return 'level-normal'
 }
 
 function toggleDateSort() {
@@ -1075,6 +1127,12 @@ watch(activeTab, async (newTab) => {
 watch(chartFilter, async () => {
   await nextTick()
   renderCharts()
+  if (newTab === 'retest') {
+    loadRetestCache()
+  }
+  if (newTab === 'dbbackup') {
+    loadDbMonitor()
+  }
 })
 
 onUnmounted(() => {
@@ -1118,6 +1176,9 @@ watch(activeTab, async (newTab) => {
       </button>
       <button class="admin-tab" :class="{ active: activeTab === 'retest' }" @click="activeTab = 'retest'">
         <span class="tab-icon">R</span><span class="tab-text">查看复测数据</span>
+      </button>
+      <button class="admin-tab" :class="{ active: activeTab === 'dbbackup' }" @click="activeTab = 'dbbackup'">
+        <span class="tab-icon">M</span><span class="tab-text">数据库监控备份</span>
       </button>
       <button class="admin-tab" :class="{ active: activeTab === 'users' }" @click="activeTab = 'users'">
         <span class="tab-icon">U</span><span class="tab-text">用户管理</span>
@@ -1831,6 +1892,115 @@ watch(activeTab, async (newTab) => {
         </div>
       </div>
     </template>
+    <!-- ==================== 数据库监控 Tab ==================== -->
+
+    <div v-if="activeTab === 'dbbackup'" class="admin-section">
+      <div class="card">
+        <div class="card-header card-header-between">
+          <div class="card-header-left">
+            <span class="card-icon">M</span>
+            <h3>MySQL 运行状态监控</h3>
+          </div>
+          <div class="card-header-right">
+            <button class="btn-sm btn-refresh" @click="loadDbMonitor" :disabled="dbMonitorLoading">
+              {{ dbMonitorLoading ? '刷新中...' : '刷新状态' }}
+            </button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div v-if="dbMonitorLoading && !dbMonitor" class="state-block">
+            <div class="state-spinner"></div>
+            <div class="state-text">采集中...</div>
+          </div>
+          <template v-if="dbMonitor">
+            <div class="db-metric-grid">
+              <div class="db-metric-card">
+                <div class="db-metric-label">当前连接数</div>
+                <div class="db-metric-value">{{ dbMonitor.threadsConnected }}</div>
+                <div class="db-metric-sub">Threads_connected</div>
+              </div>
+              <div class="db-metric-card">
+                <div class="db-metric-label">活跃线程</div>
+                <div class="db-metric-value">{{ dbMonitor.threadsRunning }}</div>
+                <div class="db-metric-sub">Threads_running</div>
+              </div>
+              <div class="db-metric-card">
+                <div class="db-metric-label">最大连接数</div>
+                <div class="db-metric-value">{{ dbMonitor.maxConnections }}</div>
+                <div class="db-metric-sub">max_connections</div>
+              </div>
+              <div class="db-metric-card" :class="usageLevel(dbMonitor.usagePercent)">
+                <div class="db-metric-label">连接使用率</div>
+                <div class="db-metric-value">{{ dbMonitor.usagePercent }}%</div>
+                <div class="db-metric-sub">已用 / 上限</div>
+              </div>
+            </div>
+
+            <div class="db-var-grid">
+              <div class="db-var-item">
+                <span class="db-var-label">慢查询日志</span>
+                <span class="db-var-value" :class="String(dbMonitor.slowQueryLog).toUpperCase() === 'ON' ? 'var-on' : 'var-off'">{{ dbMonitor.slowQueryLog }}</span>
+              </div>
+              <div class="db-var-item">
+                <span class="db-var-label">慢查询日志文件</span>
+                <span class="db-var-value db-var-mono">{{ dbMonitor.slowQueryLogFile || '-' }}</span>
+              </div>
+              <div class="db-var-item">
+                <span class="db-var-label">长查询阈值(秒)</span>
+                <span class="db-var-value">{{ dbMonitor.longQueryTime }}</span>
+              </div>
+              <div class="db-var-item">
+                <span class="db-var-label">目标库</span>
+                <span class="db-var-value db-var-mono">{{ dbMonitor.host }}:{{ dbMonitor.port }} / {{ dbMonitor.db }}</span>
+              </div>
+            </div>
+          </template>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header card-header-between">
+          <div class="card-header-left">
+            <span class="card-icon">B</span>
+            <h3>数据库全量备份</h3>
+          </div>
+          <div class="card-header-right">
+            <button class="btn-action btn-backup" @click="doManualBackup" :disabled="dbBackupRunning">
+              {{ dbBackupRunning ? '备份执行中...' : '立即备份' }}
+            </button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div v-if="dbMsg" class="feedback" :class="dbMsgOk ? 'feedback-ok' : 'feedback-err'">{{ dbMsg }}</div>
+          <div class="db-backup-meta">
+            <span>备份目录：{{ dbMonitor?.backupDir || '-' }}</span>
+            <span>保留策略：最近 {{ dbMonitor?.retainCount || 3 }} 个版本（每三天自动备份一次）</span>
+          </div>
+          <div v-if="dbBackupList.length === 0" class="state-block">
+            <div class="state-icon">404</div>
+            <div class="state-text">暂无备份文件</div>
+          </div>
+          <div v-else class="table-wrapper">
+            <table class="data-table">
+              <thead>
+              <tr>
+                <th>备份文件</th>
+                <th>生成时间</th>
+                <th>大小</th>
+              </tr>
+              </thead>
+              <tbody>
+              <tr v-for="b in dbBackupList" :key="b.fileName">
+                <td class="db-backup-file">{{ b.fileName }}</td>
+                <td>{{ b.time }}</td>
+                <td>{{ b.sizeText }}</td>
+              </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- ==================== 用户管理 Tab ==================== -->
     <div v-if="activeTab === 'users'" class="admin-section">
@@ -2557,6 +2727,37 @@ watch(activeTab, async (newTab) => {
 /* ========== 用户管理 - 顶部双栏 ========== */
 .user-top-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 0; }
 @media (max-width: 900px) { .user-top-grid { grid-template-columns: 1fr; } }
+
+/* ========== 数据库监控与备份 ========== */
+.db-metric-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
+@media (max-width: 900px) { .db-metric-grid { grid-template-columns: repeat(2, 1fr); } }
+.db-metric-card { background: #fafbfc; border: 1px solid #e8eaef; border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 6px; }
+.db-metric-label { font-size: 12px; font-weight: 700; color: #999; }
+.db-metric-value { font-size: 28px; font-weight: 800; color: #1a1a2e; line-height: 1; }
+.db-metric-sub { font-size: 11px; color: #b0b0b0; font-family: 'SF Mono', 'Cascadia Code', monospace; }
+.db-metric-card.level-warn { border-color: #fbbf24; background: #fffbeb; }
+.db-metric-card.level-warn .db-metric-value { color: #b45309; }
+.db-metric-card.level-danger { border-color: #fca5a5; background: #fef2f2; }
+.db-metric-card.level-danger .db-metric-value { color: #b91c1c; }
+.db-metric-card.level-normal .db-metric-value { color: #16a34a; }
+
+.db-var-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+@media (max-width: 700px) { .db-var-grid { grid-template-columns: 1fr; } }
+.db-var-item { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border: 1px solid #eef0f3; border-radius: 10px; background: #fff; }
+.db-var-label { font-size: 12px; font-weight: 700; color: #888; flex-shrink: 0; }
+.db-var-value { font-size: 13px; font-weight: 600; color: #333; text-align: right; word-break: break-all; }
+.db-var-mono { font-family: 'SF Mono', 'Cascadia Code', monospace; font-size: 12px; }
+.var-on { color: #16a34a; }
+.var-off { color: #dc2626; }
+
+.db-backup-meta { display: flex; flex-wrap: wrap; gap: 8px 24px; font-size: 12px; color: #888; margin-bottom: 14px; padding: 10px 14px; background: #f8fafc; border-radius: 8px; }
+.db-backup-file { font-family: 'SF Mono', 'Cascadia Code', monospace; font-size: 12px; }
+.btn-backup { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff; }
+.btn-backup:hover:not(:disabled) { filter: brightness(1.05); }
+.btn-refresh { padding: 8px 16px; font-size: 13px; font-weight: 600; border: 1px solid #e0e0e0; border-radius: 8px; background: #fff; color: #444; cursor: pointer; }
+.btn-refresh:hover:not(:disabled) { border-color: #6366f1; color: #6366f1; }
+.btn-refresh:disabled { opacity: 0.6; cursor: not-allowed; }
+
 
 /* ========== 表单 ========== */
 .form-row { display: flex; gap: 12px; margin-bottom: 12px; }
