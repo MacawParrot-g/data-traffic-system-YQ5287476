@@ -18,7 +18,7 @@ public class TableManageServiceImpl implements TableManageService {
     private static final Logger log = LoggerFactory.getLogger(TableManageServiceImpl.class);
 
     private static final Set<String> DANGEROUS_KEYWORDS = Set.of(
-            "DROP DATABASE", "TRUNCATE DATABASE", "SHUTDOWN"
+            "DROP DATABASE", "TRUNCATE DATABASE", "SHUTDOWN","DROP","drop database", "truncate database", "shutdown","drop"
     );
 
     @Autowired
