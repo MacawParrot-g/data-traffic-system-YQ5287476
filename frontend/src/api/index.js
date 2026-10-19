@@ -273,9 +273,11 @@ export function createTable(tableName, columnDefinitions) {
     }, 30000).then(safeJson)
 }
 
-export function dropTable(tableName) {
-    return fetchWithTimeout('/api/dev/table/drop?tableName=' + encodeURIComponent(tableName), {
-        method: 'DELETE'
+export function dropTable(tableName, password) {
+    return fetchWithTimeout('/api/dev/table/drop', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tableName, password })
     }, 15000).then(safeJson)
 }
 

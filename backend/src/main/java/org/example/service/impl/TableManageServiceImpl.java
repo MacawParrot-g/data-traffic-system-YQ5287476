@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -20,6 +21,10 @@ public class TableManageServiceImpl implements TableManageService {
     private static final Set<String> DANGEROUS_KEYWORDS = Set.of(
             "DROP DATABASE", "TRUNCATE DATABASE", "SHUTDOWN","DROP","drop database", "truncate database", "shutdown","drop"
     );
+
+    private static final BCryptPasswordEncoder DROP_TABLE_PASSWORD_ENCODER = new BCryptPasswordEncoder();
+    private static final String DROP_TABLE_PASSWORD_HASH = "$2a$10$65M/6FviDqGAZ6HKG2BzMOVOQGdecVl91t19mXsjT0hfWG.X6/Dda";
+
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -99,9 +104,16 @@ public class TableManageServiceImpl implements TableManageService {
     }
 
     @Override
-    public Result dropTable(String tableName) {
+    public Result dropTable(String tableName, String password) {
         if (tableName == null || tableName.isBlank()) {
             return Result.fail("表名不能为空");
+        }
+        if (password == null || password.isBlank()) {
+            return Result.fail("删除数据表为危险操作，必须输入确认密码");
+        }
+        if (!DROP_TABLE_PASSWORD_ENCODER.matches(password, DROP_TABLE_PASSWORD_HASH)) {
+            log.warn("删表确认密码校验失败，已拒绝操作，表名: {}", tableName);
+            return Result.fail("确认密码错误，已拒绝删表操作");
         }
         if (!isValidTableName(tableName)) {
             return Result.fail("表名包含非法字符");

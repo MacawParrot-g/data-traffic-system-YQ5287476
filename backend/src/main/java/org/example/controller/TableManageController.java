@@ -36,8 +36,8 @@ public class TableManageController {
 
     @DeleteMapping("/drop")
     @LogExecutionTime("删表")
-    public Result dropTable(@RequestParam String tableName) {
-        return tableManageService.dropTable(tableName);
+    public Result dropTable(@RequestBody Map<String, String> body) {
+        return tableManageService.dropTable(body.get("tableName"), body.get("password"));
     }
 
     @PostMapping("/column/add")

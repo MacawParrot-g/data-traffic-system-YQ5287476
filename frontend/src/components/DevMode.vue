@@ -202,7 +202,7 @@
       <!-- History Section -->
       <div class="history-section">
         <div class="history-header">
-          <h3 class="section-title">今日测试历史</h3>
+          <h3 class="section-title">7日测试历史</h3>
           <div class="history-actions">
             <span v-if="redisStatusMsg" class="redis-status" :class="redisOk ? 'ok' : 'warn'">{{ redisStatusMsg }}</span>
             <button class="btn-history-action" @click="loadHistory">刷新</button>
@@ -453,6 +453,29 @@
         </div>
       </div>
     </div>
+    <div class="modal-overlay" v-if="dropConfirmVisible" @click.self="closeDropConfirm">
+      <div class="modal-box">
+        <div class="modal-title">危险操作：删除数据表</div>
+        <div class="modal-desc">
+          你即将删除表 <strong>{{ dropTargetTable }}</strong>，此操作不可撤销。<br />
+          请输入确认密码以继续：
+        </div>
+        <input
+            class="drop-pwd-input"
+            type="password"
+            v-model="dropPassword"
+            placeholder="请输入确认密码"
+            @keyup.enter="confirmDropTable"
+        />
+        <div v-if="dropError" class="drop-pwd-error">{{ dropError }}</div>
+        <div class="modal-actions">
+          <button class="btn-modal btn-retest" @click="confirmDropTable" :disabled="dropSubmitting">
+            {{ dropSubmitting ? '验证并删除中...' : '确认删除' }}
+          </button>
+          <button class="btn-modal btn-cancel" @click="closeDropConfirm">取消</button>
+        </div>
+      </div>
+    </div>
     <DevGuide :visible="guideVisible" @close="guideVisible = false" />
   </div>
 </template>
@@ -526,6 +549,13 @@ const form = reactive({
   recorder: localStorage.getItem('userName') || '',
   record_data: getTodayStr()
 })
+
+// ========== 删表密码确认 Modal 状态 ==========
+const dropConfirmVisible = ref(false)
+const dropTargetTable = ref('')
+const dropPassword = ref('')
+const dropSubmitting = ref(false)
+const dropError = ref('')
 
 const historyList = ref([])
 const historyLoading = ref(false)
@@ -1105,16 +1135,39 @@ async function handleCreateTable() {
   }
 }
 
-async function handleDropTable(tableName) {
-  if (!confirm(`确定要删除表 "${tableName}" 吗？此操作不可撤销！`)) return
+function handleDropTable(tableName) {
+  dropTargetTable.value = tableName
+  dropPassword.value = ''
+  dropError.value = ''
+  dropConfirmVisible.value = true
+}
+
+function closeDropConfirm() {
+  dropConfirmVisible.value = false
+  dropTargetTable.value = ''
+  dropPassword.value = ''
+  dropError.value = ''
+}
+
+async function confirmDropTable() {
+  if (dropSubmitting.value) return
+  if (!dropPassword.value) { dropError.value = '请输入确认密码'; return }
+  dropSubmitting.value = true
+  dropError.value = ''
   try {
-    const json = await dropTable(tableName)
+    const json = await dropTable(dropTargetTable.value, dropPassword.value)
     if (json.success) {
-      if (govSelectedTable.value === tableName) { govSelectedTable.value = ''; govColumns.value = [] }
+      const t = dropTargetTable.value
+      if (govSelectedTable.value === t) { govSelectedTable.value = ''; govColumns.value = [] }
+      closeDropConfirm()
       await loadTableList()
-    } else { emit('error', json.message || '删表失败') }
+    } else {
+      dropError.value = json.message || '删表失败'
+    }
   } catch (e) {
-    emit('error', '删表请求失败：' + e.message)
+    dropError.value = '删表请求失败：' + e.message
+  } finally {
+    dropSubmitting.value = false
   }
 }
 
@@ -1298,6 +1351,28 @@ async function handleBatchImport() {
   margin-bottom: 16px;
   letter-spacing: 0.5px;
 }
+/* ========== 删表密码确认弹窗 ========== */
+.drop-pwd-input {
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 14px;
+  padding: 10px 12px;
+  font-size: 14px;
+  border: 1px solid #d0d5dd;
+  border-radius: 8px;
+  outline: none;
+}
+.drop-pwd-input:focus {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12);
+}
+.drop-pwd-error {
+  margin-top: 10px;
+  font-size: 13px;
+  color: #dc2626;
+  font-weight: 600;
+}
+
 /* ... existing code ... */
 .date-source-toggle { display: flex; gap: 6px; margin-bottom: 6px; }
 .date-source-btn { padding: 4px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; background: #fff; color: #6b7280; transition: all 0.2s; }

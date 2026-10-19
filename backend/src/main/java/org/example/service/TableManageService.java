@@ -12,7 +12,7 @@ public interface TableManageService {
 
     Result createTable(String tableName, String columnDefinitions);
 
-    Result dropTable(String tableName);
+    Result dropTable(String tableName, String password);
 
     Result addColumn(String tableName, String columnDefinition);
 
