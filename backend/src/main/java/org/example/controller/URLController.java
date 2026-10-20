@@ -46,7 +46,7 @@ public class URLController {
     }
 
     @GetMapping("/api/proxy/attribution")
-    @LogExecutionTime("获取归因归因")
+    @LogExecutionTime("获取事件归因")
     @Retryable(maxAttempts=5, delay=300)
     @Timeout(value = 8,unit=SECONDS)
     public Result proxyAttribution(@RequestParam String bundleId, @RequestParam String type) {
