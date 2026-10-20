@@ -18,7 +18,7 @@ public class URLController {
     private URLService urlService;
 
     @GetMapping("/api/proxy/task")
-    @LogExecutionTime("代理获取任务")
+    @LogExecutionTime("自动模式拉取任务")
     @SkipRateLimit
     @Retryable(maxAttempts=3, delay=500, backoffMultiplier=2.0, resultCheck=true)
     @Timeout(value=8, unit=SECONDS)
@@ -28,7 +28,7 @@ public class URLController {
     }
 
     @GetMapping("/api/proxy/obtain")
-    @LogExecutionTime("代理获取详情")
+    @LogExecutionTime("手动模式拉取任务")
     @Retryable(maxAttempts=3, delay=500, backoffMultiplier=2.0, resultCheck=true)
     @Timeout(value=8, unit=SECONDS)
     public Result proxyObtain(@RequestParam Long appleid) {
@@ -37,7 +37,7 @@ public class URLController {
     }
 
     @GetMapping("/api/proxy/event")
-    @LogExecutionTime("代理获取事件")
+    @LogExecutionTime("获取事件")
     @Retryable(maxAttempts=5, delay=300)
     @Timeout(value = 8,unit=SECONDS)
     public Result proxyEvent(@RequestParam String bundleId) {
@@ -46,7 +46,7 @@ public class URLController {
     }
 
     @GetMapping("/api/proxy/attribution")
-    @LogExecutionTime("代理获取归因")
+    @LogExecutionTime("获取归因归因")
     @Retryable(maxAttempts=5, delay=300)
     @Timeout(value = 8,unit=SECONDS)
     public Result proxyAttribution(@RequestParam String bundleId, @RequestParam String type) {
@@ -55,7 +55,7 @@ public class URLController {
     }
 
     @GetMapping("/api/proxy/check-version")
-    @LogExecutionTime("代理停止版本下发")
+    @LogExecutionTime("停止版本下发")
     @Timeout(value = 8,unit=SECONDS)
     public Result proxyCheckVersion(@RequestParam String appId, @RequestParam String bundleId, @RequestParam String checkVersion) {
         Map<String, Object> map = urlService.proxyCheckVersion(appId, bundleId, checkVersion);
@@ -63,7 +63,7 @@ public class URLController {
     }
 
     @GetMapping("/api/proxy/frozen")
-    @LogExecutionTime("代理冻结任务")
+    @LogExecutionTime("冻结任务")
     @Retryable(maxAttempts=3)
     @Timeout(value = 6,unit=SECONDS)
     public Result proxyFrozen(@RequestParam Long id) {
@@ -72,7 +72,7 @@ public class URLController {
     }
 
     @GetMapping("/api/proxy/task/count")
-    @LogExecutionTime("代理获取库存数量")
+    @LogExecutionTime("获取库存数量")
     @SkipRateLimit
     @MethodCache(ttl=30)
     @Retryable(maxAttempts=2)
