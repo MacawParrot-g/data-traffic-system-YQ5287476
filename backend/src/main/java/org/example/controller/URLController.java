@@ -4,9 +4,17 @@ import org.example.annotation.*;
 import org.example.common.Result;
 import org.example.service.URLService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.client.RestTemplate;
 import java.util.Map;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -16,6 +24,12 @@ public class URLController {
 
     @Autowired
     private URLService urlService;
+
+    @Autowired
+    private RestTemplate restTemplate;
+
+    @Value("${upstream.base-url}")
+    private String upstreamBaseUrl;
 
     @GetMapping("/api/proxy/task")
     @LogExecutionTime("自动模式拉取任务")
@@ -80,6 +94,25 @@ public class URLController {
     public Result proxyTaskCount() {
         Map<String, Object> map = urlService.proxyTaskCount();
         return mapToResult(map);
+    }
+
+    @PostMapping("/api/proxy/frozen/v2")
+    @LogExecutionTime("上传冻结数据(新版)")
+    @Retryable(maxAttempts=3)
+    @Timeout(value = 6, unit = SECONDS)
+    public Result proxyFrozenV2(@RequestBody Map<String, Object> body) {
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
+            String remoteUrl = upstreamBaseUrl + "/ad/play/task/frozen/v2";
+            @SuppressWarnings({"rawtypes", "unchecked"})
+            ResponseEntity<Map> response = restTemplate.postForEntity(remoteUrl, entity, Map.class);
+            Map<String, Object> map = response.getBody();
+            return mapToResult(map);
+        } catch (Exception e) {
+            return Result.fail("冻结数据上传失败：" + e.getMessage());
+        }
     }
 
     private Result mapToResult(Map<String, Object> map) {

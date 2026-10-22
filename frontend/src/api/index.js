@@ -523,6 +523,8 @@ export function fetchMQOverview() {
     return fetchWithTimeout('/api/mq/overview', {}, 15000).then(safeJson)
 }
 
+
+
 export function fetchDlqRecords(type) {
     return fetchWithTimeout('/api/mq/dlq/records?type=' + encodeURIComponent(type), {}, 15000).then(safeJson)
 }
@@ -711,4 +713,15 @@ export function executeMySQLBackup() {
 export function fetchMySQLBackupList() {
     return fetchWithTimeout('/api/mysql/backups', {}, 15000).then(safeJson)
 }
+
+///冻结接口新版
+
+export function uploadFrozenV2(data) {
+    return fetchWithTimeout('/api/proxy/frozen/v2', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    }, 30000).then(safeJson)
+}
+
 

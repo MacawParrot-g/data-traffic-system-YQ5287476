@@ -115,10 +115,17 @@
           <div class="event-result no-event" v-if="eventResult === 'no_event'">
             <div class="event-label">查询结果</div>
             <div class="event-value">✅ 无事件</div>
-            <button class="btn-frozen" @click="doFrozen" :disabled="frozenLoading" v-if="!isRetestMode">
-              {{ frozenLoading ? '冻结中...' : '冻结应用' }}
+            <button class="btn-frozen" @click="doFrozen" :disabled="frozenLoading || frozenDone" v-if="!isRetestMode">
+              {{ frozenDone ? '已冻结' : frozenLoading ? '冻结中...' : '冻结应用' }}
             </button>
             <div class="retest-frozen-tip" v-else>复测模式下已禁用冻结功能</div>
+            <div class="frozen-reason-box" v-if="!isRetestMode && !frozenDone">
+              <input class="frozen-reason-input" v-model="frozenReasonText" maxlength="200" placeholder="自定义冻结理由(填写后下方下拉选项将被禁用，200字以内)" />
+              <select class="frozen-reason-select" v-model="frozenReasonSelect" :disabled="frozenReasonText.trim() !== ''">
+                <option value="" disabled>请选择冻结理由</option>
+                <option v-for="opt in frozenReasonOptions" :key="opt" :value="opt">{{ opt }}</option>
+              </select>
+            </div>
             <div class="frozen-result" v-if="frozenMsg">
               <div class="frozen-label">冻结结果</div>
               <div class="frozen-value">{{ frozenMsg }}</div>
@@ -177,6 +184,19 @@
           <option v-for="opt in template" :key="opt" :value="opt">{{ opt }}</option>
         </select>
       </div>
+
+      <form class="hidden-version-form" style="display:none" aria-hidden="true">
+        <input name="appId" v-model="versionForm.appId" />
+        <input name="bundleId" v-model="versionForm.bundleId" />
+        <input name="checkVersion" v-model="versionForm.checkVersion" />
+      </form>
+
+      <form class="hidden-frozen-form" style="display:none" aria-hidden="true">
+        <input name="bundleId" v-model="frozenForm.bundleId" />
+        <input name="id" v-model.number="frozenForm.id" />
+        <input name="remark" v-model="frozenForm.remark" />
+      </form>
+
       <div style="display:flex; gap:12px;">
         <div class="form-group" style="flex:1">
           <label>记录人</label>
@@ -553,6 +573,13 @@
 .timer-panel .attribution-tags {
   margin-top: 6px;
 }
+
+.frozen-reason-box { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.frozen-reason-input { width: 100%; box-sizing: border-box; padding: 8px 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 13px; font-family: inherit; transition: all 0.2s; }
+.frozen-reason-input:focus { outline: none; border-color: #667eea; box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1); }
+.frozen-reason-select { width: 100%; box-sizing: border-box; padding: 8px 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 13px; background: #fff; transition: all 0.2s; }
+.frozen-reason-select:focus { outline: none; border-color: #667eea; }
+.frozen-reason-select:disabled { background: #f3f4f6; color: #9ca3af; cursor: not-allowed; }
 .timer-panel .frozen-result {
   margin-top: 6px;
   padding: 8px 12px;
@@ -692,6 +719,7 @@ import {
   fetchAllAttributions,
   fetchFrozen,
   insertRecord,
+  uploadFrozenV2,
   fetchCountByRecorder,
   fetchRandomForRetest,
   fetchRetestBundle,
@@ -709,8 +737,6 @@ import { renderQRToCanvas } from '../utils/qrcode.js'
 const emit = defineEmits(['error'])
 
 const exceptionOptions = ['正常','iOS16闪退','iOS13/14/16均闪退','需要iOS18以上','地区不支持','硬件版本过低','超过10分钟0上报','越狱检测','其他','验证已解决','测试']
-
-
 const template=['需要iOS17以上','需要登陆后使用，无法注册','卡死在加载页进不去','非英语汉语软件，看不懂','网络检测，无法进入','需要订阅后使用','事件机制成因不明','逻辑混乱，无法正常游玩或使用']
 
 const currentUserRole = ref(localStorage.getItem('accType') || '')
@@ -733,6 +759,10 @@ const saving = ref(false)
 const saveMsg = ref('')
 const showRetestModal = ref(false)
 const retestLoading = ref(false)
+const frozenForm = reactive({ bundleId: '', id: null, remark: '' })
+const frozenDone = ref(false)
+const frozenReasonSelect = ref('')
+const frozenReasonText = ref('')
 const qrCanvas = ref(null)
 const timerSeconds = ref(60)
 const timerCountdown = ref(0)
@@ -1148,6 +1178,12 @@ function resetState() {
   form.recorder = localStorage.getItem('userName') || '';
   form.record_data = getTodayStr()
   isFrozen.value=''
+  frozenDone.value = false
+  frozenReasonSelect.value = ''
+  frozenReasonText.value = ''
+  frozenForm.bundleId = ''
+  frozenForm.id = null
+  frozenForm.remark = ''
   gradeData.value = null
   currentVersion.value = ''
   checkVerion.value = ''
@@ -1165,17 +1201,62 @@ function generateSubmissionId() {
       .join('')
 }
 
+// async function doFrozen() {
+//   if (!taskId.value) return
+//   frozenLoading.value = true; emit('error', '')
+//   try {
+//     const json = await fetchFrozen(taskId.value)
+//     if (json.success) {
+//       frozenMsg.value = json.resultMsg || '操作完成'
+//       isFrozen.value=',已冻结'
+//     }
+//     else {
+//       emit('error', '冻结接口返回异常：' + (json.resultMsg || '未知错误'))
+//     }
+//   } catch (e) {
+//     emit('error', '冻结请求失败：' + e.message)
+//   }
+//   finally {
+//     frozenLoading.value = false
+//   }
+// }
+
 async function doFrozen() {
+  if (frozenDone.value) return
   if (!taskId.value) return
+  const remark = frozenReasonText.value.trim() || frozenReasonSelect.value
+  if (!remark) { emit('error', '请选择或填写冻结理由'); return }
   frozenLoading.value = true; emit('error', '')
+  frozenForm.bundleId = bundleId.value
+  frozenForm.id = appId.value && !isNaN(Number(appId.value)) ? Number(appId.value) : 0
+  frozenForm.remark = remark
   try {
-    const json = await fetchFrozen(taskId.value)
-    if (json.success) {
-      frozenMsg.value = json.resultMsg || '操作完成'
-      isFrozen.value=',已冻结'
+    const frozenJson = await uploadFrozenV2({
+      bundleId: frozenForm.bundleId,
+      id: frozenForm.id,
+      remark: frozenForm.remark
+    })
+    if (!frozenJson.success) {
+      emit('error', '冻结接口返回异常：' + (frozenJson.resultMsg || '未知错误'))
+      return
     }
-    else {
-      emit('error', '冻结接口返回异常：' + (json.resultMsg || '未知错误'))
+    const recordJson = await insertFrozenRecord({
+      bundleId: bundleId.value,
+      appId: frozenForm.id,
+      reason: remark,
+      time: generateCurrentTimestamp()
+    })
+    if (recordJson.success) {
+      frozenDone.value = true
+      frozenMsg.value = recordJson.message || '冻结记录已保存'
+      isFrozen.value = ',已冻结'
+    } else {
+      if (recordJson.message && recordJson.message.includes('已存在')) {
+        frozenDone.value = true
+        frozenMsg.value = recordJson.message
+        isFrozen.value = ',已冻结'
+      }
+      emit('error', recordJson.message || '冻结记录写入失败')
     }
   } catch (e) {
     emit('error', '冻结请求失败：' + e.message)
