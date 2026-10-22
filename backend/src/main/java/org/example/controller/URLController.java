@@ -115,15 +115,16 @@ public class URLController {
             Map<String, Object> map = response.getBody();
             log.info("冻结V2远程响应 | status={} | body={}", response.getStatusCode(), map);
             boolean success = Boolean.TRUE.equals(map == null ? null : map.get("success"));
+            String remoteMsg = map != null && map.get("resultMsg") != null ? map.get("resultMsg").toString() : null;
             if (!success) {
-                String msg = map != null && map.get("resultMsg") != null ? map.get("resultMsg").toString() : "操作失败";
+                String msg = remoteMsg != null ? remoteMsg : "操作失败";
                 if (map != null && map.get("resultCode") != null) {
                     msg = msg + "（resultCode=" + map.get("resultCode") + "）";
                 }
                 log.warn("冻结V2远程业务失败 | message={}", msg);
                 return Result.fail("冻结数据上传失败：" + msg);
             }
-            return Result.success("冻结数据上传成功");
+            return Result.success(remoteMsg != null ? remoteMsg : "冻结数据上传成功", map.get("data"));
         } catch (Exception e) {
             log.error("冻结V2远程调用异常 | url={} | body={} | 异常类型={} | 信息={}", remoteUrl, body, e.getClass().getSimpleName(), e.getMessage());
             return Result.fail("冻结数据上传失败：" + e.getMessage());
