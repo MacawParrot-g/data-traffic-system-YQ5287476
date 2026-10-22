@@ -1236,27 +1236,12 @@ async function doFrozen() {
       id: frozenForm.id,
       remark: frozenForm.remark
     })
-    if (!frozenJson.success) {
-      emit('error', '冻结接口返回异常：' + (frozenJson.resultMsg || '未知错误'))
-      return
-    }
-    const recordJson = await insertFrozenRecord({
-      bundleId: bundleId.value,
-      appId: frozenForm.id,
-      reason: remark,
-      time: generateCurrentTimestamp()
-    })
-    if (recordJson.success) {
+    if (frozenJson.success) {
       frozenDone.value = true
-      frozenMsg.value = recordJson.message || '冻结记录已保存'
+      frozenMsg.value = frozenJson.message || '冻结数据上传成功'
       isFrozen.value = ',已冻结'
     } else {
-      if (recordJson.message && recordJson.message.includes('已存在')) {
-        frozenDone.value = true
-        frozenMsg.value = recordJson.message
-        isFrozen.value = ',已冻结'
-      }
-      emit('error', recordJson.message || '冻结记录写入失败')
+      emit('error', '冻结接口返回异常：' + (frozenJson.message || '未知错误'))
     }
   } catch (e) {
     emit('error', '冻结请求失败：' + e.message)

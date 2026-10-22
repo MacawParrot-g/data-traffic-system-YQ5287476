@@ -3,6 +3,8 @@ package org.example.controller;
 import org.example.annotation.*;
 import org.example.common.Result;
 import org.example.service.URLService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -24,6 +26,8 @@ public class URLController {
 
     @Autowired
     private URLService urlService;
+
+    private static final Logger log = LoggerFactory.getLogger(URLController.class);
 
     @Autowired
     private RestTemplate restTemplate;
@@ -101,16 +105,27 @@ public class URLController {
     @Retryable(maxAttempts=3)
     @Timeout(value = 6, unit = SECONDS)
     public Result proxyFrozenV2(@RequestBody Map<String, Object> body) {
+        String remoteUrl = upstreamBaseUrl + "/ad/play/task/frozen/v2";
         try {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
-            String remoteUrl = upstreamBaseUrl + "/ad/play/task/frozen/v2";
             @SuppressWarnings({"rawtypes", "unchecked"})
             ResponseEntity<Map> response = restTemplate.postForEntity(remoteUrl, entity, Map.class);
             Map<String, Object> map = response.getBody();
-            return mapToResult(map);
+            log.info("冻结V2远程响应 | status={} | body={}", response.getStatusCode(), map);
+            boolean success = Boolean.TRUE.equals(map == null ? null : map.get("success"));
+            if (!success) {
+                String msg = map != null && map.get("resultMsg") != null ? map.get("resultMsg").toString() : "操作失败";
+                if (map != null && map.get("resultCode") != null) {
+                    msg = msg + "（resultCode=" + map.get("resultCode") + "）";
+                }
+                log.warn("冻结V2远程业务失败 | message={}", msg);
+                return Result.fail("冻结数据上传失败：" + msg);
+            }
+            return Result.success("冻结数据上传成功");
         } catch (Exception e) {
+            log.error("冻结V2远程调用异常 | url={} | body={} | 异常类型={} | 信息={}", remoteUrl, body, e.getClass().getSimpleName(), e.getMessage());
             return Result.fail("冻结数据上传失败：" + e.getMessage());
         }
     }
