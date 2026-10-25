@@ -35,6 +35,7 @@ public class TestStatic {
     private String recordData;
 
     private String recorder;
+
     private String remark;
 
     @TableField("isOutput")
