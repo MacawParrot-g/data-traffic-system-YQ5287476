@@ -1232,29 +1232,40 @@ async function doFrozen() {
   frozenForm.id = appId.value && !isNaN(Number(appId.value)) ? Number(appId.value) : 0
   frozenForm.remark = remark
   try {
-    // 1. 保留原有冻结逻辑：上传冻结数据（新版）
-    const frozenJson = await uploadFrozenV2({
-      bundleId: frozenForm.bundleId,
-      id: frozenForm.id,
-      remark: frozenForm.remark
-    })
-    if (!frozenJson.success) {
-      emit('error', '冻结接口返回异常：' + (frozenJson.message || '未知错误'))
-      return
+    // V2：上传冻结数据（新版），独立执行，失败不阻断 V1
+    let v2Ok = false
+    try {
+      const frozenJson = await uploadFrozenV2({
+        bundleId: frozenForm.bundleId,
+        id: frozenForm.id,
+        remark: frozenForm.remark
+      })
+      v2Ok = !!frozenJson.success
+    } catch (e) {
+      v2Ok = false
     }
-    // 2. 新增：将任务 id 传入旧版冻结接口 /api/proxy/frozen（后端转发至 /ad/play/task/frozen?id=xxx）
-    const legacyJson = await fetchFrozen(taskId.value)
-    if (!legacyJson.success) {
-      emit('error', '冻结任务失败：' + (legacyJson.resultMsg || legacyJson.message || '未知错误'))
-      return
+    // V1：将任务 id 传入旧版冻结接口 /api/proxy/frozen（后端转发至 /ad/play/task/frozen?id=xxx）
+    let v1Ok = false
+    try {
+      const legacyJson = await fetchFrozen(taskId.value)
+      v1Ok = !!legacyJson.success
+    } catch (e) {
+      v1Ok = false
     }
-    frozenDone.value = true
-    frozenMsg.value = frozenJson.message || '冻结数据上传成功'
-    isFrozen.value = ',已冻结'
-  } catch (e) {
-    emit('error', '冻结请求失败：' + e.message)
-  }
-  finally {
+
+    // 聚合两个接口的返回情况
+    if (v1Ok && v2Ok) {
+      frozenDone.value = true
+      frozenMsg.value = 'V1V2接口均冻结成功'
+      isFrozen.value = ',已冻结'
+    } else if (v2Ok && !v1Ok) {
+      frozenMsg.value = 'V1接口冻结失败'
+    } else if (v1Ok && !v2Ok) {
+      frozenMsg.value = 'V2接口冻结失败'
+    } else {
+      frozenMsg.value = '上传失败'
+    }
+  } finally {
     frozenLoading.value = false
   }
 }
