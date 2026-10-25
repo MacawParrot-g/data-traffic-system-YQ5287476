@@ -1232,18 +1232,25 @@ async function doFrozen() {
   frozenForm.id = appId.value && !isNaN(Number(appId.value)) ? Number(appId.value) : 0
   frozenForm.remark = remark
   try {
+    // 1. 保留原有冻结逻辑：上传冻结数据（新版）
     const frozenJson = await uploadFrozenV2({
       bundleId: frozenForm.bundleId,
       id: frozenForm.id,
       remark: frozenForm.remark
     })
-    if (frozenJson.success) {
-      frozenDone.value = true
-      frozenMsg.value = frozenJson.message || '冻结数据上传成功'
-      isFrozen.value = ',已冻结'
-    } else {
+    if (!frozenJson.success) {
       emit('error', '冻结接口返回异常：' + (frozenJson.message || '未知错误'))
+      return
     }
+    // 2. 新增：将任务 id 传入旧版冻结接口 /api/proxy/frozen（后端转发至 /ad/play/task/frozen?id=xxx）
+    const legacyJson = await fetchFrozen(taskId.value)
+    if (!legacyJson.success) {
+      emit('error', '冻结任务失败：' + (legacyJson.resultMsg || legacyJson.message || '未知错误'))
+      return
+    }
+    frozenDone.value = true
+    frozenMsg.value = frozenJson.message || '冻结数据上传成功'
+    isFrozen.value = ',已冻结'
   } catch (e) {
     emit('error', '冻结请求失败：' + e.message)
   }
