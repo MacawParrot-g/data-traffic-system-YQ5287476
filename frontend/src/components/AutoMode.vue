@@ -1293,6 +1293,9 @@ async function saveToMySQL() {
   } else {
     finalRemark = form.remark.trim()
   }
+  if (isFrozen.value) {
+    finalRemark += isFrozen.value
+  }
   if (newCurrentTargetNum.value > 0 && attributions.value.length === 0) {
     finalRemark += ',无事件归因'
   }
