@@ -95,10 +95,18 @@
             <div class="event-result no-event" v-if="eventResult === 'no_event'">
               <div class="event-label">查询结果</div>
               <div class="event-value">无事件</div>
-              <button class="btn-frozen" @click="doFrozen" :disabled="frozenLoading" v-if="!isRetestMode">
-                {{ frozenLoading ? '冻结中...' : '冻结应用' }}
+              <button class="btn-frozen" @click="doFrozen" :disabled="frozenLoading || frozenDone" v-if="!isRetestMode">
+                {{ frozenDone ? '已冻结' : frozenLoading ? '冻结中...' : '冻结应用' }}
               </button>
               <div class="retest-frozen-tip" v-else>复测模式下已禁用冻结功能</div>
+              <div class="frozen-remark-tip" v-if="!isRetestMode">备注请写在冻结理由输入框内</div>
+              <div class="frozen-reason-box" v-if="!isRetestMode && !frozenDone">
+                <input class="frozen-reason-input" v-model="frozenReasonText" maxlength="200" placeholder="自定义冻结理由/备注(也可用下方下拉选择，200字以内)" />
+                <select class="frozen-reason-select" v-model="frozenReasonText" :disabled="frozenReasonText.trim() !== '' && !frozenReasonOptions.includes(frozenReasonText)">
+                  <option value="" disabled>请选择冻结理由</option>
+                  <option v-for="opt in frozenReasonOptions" :key="opt" :value="opt">{{ opt }}</option>
+                </select>
+              </div>
               <div class="frozen-result" v-if="frozenMsg">
                 <div class="frozen-label">冻结结果</div>
                 <div class="frozen-value">{{ frozenMsg }}</div>
@@ -162,7 +170,7 @@
             <option v-for="opt in exceptionOptions" :key="opt" :value="opt">{{ opt }}</option>
           </select>
         </div>
-        <div class="form-group">
+        <div class="form-group" v-if="eventResult !== 'no_event'">
           <label>备注</label>
           <textarea v-model="form.remark" placeholder="手动输入(如果用了模板此处禁填)"></textarea>
           <br/>
@@ -486,7 +494,7 @@ import { renderQRToCanvas } from '../utils/qrcode.js'
 
 import {
   fetchTask, fetchObtain, fetchEvent, fetchAllAttributions, fetchAttribution, fetchRetestBundle,
-  fetchFrozen, insertRecord, fetchRandomForRetest,
+  fetchFrozen, uploadFrozenV2, insertRecord, fetchRandomForRetest,
   fetchDevHistory, saveDevHistory, clearDevHistory, fetchDevRedisStatus, deleteDevHistoryRecord,
   fetchTableList, fetchTableDescribe, createTable, dropTable,
   addColumn, modifyColumn, dropColumn, executeSQL, batchImport
@@ -502,6 +510,7 @@ const guideVisible = ref(false)
 const exceptionOptions = ['正常','iOS16闪退','iOS13/14/16均闪退','需要iOS18以上','地区不支持','硬件版本过低','超过10分钟0上报','越狱检测','其他','验证已解决','测试']
 const templateOptions = ['需要iOS17以上','需要登陆后使用，无法注册','卡死在加载页进不去','非英语汉语软件，看不懂','网络检测，无法进入','需要订阅后使用','禁止入库']
 const ATTR_TYPES = ['appflyer', 'adjust', 'singular', 'tenjin']
+const frozenReasonOptions = ['需要iOS17以上','需要登陆后使用，无法注册','卡死在加载页进不去','非英语汉语软件，看不懂','网络检测，无法进入','需要订阅后使用','事件机制成因不明','逻辑混乱，无法正常游玩或使用']
 const MAX_RETRIES = 5
 
 const downloadUrl = ref('')
@@ -513,6 +522,9 @@ const attributions = ref([])
 const eventId = ref(null)
 const taskId = ref(null)
 const frozenMsg = ref('')
+const frozenDone = ref(false)
+const frozenReasonText = ref('')
+const frozenReasonSelect = ref('')
 const duplicateTip = ref('')
 const loading = ref(false)
 const eventLoading = ref(false)
@@ -549,7 +561,7 @@ const form = reactive({
   recorder: localStorage.getItem('userName') || '',
   record_data: getTodayStr()
 })
-
+const frozenForm = reactive({ bundleId: '', id: null, remark: '' })
 // ========== 删表密码确认 Modal 状态 ==========
 const dropConfirmVisible = ref(false)
 const dropTargetTable = ref('')
@@ -749,6 +761,9 @@ function resetState() {
   form.recorder = localStorage.getItem('userName') || ''
   form.record_data = getTodayStr()
   isFrozen.value = ''
+  frozenDone.value = false
+  frozenReasonText.value = ''
+  frozenReasonSelect.value = ''
 }
 
 function resetTaskState() {
@@ -905,18 +920,48 @@ async function querySingleAttr(type) {
 }
 
 async function doFrozen() {
+  if (frozenDone.value) return
   if (!taskId.value) return
+  const remark = frozenReasonText.value.trim() || frozenReasonSelect.value
+  if (!remark) { emit('error', '请选择或填写冻结理由'); return }
   frozenLoading.value = true; emit('error', '')
+  frozenForm.bundleId = bundleId.value
+  const rawAppId = appIds.value || appId.value
+  frozenForm.id = rawAppId && !isNaN(Number(rawAppId)) ? Number(rawAppId) : 0
+  frozenForm.remark = remark
   try {
-    const json = await fetchFrozen(taskId.value)
-    if (json.success) {
-      frozenMsg.value = json.resultMsg || '操作完成'
-      isFrozen.value = ',已冻结'
-    } else {
-      emit('error', '冻结接口返回异常：' + (json.resultMsg || '未知错误'))
+    // V2：上传冻结数据（新版），独立执行，失败不阻断 V1
+    let v2Ok = false
+    try {
+      const frozenJson = await uploadFrozenV2({
+        bundleId: frozenForm.bundleId,
+        id: frozenForm.id,
+        remark: frozenForm.remark
+      })
+      v2Ok = !!frozenJson.success
+    } catch (e) {
+      v2Ok = false
     }
-  } catch (e) {
-    emit('error', '冻结请求失败：' + e.message)
+    // V1：将任务 id 传入旧版冻结接口 /api/proxy/frozen
+    let v1Ok = false
+    try {
+      const legacyJson = await fetchFrozen(taskId.value)
+      v1Ok = !!legacyJson.success
+    } catch (e) {
+      v1Ok = false
+    }
+
+    if (v1Ok && v2Ok) {
+      frozenDone.value = true
+      frozenMsg.value = 'V1V2接口均冻结成功'
+      isFrozen.value = ',已冻结'
+    } else if (v2Ok && !v1Ok) {
+      frozenMsg.value = 'V1接口冻结失败'
+    } else if (v1Ok && !v2Ok) {
+      frozenMsg.value = 'V2接口冻结失败'
+    } else {
+      frozenMsg.value = '上传失败'
+    }
   } finally {
     frozenLoading.value = false
   }
@@ -931,7 +976,7 @@ async function saveToMySQL() {
     attributions.value = []
     alert('无新增事件token，即使原本的token有归因，也不会被设置在字段内')
   }
-  let finalRemark = form.remark.trim()
+  let finalRemark = eventResult.value === 'no_event' ? frozenReasonText.value.trim() : form.remark.trim()
   if (isFrozen.value) {
     finalRemark += isFrozen.value
   }
@@ -1542,6 +1587,17 @@ async function handleBatchImport() {
 .btn-save:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(34,197,94,0.3); }
 .btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
 .save-success { margin-top: 8px; font-size: 13px; font-weight: 600; color: #166534; }
+
+.frozen-result { margin-top: 6px; padding: 8px 12px; background: #f0f9ff; border-radius: 8px; }
+.frozen-label { font-size: 11px; font-weight: 700; color: #0369a1; margin-bottom: 2px; }
+.frozen-value { font-size: 13px; color: #0c4a6e; font-weight: 500; }
+.frozen-reason-box { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.frozen-reason-input { width: 100%; box-sizing: border-box; padding: 8px 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 13px; font-family: inherit; transition: all 0.2s; background: #fff; }
+.frozen-reason-input:focus { outline: none; border-color: #0ea5e9; box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15); }
+.frozen-reason-select { width: 100%; box-sizing: border-box; padding: 8px 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 13px; background: #fff; transition: all 0.2s; }
+.frozen-reason-select:focus { outline: none; border-color: #0ea5e9; }
+.frozen-reason-select:disabled { background: #f3f4f6; color: #9ca3af; cursor: not-allowed; }
+.frozen-remark-tip { margin-top: 10px; margin-bottom: 4px; font-size: 12px; font-weight: 700; color: #b45309; }
 
 /* ========== 历史记录 ========== */
 .history-section { margin-top: 32px; }

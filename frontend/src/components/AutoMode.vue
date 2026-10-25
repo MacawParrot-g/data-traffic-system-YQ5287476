@@ -121,8 +121,8 @@
             <div class="retest-frozen-tip" v-else>复测模式下已禁用冻结功能</div>
             <div class="frozen-remark-tip" v-if="!isRetestMode">备注请写在冻结理由输入框内</div>
             <div class="frozen-reason-box" v-if="!isRetestMode && !frozenDone">
-              <input class="frozen-reason-input" v-model="frozenReasonText" maxlength="200" placeholder="自定义冻结理由(填写后下方下拉选项将被禁用，200字以内)" />
-              <select class="frozen-reason-select" v-model="frozenReasonSelect" :disabled="frozenReasonText.trim() !== ''">
+              <input class="frozen-reason-input" v-model="frozenReasonText" maxlength="200" placeholder="自定义冻结理由/备注(也可用下方下拉选择，200字以内)" />
+              <select class="frozen-reason-select" v-model="frozenReasonText" :disabled="frozenReasonText.trim() !== '' && !frozenReasonOptions.includes(frozenReasonText)">
                 <option value="" disabled>请选择冻结理由</option>
                 <option v-for="opt in frozenReasonOptions" :key="opt" :value="opt">{{ opt }}</option>
               </select>
@@ -743,7 +743,7 @@ const emit = defineEmits(['error'])
 
 const exceptionOptions = ['正常','iOS16闪退','iOS13/14/16均闪退','需要iOS18以上','地区不支持','硬件版本过低','超过10分钟0上报','越狱检测','其他','验证已解决','测试']
 const template=['需要iOS17以上','需要登陆后使用，无法注册','卡死在加载页进不去','非英语汉语软件，看不懂','网络检测，无法进入','需要订阅后使用','事件机制成因不明','逻辑混乱，无法正常游玩或使用']
-const frozenReasonOptions = ['iOS16闪退','iOS13/14/16均闪退','需要iOS18以上','需要iOS17以上','地区不支持','硬件版本过低','超过10分钟0上报','越狱检测','验证已解决','需要登陆后使用，无法注册','卡死在加载页进不去','非英语汉语软件，看不懂','网络检测，无法进入','需要订阅后使用','事件机制成因不明','逻辑混乱，无法正常游玩或使用']
+const frozenReasonOptions = ['需要iOS17以上','需要登陆后使用，无法注册','卡死在加载页进不去','非英语汉语软件，看不懂','网络检测，无法进入','需要订阅后使用','事件机制成因不明','逻辑混乱，无法正常游玩或使用']
 
 const currentUserRole = ref(localStorage.getItem('accType') || '')
 const lastReportTime = ref('')

@@ -21,7 +21,7 @@
     <div v-if="loading && !downloadUrl" class="loading">正在获取数据...</div>
 
     <div class="empty-placeholder" v-if="!downloadUrl && !loading">
-      <div class="empty-icon">📭</div>
+      <div class="empty-icon">404 NO FOUND</div>
       <div class="empty-text">当前没有任何测试条目，请输入 App ID 并点击生成按钮</div>
     </div>
 
@@ -77,9 +77,17 @@
           <div class="event-result no-event" v-if="eventResult === 'no_event'">
             <div class="event-label">查询结果</div>
             <div class="event-value">✅ 无事件</div>
-            <button class="btn-frozen" @click="doFrozen" :disabled="frozenLoading">
-              {{ frozenLoading ? '冻结中...' : '冻结应用' }}
+            <button class="btn-frozen" @click="doFrozen" :disabled="frozenLoading || frozenDone">
+              {{ frozenDone ? '已冻结' : frozenLoading ? '冻结中...' : '冻结应用' }}
             </button>
+            <div class="frozen-remark-tip">备注请写在冻结理由输入框内</div>
+            <div class="frozen-reason-box" v-if="!frozenDone">
+              <input class="frozen-reason-input" v-model="frozenReasonText" maxlength="200" placeholder="自定义冻结理由/备注(也可用下方下拉选择，200字以内)" />
+              <select class="frozen-reason-select" v-model="frozenReasonText" :disabled="frozenReasonText.trim() !== '' && !frozenReasonOptions.includes(frozenReasonText)">
+                <option value="" disabled>请选择冻结理由</option>
+                <option v-for="opt in frozenReasonOptions" :key="opt" :value="opt">{{ opt }}</option>
+              </select>
+            </div>
             <div class="frozen-result" v-if="frozenMsg">
               <div class="frozen-label">冻结结果</div>
               <div class="frozen-value">{{ frozenMsg }}</div>
@@ -113,7 +121,7 @@
           <option v-for="opt in exceptionOptions" :key="opt" :value="opt">{{ opt }}</option>
         </select>
       </div>
-      <div class="form-group">
+      <div class="form-group" v-if="eventResult !== 'no_event'">
         <label>备注</label>
         <textarea v-model="form.remark" placeholder="请输入备注信息"></textarea>
       </div>
@@ -186,6 +194,19 @@
   border-radius: 16px;
   margin-bottom: 20px;
 }
+
+.timer-panel .frozen-result {
+  margin-top: 6px;
+  padding: 8px 12px;
+}
+.frozen-reason-box { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.frozen-reason-input { width: 100%; box-sizing: border-box; padding: 8px 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 13px; font-family: inherit; transition: all 0.2s; }
+.frozen-reason-input:focus { outline: none; border-color: #667eea; box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1); }
+.frozen-reason-select { width: 100%; box-sizing: border-box; padding: 8px 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 13px; background: #fff; transition: all 0.2s; }
+.frozen-reason-select:focus { outline: none; border-color: #667eea; }
+.frozen-reason-select:disabled { background: #f3f4f6; color: #9ca3af; cursor: not-allowed; }
+.frozen-remark-tip { margin-top: 10px; margin-bottom: 4px; font-size: 12px; font-weight: 700; color: #b45309; }
+
 .empty-icon {
   font-size: 48px;
   margin-bottom: 16px;
@@ -355,14 +376,20 @@ import {
   fetchAllAttributions,
   fetchFrozen,
   insertRecord,
+  uploadFrozenV2,
   fetchCountByRecorder
 } from '../api/index.js'
 
 const emit = defineEmits(['error'])
 const exceptionOptions = ['正常','iOS16闪退','iOS13/14/16均闪退','需要iOS18以上','地区不支持','硬件版本过低','超过10分钟0上报','越狱检测','其他','验证已解决']
+const frozenReasonOptions = ['需要iOS17以上','需要登陆后使用，无法注册','卡死在加载页进不去','非英语汉语软件，看不懂','网络检测，无法进入','需要订阅后使用','事件机制成因不明','逻辑混乱，无法正常游玩或使用']
 const softwareType=ref('')
 const appId = ref('')
+const frozenDone = ref(false)
+const frozenReasonText = ref('')
+const frozenReasonSelect = ref('')
 const downloadUrl = ref('')
+const frozenForm = reactive({ bundleId: '', id: null, remark: '' })
 const bundleId = ref('')
 const originalCurrentTargetNum = ref(null)
 const eventResult = ref('')
@@ -534,21 +561,48 @@ async function queryEvent() {
 }
 
 async function doFrozen() {
+  if (frozenDone.value) return
   if (!taskId.value) return
+  const remark = frozenReasonText.value.trim() || frozenReasonSelect.value
+  if (!remark) { emit('error', '请选择或填写冻结理由'); return }
   frozenLoading.value = true; emit('error', '')
+  frozenForm.bundleId = bundleId.value
+  frozenForm.id = appId.value && !isNaN(Number(appId.value)) ? Number(appId.value) : 0
+  frozenForm.remark = remark
   try {
-    const json = await fetchFrozen(taskId.value);
-    if (json.success) {
-      frozenMsg.value = json.resultMsg || '操作完成'
-      isFrozen.value=',已冻结'
-    } else {
-      emit('error', '冻结接口返回异常：' + (json.resultMsg || '未知错误'))
+    // V2：上传冻结数据（新版），独立执行，失败不阻断 V1
+    let v2Ok = false
+    try {
+      const frozenJson = await uploadFrozenV2({
+        bundleId: frozenForm.bundleId,
+        id: frozenForm.id,
+        remark: frozenForm.remark
+      })
+      v2Ok = !!frozenJson.success
+    } catch (e) {
+      v2Ok = false
     }
-  }
-  catch (e) {
-    emit('error', '冻结请求失败：' + e.message)
-  }
-  finally {
+    // V1：将任务 id 传入旧版冻结接口 /api/proxy/frozen
+    let v1Ok = false
+    try {
+      const legacyJson = await fetchFrozen(taskId.value)
+      v1Ok = !!legacyJson.success
+    } catch (e) {
+      v1Ok = false
+    }
+
+    if (v1Ok && v2Ok) {
+      frozenDone.value = true
+      frozenMsg.value = 'V1V2接口均冻结成功'
+      isFrozen.value = ',已冻结'
+    } else if (v2Ok && !v1Ok) {
+      frozenMsg.value = 'V1接口冻结失败'
+    } else if (v1Ok && !v2Ok) {
+      frozenMsg.value = 'V2接口冻结失败'
+    } else {
+      frozenMsg.value = '上传失败'
+    }
+  } finally {
     frozenLoading.value = false
   }
 }
@@ -569,7 +623,7 @@ async function saveToMySQL() {
     attributions.value=[]
     alert('无新增事件token，即使原本的token有归因，也不会被设置在字段内')
   }
-  let finalRemark = form.remark.trim()
+  let finalRemark = eventResult.value === 'no_event' ? frozenReasonText.value.trim() : form.remark.trim()
   if (isFrozen.value) {
     finalRemark += isFrozen.value
   }
@@ -624,6 +678,9 @@ function resetState() {
   form.recorder = localStorage.getItem('userName') || '';
   form.record_data = getTodayStr()
   isFrozen.value=''
+  frozenDone.value = false
+  frozenReasonText.value = ''
+  frozenReasonSelect.value = ''
 }
 
 function startTimer() {
