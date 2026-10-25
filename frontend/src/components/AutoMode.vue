@@ -743,8 +743,8 @@ const emit = defineEmits(['error'])
 
 const exceptionOptions = ['正常','iOS16闪退','iOS13/14/16均闪退','需要iOS18以上','地区不支持','硬件版本过低','超过10分钟0上报','越狱检测','其他','验证已解决','测试']
 const template=['需要iOS17以上','需要登陆后使用，无法注册','卡死在加载页进不去','非英语汉语软件，看不懂','网络检测，无法进入','需要订阅后使用','事件机制成因不明','逻辑混乱，无法正常游玩或使用']
-const frozenReasonOptions = ['需要iOS17以上','需要登陆后使用，无法注册','卡死在加载页进不去','非英语汉语软件，看不懂','网络检测，无法进入','需要订阅后使用','事件机制成因不明','逻辑混乱，无法正常游玩或使用']
-
+const frozenReasonOptions = ['需要iOS17以上','需要登陆后使用，无法注册','卡死在加载页进不去','非英语汉语软件，看不懂','网络检测，无法进入','需要订阅后使用','事件机制成因不明','逻辑混乱，无法正常游玩或使用','iOS16闪退','iOS13/14/16均闪退','需要iOS18以上','地区不支持','硬件版本过低','超过10分钟0上报','越狱检测','其他','验证已解决']
+const frozenRemarkForbidden = ['iOS16闪退','iOS13/14/16均闪退','需要iOS18以上','地区不支持','硬件版本过低','超过10分钟0上报','越狱检测','其他','验证已解决']
 const currentUserRole = ref(localStorage.getItem('accType') || '')
 const lastReportTime = ref('')
 const recordSubmitted = ref(false)
@@ -1284,9 +1284,14 @@ async function saveToMySQL() {
     attributions.value=[]
     alert('无新增事件token，即使原本的token有归因，也不会被设置在字段内')
   }
-  let finalRemark = eventResult.value === 'no_event' ? frozenReasonText.value.trim() : form.remark.trim()
-  if (isFrozen.value) {
-    finalRemark += isFrozen.value
+  let finalRemark = ''
+  if (eventResult.value === 'no_event') {
+    const frozenVal = frozenReasonText.value.trim()
+    if (!frozenRemarkForbidden.includes(frozenVal)) {
+      finalRemark = frozenVal
+    }
+  } else {
+    finalRemark = form.remark.trim()
   }
   if (newCurrentTargetNum.value > 0 && attributions.value.length === 0) {
     finalRemark += ',无事件归因'
