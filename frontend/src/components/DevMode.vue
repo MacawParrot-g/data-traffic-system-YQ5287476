@@ -789,15 +789,15 @@ function resetState() {
   stopDeliveryMsg.value = ''
 }
 async function stopDelivery() {
-  if (!versionAppId.value || !checkVerion.value) {
-    emit('error', '缺少 appId 或待校验版本，无法停止二次下发')
+  if (taskId.value == null || !checkVerion.value) {
+    emit('error', '缺少 taskId 或待校验版本，无法停止二次下发')
     return
   }
   stopDeliveryLoading.value = true
   stopDeliveryMsg.value = ''
   emit('error', '')
   try {
-    const json = await stopSecondDelivery(versionAppId.value, checkVerion.value)
+    const json = await stopSecondDelivery(String(taskId.value), checkVerion.value)
     if (json.success) {
       versionMismatch.value = false
       stopDeliveryMsg.value = '已停止该应用二次下发'
@@ -877,7 +877,6 @@ async function queryEvent() {
       checkVerion.value = eventJson.data.checkVerion || ''
       if (currentVersion.value && checkVerion.value && currentVersion.value !== checkVerion.value) {
         versionMismatch.value = true
-        versionAppId.value = eventJson.data.appId || appIds.value || appId.value || ''
       } else {
         versionMismatch.value = false
       }
@@ -979,8 +978,7 @@ async function doFrozen() {
   if (!remark) { emit('error', '请选择或填写冻结理由'); return }
   frozenLoading.value = true; emit('error', '')
   frozenForm.bundleId = bundleId.value
-  const rawAppId = appIds.value || appId.value
-  frozenForm.id = rawAppId && !isNaN(Number(rawAppId)) ? Number(rawAppId) : 0
+  frozenForm.id = taskId.value != null ? Number(taskId.value) : 0
   frozenForm.remark = remark
   try {
     // V2：上传冻结数据（新版），独立执行，失败不阻断 V1
