@@ -67,7 +67,7 @@ public class TemplateServiceImpl implements TemplateService {
     private RedisTemplate<String, Object> templateRedisTemplate;
 
     @Autowired
-    @Qualifier("dataSource")
+    @Qualifier("defaultDataSource")
     private DataSource dataSource;
 
     @Autowired
