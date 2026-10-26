@@ -76,7 +76,19 @@
           查看JSON
         </button>
       </div>
-
+      <div class="info-card version-card" v-if="currentVersion || checkVerion">
+        <div class="info-card-label">版本比对</div>
+        <div class="version-value">
+          <span class="ver-item">current: {{ currentVersion || '-' }}</span>
+          <span class="ver-item">check: {{ checkVerion || '-' }}</span>
+          <span class="ver-mismatch" v-if="versionMismatch">版本不一致</span>
+        </div>
+        <button v-if="versionMismatch && !isRetestMode" class="btn-stop-delivery" @click="stopDelivery" :disabled="stopDeliveryLoading">
+          {{ stopDeliveryLoading ? '停止中...' : '停止二次下发' }}
+        </button>
+        <div class="retest-frozen-tip" v-else-if="versionMismatch && isRetestMode">复测模式数据源为本地Redis，已禁用停止下发功能</div>
+        <div class="stop-delivery-msg" v-if="stopDeliveryMsg">{{ stopDeliveryMsg }}</div>
+      </div>
       <div class="timer-panel" v-if="bundleId">
         <div class="timer-left">
           <div class="timer-row">
@@ -497,14 +509,20 @@ import {
   fetchFrozen, uploadFrozenV2, insertRecord, fetchRandomForRetest,
   fetchDevHistory, saveDevHistory, clearDevHistory, fetchDevRedisStatus, deleteDevHistoryRecord,
   fetchTableList, fetchTableDescribe, createTable, dropTable,
-  addColumn, modifyColumn, dropColumn, executeSQL, batchImport
+  addColumn, modifyColumn, dropColumn, executeSQL, batchImport,
+  stopSecondDelivery
 } from '../api/index.js'
 
 import { generateCurrentTimestamp, trimApplyTime, toStorageDate } from '../utils/date.js'
 import DevGuide from './DevGuide.vue'
 
 const emit = defineEmits(['error', 'record-saved'])
-
+const currentVersion = ref('')
+const checkVerion = ref('')
+const versionMismatch = ref(false)
+const versionAppId = ref('')
+const stopDeliveryLoading = ref(false)
+const stopDeliveryMsg = ref('')
 const devActiveTab = ref('test')
 const guideVisible = ref(false)
 // const exceptionOptions = ['正常','iOS16闪退','iOS13/14/16均闪退','需要iOS18以上','地区不支持','硬件版本过低','超过10分钟0上报','越狱检测','其他','验证已解决','测试']
@@ -764,8 +782,34 @@ function resetState() {
   frozenDone.value = false
   frozenReasonText.value = ''
   frozenReasonSelect.value = ''
+  currentVersion.value = ''
+  checkVerion.value = ''
+  versionMismatch.value = false
+  versionAppId.value = ''
+  stopDeliveryMsg.value = ''
 }
-
+async function stopDelivery() {
+  if (!versionAppId.value || !checkVerion.value) {
+    emit('error', '缺少 appId 或待校验版本，无法停止二次下发')
+    return
+  }
+  stopDeliveryLoading.value = true
+  stopDeliveryMsg.value = ''
+  emit('error', '')
+  try {
+    const json = await stopSecondDelivery(versionAppId.value, checkVerion.value)
+    if (json.success) {
+      versionMismatch.value = false
+      stopDeliveryMsg.value = '已停止该应用二次下发'
+    } else {
+      emit('error', '停止二次下发失败：' + (json.message || '未知错误'))
+    }
+  } catch (e) {
+    emit('error', '停止二次下发请求失败：' + e.message)
+  } finally {
+    stopDeliveryLoading.value = false
+  }
+}
 function resetTaskState() {
   resetState()
   for (const type of ATTR_TYPES) {
@@ -828,6 +872,15 @@ async function queryEvent() {
     ])
     if (eventJson.success && eventJson.data) {
       const newCurrent = eventJson.data.currentTargetNum
+      eventId.value = eventJson.data.id ?? null
+      currentVersion.value = eventJson.data.currentVersion || ''
+      checkVerion.value = eventJson.data.checkVerion || ''
+      if (currentVersion.value && checkVerion.value && currentVersion.value !== checkVerion.value) {
+        versionMismatch.value = true
+        versionAppId.value = eventJson.data.appId || appIds.value || appId.value || ''
+      } else {
+        versionMismatch.value = false
+      }
       eventId.value = eventJson.data.id ?? null
       if (originalCurrentTargetNum.value !== null) {
         if (newCurrent !== originalCurrentTargetNum.value) {
@@ -1462,6 +1515,47 @@ async function handleBatchImport() {
   padding: 10px 20px; font-size: 13px; border-radius: 10px; cursor: pointer; font-weight: 600;
   transition: all 0.2s;
 }
+
+.info-card-value { font-size: 14px; font-weight: 600; color: var(--text-primary, #1a1a2e); word-break: break-all; }
+.version-card { margin-bottom: 16px; }
+.version-card .version-value {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary, #1a1a2e);
+}
+.version-card .ver-item {
+  background: #f1f5f9;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-family: monospace;
+}
+.version-card .ver-mismatch {
+  color: #991b1b;
+  background: #fee2e2;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-weight: 700;
+}
+.btn-stop-delivery {
+  margin-top: 8px;
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: #fff;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-stop-delivery:hover:not(:disabled) { box-shadow: 0 4px 12px rgba(239,68,68,0.35); }
+.btn-stop-delivery:disabled { opacity: 0.5; cursor: not-allowed; }
+.stop-delivery-msg { margin-top: 6px; font-size: 11px; color: #166534; font-weight: 600; }
+
 .btn-event:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(59,130,246,0.3); }
 .btn-event:disabled { opacity: 0.5; cursor: not-allowed; }
 .timer-panel {
