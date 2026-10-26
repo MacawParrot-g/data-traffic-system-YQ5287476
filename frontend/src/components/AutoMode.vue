@@ -771,6 +771,7 @@ const frozenDone = ref(false)
 const frozenReasonSelect = ref('')
 const frozenReasonText = ref('')
 const qrCanvas = ref(null)
+import { useTemplateOptions } from '../utils/useTemplateOptions.js'
 const timerSeconds = ref(60)
 const timerCountdown = ref(0)
 const bundleIdAlreadyGraded = ref(false)
