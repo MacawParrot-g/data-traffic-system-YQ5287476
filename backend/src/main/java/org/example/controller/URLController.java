@@ -131,6 +131,35 @@ public class URLController {
         }
     }
 
+    @PostMapping("/api/proxy/current-version")
+    @LogExecutionTime("停止二次下发")
+    @Timeout(value = 8, unit = SECONDS)
+    public Result proxyCurrentVersion(@RequestBody Map<String, Object> body) {
+        String remoteUrl = upstreamBaseUrl + "/ad/event/target/currentVersion";
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
+            @SuppressWarnings({"rawtypes", "unchecked"})
+            ResponseEntity<Map> response = restTemplate.postForEntity(remoteUrl, entity, Map.class);
+            Map<String, Object> map = response.getBody();
+            log.info("停止二次下发远程响应 | status={} | body={}", response.getStatusCode(), map);
+            boolean success = Boolean.TRUE.equals(map == null ? null : map.get("success"));
+            String remoteMsg = map != null && map.get("resultMsg") != null ? map.get("resultMsg").toString() : null;
+            if (!success) {
+                String msg = remoteMsg != null ? remoteMsg : "操作失败";
+                if (map != null && map.get("resultCode") != null) {
+                    msg = msg + "（resultCode=" + map.get("resultCode") + "）";
+                }
+                log.warn("停止二次下发业务失败 | message={}", msg);
+                return Result.fail("停止二次下发失败：" + msg);
+            }
+            return Result.success(remoteMsg != null ? remoteMsg : "停止二次下发成功", map.get("data"));
+        } catch (Exception e) {
+            log.error("停止二次下发远程调用异常 | url={} | body={} | 异常类型={} | 信息={}", remoteUrl, body, e.getClass().getSimpleName(), e.getMessage());
+            return Result.fail("停止二次下发失败：" + e.getMessage());
+        }
+    }
     private Result mapToResult(Map<String, Object> map) {
         if (map == null) {
             return Result.fail("远程接口返回空响应，请稍后重试");

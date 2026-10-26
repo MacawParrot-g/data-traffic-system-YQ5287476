@@ -767,4 +767,13 @@ export function templateWarmUp(ttlSeconds) {
     }, 30000).then(safeJson)
 }
 
+//新的停止下发接口
+export function stopSecondDelivery(appId, updateVersion) {
+    return fetchWithTimeout('/api/proxy/current-version', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ appId, bundleId: '', updateVersion })
+    }, 30000).then(safeJson)
+}
+
 

@@ -730,6 +730,7 @@ import {
   fetchRetestBundle,
   fetchAppGrade,
   saveAppGrade,
+  stopSecondDelivery,
   fetchUnexportedByUser,
   executeExportByUser,
   fetchExportStatus,
@@ -1417,23 +1418,23 @@ async function submitGrade() {
 }
 
 async function stopDelivery() {
-  if (!versionForm.appId || !versionForm.bundleId || !versionForm.checkVersion) {
-    emit('error', '版本校验信息不完整，无法停止下发')
+  if (!appId.value || !checkVerion.value) {
+    emit('error', '缺少 appId 或待校验版本，无法停止二次下发')
     return
   }
   stopDeliveryLoading.value = true
   stopDeliveryMsg.value = ''
   emit('error', '')
   try {
-    const json = await fetchCheckVersion(versionForm.appId, versionForm.bundleId, versionForm.checkVersion)
+    const json = await stopSecondDelivery(appId.value, checkVerion.value)
     if (json.success) {
       versionMismatch.value = false
-      stopDeliveryMsg.value = '✅ 已停止该应用二次下发'
+      stopDeliveryMsg.value = '已停止该应用二次下发'
     } else {
-      emit('error', '停止下发失败：' + (json.resultMsg || '未知错误'))
+      emit('error', '停止二次下发失败：' + (json.message || '未知错误'))
     }
   } catch (e) {
-    emit('error', '停止下发请求失败：' + e.message)
+    emit('error', '停止二次下发请求失败：' + e.message)
   } finally {
     stopDeliveryLoading.value = false
   }
