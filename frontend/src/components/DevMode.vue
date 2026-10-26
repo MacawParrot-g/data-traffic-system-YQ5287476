@@ -743,6 +743,7 @@ async function fetchByAppId() {
       applyTime.value = trimApplyTime(json.data.applyTime || '')
       originalCurrentTargetNum.value = json.data.currentTargetNum ?? null
       isSubmit = false
+      taskId.value = json.data.id ?? null
       fillAttrBundleIds(bundleId.value)
       if (originalCurrentTargetNum.value <= 1 || originalCurrentTargetNum.value === 0) {
         alert('初始originalCurrentTargetNum数小于等于1或等于0，后续测试期间可能会没有归因，请注意')
@@ -974,7 +975,7 @@ async function querySingleAttr(type) {
 
 async function doFrozen() {
   if (frozenDone.value) return
-  if (!taskId.value) return
+  if (!taskId.value) { emit('error', '当前任务缺少 taskId，请点“刷新数据”获取任务或用有效 App ID 生成后再冻结'); return }
   const remark = frozenReasonText.value.trim() || frozenReasonSelect.value
   if (!remark) { emit('error', '请选择或填写冻结理由'); return }
   frozenLoading.value = true; emit('error', '')
@@ -982,8 +983,9 @@ async function doFrozen() {
   frozenForm.id = taskId.value != null ? Number(taskId.value) : 0
   frozenForm.remark = remark
   try {
-    // V2：上传冻结数据（新版），独立执行，失败不阻断 V1
+    // 仅通过 /api/proxy/frozen/v2 上传冻结数据
     let v2Ok = false
+    let v2Msg = ''
     try {
       const frozenJson = await uploadFrozenV2({
         bundleId: frozenForm.bundleId,
@@ -991,28 +993,16 @@ async function doFrozen() {
         remark: frozenForm.remark
       })
       v2Ok = !!frozenJson.success
+      v2Msg = frozenJson.message || ''
     } catch (e) {
       v2Ok = false
     }
-    // V1：将任务 id 传入旧版冻结接口 /api/proxy/frozen
-    let v1Ok = false
-    try {
-      const legacyJson = await fetchFrozen(taskId.value)
-      v1Ok = !!legacyJson.success
-    } catch (e) {
-      v1Ok = false
-    }
-
-    if (v1Ok && v2Ok) {
+    if (v2Ok) {
       frozenDone.value = true
-      frozenMsg.value = 'V1V2接口均冻结成功'
+      frozenMsg.value = v2Msg || '冻结成功'
       isFrozen.value = ',已冻结'
-    } else if (v2Ok && !v1Ok) {
-      frozenMsg.value = 'V1接口冻结失败'
-    } else if (v1Ok && !v2Ok) {
-      frozenMsg.value = 'V2接口冻结失败'
     } else {
-      frozenMsg.value = '上传失败'
+      frozenMsg.value = '冻结失败' + (v2Msg ? '：' + v2Msg : '')
     }
   } finally {
     frozenLoading.value = false
