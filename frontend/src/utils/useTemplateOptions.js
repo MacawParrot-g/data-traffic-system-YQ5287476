@@ -19,7 +19,7 @@ function doLoad(type, force = false) {
         return Promise.resolve(entry.ref)
     }
     if (!entry) {
-        cacheMap.set(type, { ts: 0, data: [], ref: ref([]), loading: false })
+        cacheMap.set(type, { ts: 0, data: [], ref: getRef(type), loading: false })
     }
     const e = cacheMap.get(type)
     if (e.loading) return Promise.resolve(e.ref)
