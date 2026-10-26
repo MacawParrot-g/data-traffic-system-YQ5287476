@@ -138,6 +138,7 @@ import NotificationManager from "./components/NotificationManager.vue";
 import MQPanel from "./components/MQPanel.vue";
 import DataSource from "./components/DataSource.vue";
 import PyScriptPanel from "./components/PyScriptPanel.vue";
+import TemplateManage from "./components/TemplateManage.vue";
 const notifCount = ref(0)
 let bellPollTimer = null
 const mode = ref('auto')
@@ -165,6 +166,7 @@ const tabIcons = {
   data: 'D',
   mon: 'M',
   grade: 'G',
+  remark: 'R',
   audit: 'U',
   task: 'T',
   ncenter: 'H',
@@ -196,6 +198,7 @@ const componentMap = computed(() => {
   }
   if (accType.value === 'USER' || accType.value === 'ADMIN' || accType.value === 'DEVELOPER') {
     map.grade = GradeManage
+    map.remark = TemplateManage
   }
   if (accType.value === 'USER') {
     map.data = DataVisitable
@@ -219,6 +222,7 @@ const tabs = [
   { key: 'data', label: '数据看板&导出' },
   { key: 'mon', label: '监控面板' },
   { key: 'grade', label: '评级管理' },
+  { key: 'remark', label: '备注管理' },
   { key: 'audit', label: '审计日志' },
   { key: 'task', label: '定时任务' },
   { key: 'ncenter', label: '通知中心' },

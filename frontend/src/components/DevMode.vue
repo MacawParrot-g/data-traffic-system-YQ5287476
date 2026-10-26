@@ -102,7 +102,7 @@
               <div class="frozen-remark-tip" v-if="!isRetestMode">备注请写在冻结理由输入框内</div>
               <div class="frozen-reason-box" v-if="!isRetestMode && !frozenDone">
                 <input class="frozen-reason-input" v-model="frozenReasonText" maxlength="200" placeholder="自定义冻结理由/备注(也可用下方下拉选择，200字以内)" />
-                <select class="frozen-reason-select" v-model="frozenReasonText" :disabled="frozenReasonText.trim() !== '' && !frozenReasonOptions.includes(frozenReasonText)">
+                <select class="frozen-reason-select" v-model="frozenReasonText" @focus="loadTemplateOptions('冻结理由')" @open="loadTemplateOptions('冻结理由')" :disabled="frozenReasonText.trim() !== '' && !frozenReasonOptions.includes(frozenReasonText)">
                   <option value="" disabled>请选择冻结理由</option>
                   <option v-for="opt in frozenReasonOptions" :key="opt" :value="opt">{{ opt }}</option>
                 </select>
@@ -165,7 +165,7 @@
         <h4>填写入库信息（直接写入数据库）</h4>
         <div class="form-group">
           <label>异常类型</label>
-          <select v-model="form.exception_type">
+          <select v-model="form.exception_type" @focus="loadTemplateOptions('异常类型')" @open="loadTemplateOptions('异常类型')">
             <option value="" disabled>请选择异常类型</option>
             <option v-for="opt in exceptionOptions" :key="opt" :value="opt">{{ opt }}</option>
           </select>
@@ -174,9 +174,9 @@
           <label>备注</label>
           <textarea v-model="form.remark" placeholder="手动输入(如果用了模板此处禁填)"></textarea>
           <br/>
-          <select v-model="form.remark">
+          <select v-model="form.remark" @focus="loadTemplateOptions('备注模板')" @open="loadTemplateOptions('备注模板')">
             <option value="" disabled>模板(可选)</option>
-            <option v-for="opt in templateOptions" :key="opt" :value="opt">{{ opt }}</option>
+            <option v-for="opt in remarkTemplateOptions" :key="opt" :value="opt">{{ opt }}</option>
           </select>
         </div>
         <div class="form-row-2col">
@@ -491,7 +491,7 @@
 <script setup>
 import { ref, reactive, onMounted, watch, nextTick, onUnmounted } from 'vue'
 import { renderQRToCanvas } from '../utils/qrcode.js'
-
+import { useTemplateOptions } from '../utils/useTemplateOptions.js'
 import {
   fetchTask, fetchObtain, fetchEvent, fetchAllAttributions, fetchAttribution, fetchRetestBundle,
   fetchFrozen, uploadFrozenV2, insertRecord, fetchRandomForRetest,
@@ -507,12 +507,12 @@ const emit = defineEmits(['error', 'record-saved'])
 
 const devActiveTab = ref('test')
 const guideVisible = ref(false)
-const exceptionOptions = ['正常','iOS16闪退','iOS13/14/16均闪退','需要iOS18以上','地区不支持','硬件版本过低','超过10分钟0上报','越狱检测','其他','验证已解决','测试']
-const templateOptions = ['需要iOS17以上','需要登陆后使用，无法注册','卡死在加载页进不去','非英语汉语软件，看不懂','网络检测，无法进入','需要订阅后使用','禁止入库']
+// const exceptionOptions = ['正常','iOS16闪退','iOS13/14/16均闪退','需要iOS18以上','地区不支持','硬件版本过低','超过10分钟0上报','越狱检测','其他','验证已解决','测试']
+// const templateOptions = ['需要iOS17以上','需要登陆后使用，无法注册','卡死在加载页进不去','非英语汉语软件，看不懂','网络检测，无法进入','需要订阅后使用','禁止入库']
 const ATTR_TYPES = ['appflyer', 'adjust', 'singular', 'tenjin']
-const frozenReasonOptions = ['需要iOS17以上','需要登陆后使用，无法注册','卡死在加载页进不去','非英语汉语软件，看不懂','网络检测，无法进入','需要订阅后使用','事件机制成因不明','逻辑混乱，无法正常游玩或使用']
+// const frozenReasonOptions = ['需要iOS17以上','需要登陆后使用，无法注册','卡死在加载页进不去','非英语汉语软件，看不懂','网络检测，无法进入','需要订阅后使用','事件机制成因不明','逻辑混乱，无法正常游玩或使用']
 const MAX_RETRIES = 5
-
+const { exceptionOptions, remarkTemplateOptions, frozenReasonOptions, loadTemplateOptions, preloadAllTemplateOptions } = useTemplateOptions()
 const downloadUrl = ref('')
 const bundleId = ref('')
 const originalCurrentTargetNum = ref(null)
@@ -1107,8 +1107,9 @@ function cancelTimer() {
 onMounted(() => {
   timerMsg.value = '计时结束后内容会在这里显示'
   loadHistory()
-})
 
+})
+onMounted(() => { preloadAllTemplateOptions() })
 onUnmounted(() => {
   cancelTimer()
   if (retryTimer) { clearTimeout(retryTimer); retryTimer = null }

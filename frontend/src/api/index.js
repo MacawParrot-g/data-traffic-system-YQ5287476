@@ -723,5 +723,48 @@ export function uploadFrozenV2(data) {
         body: JSON.stringify(data)
     }, 30000).then(safeJson)
 }
+//备注模板crud
+
+export function fetchTemplateOptions(type) {
+    return fetchWithTimeout('/api/template/options?type=' + encodeURIComponent(type), {}, 15000).then(safeJson)
+}
+
+export function templateManageSearch(params) {
+    return fetchWithTimeout('/api/template/manage/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(params)
+    }, 30000).then(safeJson)
+}
+
+export function templateManageAdd(content, type) {
+    return fetchWithTimeout('/api/template/manage/add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content, type })
+    }, 15000).then(safeJson)
+}
+
+export function templateManageUpdate(hash, content, type) {
+    return fetchWithTimeout('/api/template/manage/update', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ hash, content, type })
+    }, 15000).then(safeJson)
+}
+
+export function templateManageDelete(hash) {
+    return fetchWithTimeout('/api/template/manage/delete?hash=' + encodeURIComponent(hash), {
+        method: 'DELETE'
+    }, 15000).then(safeJson)
+}
+
+export function templateWarmUp(ttlSeconds) {
+    return fetchWithTimeout('/api/template/manage/warmup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ttlSeconds })
+    }, 30000).then(safeJson)
+}
 
 
