@@ -118,7 +118,7 @@ graph TB
     end
 
     subgraph EXT["外部依赖 External Dependencies"]
-        UP["归因任务平台<br/>d-reporter.de123.net"]
+        UP["归因任务平台<br/>外部归因代理平台"]
         MMP["归因渠道<br/>AppsFlyer / Adjust<br/>Singular / Tenjin"]
     end
 
@@ -382,7 +382,7 @@ docker compose -f /opt/traffic-data-system-YQ5287476/docker-compose.cicd.yml ps
 docker logs -f tds-backend
 
 # 进入 MySQL 容器（宿主机维护通道 13306）
-mysql -h 127.0.0.1 -P 13306 -u remote_user -p
+mysql -h 127.0.0.1 -P 13306 -u MYSQL_USER -p
 
 # Redis 维护通道（容器端口 6380）
 redis-cli -h 127.0.0.1 -p 16379
@@ -546,7 +546,7 @@ graph TB
     end
 
     subgraph EXT["External Dependencies"]
-        UP["Attribution task platform<br/>d-reporter.de123.net"]
+        UP["Attribution task platform<br/>upstream-proxy-platform"]
         MMP["Attribution channels<br/>AppsFlyer / Adjust<br/>Singular / Tenjin"]
     end
 
@@ -810,7 +810,7 @@ docker compose -f /opt/traffic-data-system-YQ5287476/docker-compose.cicd.yml ps
 docker logs -f tds-backend
 
 # MySQL via the host maintenance port 13306
-mysql -h 127.0.0.1 -P 13306 -u remote_user -p
+mysql -h 127.0.0.1 -P 13306 -u MYSQL_USER -p
 
 # Redis via the host maintenance port 16379
 redis-cli -h 127.0.0.1 -p 16379

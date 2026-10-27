@@ -2,30 +2,30 @@
   <div class="auto-mode">
     <div class="top-bar">
       <div v-if="duplicateTip" class="duplicate-tip">⚠️ {{ duplicateTip }}</div>
-    <div v-if="loading && !downloadUrl" class="loading">正在获取数据...</div>
-    <div class="combined-action-bar" v-if="currentUser">
-      <div class="combined-left">
-        <button class="btn-refresh" @click="comfirm()" :disabled="loading">
-          {{ loading ? '加载中...' : '刷新下载任务' }}
-        </button>
-<!--        <button class="btn-quick-refresh-count" @click="fetchDataByName()" :disabled="quickExportPolling" title="查看入库数量">🔄</button>-->
-<!--        <button class="btn-inventory" @click="showInventoryCount" :disabled="inventoryLoading">-->
-<!--          {{ inventoryLoading ? '查询中...' : '查看库存' }}-->
-<!--        </button>-->
-        <div class="realtime-stats">
-          <div class="realtime-item">
-            <span class="realtime-label">实时库存</span>
-            <span class="realtime-value" :class="{ 'realtime-muted': inventoryUnavailable }">{{ inventoryUnavailable ? '—' : inventoryCount }}</span>
+      <div v-if="loading && !downloadUrl" class="loading">正在获取数据...</div>
+      <div class="combined-action-bar" v-if="currentUser">
+        <div class="combined-left">
+          <button class="btn-refresh" @click="comfirm()" :disabled="loading">
+            {{ loading ? '加载中...' : '刷新下载任务' }}
+          </button>
+          <!--        <button class="btn-quick-refresh-count" @click="fetchDataByName()" :disabled="quickExportPolling" title="查看入库数量">🔄</button>-->
+          <!--        <button class="btn-inventory" @click="showInventoryCount" :disabled="inventoryLoading">-->
+          <!--          {{ inventoryLoading ? '查询中...' : '查看库存' }}-->
+          <!--        </button>-->
+          <div class="realtime-stats">
+            <div class="realtime-item">
+              <span class="realtime-label">实时库存</span>
+              <span class="realtime-value" :class="{ 'realtime-muted': inventoryUnavailable }">{{ inventoryUnavailable ? '—' : inventoryCount }}</span>
+            </div>
+            <span class="realtime-sep"></span>
+            <div class="realtime-item">
+              <span class="realtime-label">今日入库</span>
+              <span class="realtime-value">{{ todayCount }}</span>
+            </div>
+            <span class="realtime-refresh-hint">每10秒自动刷新<template v-if="lastRealtimeUpdate"> · {{ lastRealtimeUpdate }}</template></span>
           </div>
-          <span class="realtime-sep"></span>
-          <div class="realtime-item">
-            <span class="realtime-label">今日入库</span>
-            <span class="realtime-value">{{ todayCount }}</span>
-          </div>
-          <span class="realtime-refresh-hint">每10秒自动刷新<template v-if="lastRealtimeUpdate"> · {{ lastRealtimeUpdate }}</template></span>
         </div>
       </div>
-    </div>
     </div>
     <div class="empty-placeholder" v-if="!downloadUrl && !loading">
       <div class="empty-icon">404 NO FOUND</div>
@@ -156,7 +156,7 @@
         <div class="modal-title">库存已耗尽</div>
         <div class="modal-desc">当前没有可用的下载任务，请选择操作：</div>
         <div class="modal-actions">
-<!--          <button class="btn-modal btn-poll" @click="showRetestModal = false; startPolling()">继续轮询</button>-->
+          <!--          <button class="btn-modal btn-poll" @click="showRetestModal = false; startPolling()">继续轮询</button>-->
           <button class="btn-modal btn-retest" @click="retestFlow" :disabled="retestLoading">
             {{ retestLoading ? '获取中...' : '复测' }}
           </button>
@@ -876,7 +876,6 @@ function toStorageDate(isoDate) {
 //   }
 // }
 
-watch(downloadUrl, (val) => { renderQR(val) })
 
 function comfirm(){
   if(isSubmit===false&&downloadUrl.value!==null){
@@ -1267,39 +1266,42 @@ async function doFrozen() {
 }
 
 async function saveToMySQL() {
-  emit('record-saved')
+  // Deleted:emit('record-saved')
   if (recordSubmitted.value) return
   if (!form.exception_type.trim()) { emit('error', '请选择异常类型'); return }
+  if (saving.value) return
   saving.value = true; saveMsg.value = ''
-  if(newCurrentTargetNum.value===0||newCurrentTargetNum.value===null){
-    attributions.value=[]
-    alert('无新增事件token，即使原本的token有归因，也不会被设置在字段内')
-  }
-  let finalRemark = ''
-  if (eventResult.value === 'no_event') {
-    const frozenVal = frozenReasonText.value.trim()
-    if (!frozenRemarkForbidden.includes(frozenVal)) {
-      finalRemark = frozenVal
-    }
-  } else {
-    finalRemark = form.remark.trim()
-  }
-  if (isFrozen.value) {
-    finalRemark += isFrozen.value
-  }
-  if (newCurrentTargetNum.value > 0 && attributions.value.length === 0) {
-    finalRemark += ',无事件归因'
-  }
-  if (isRetestMode.value) {
-    form.record_data = generateCurrentTimestamp()
-  }
-
-  const finalRecordData = form.record_data.includes('T')
-      ? form.record_data
-      : form.record_data.includes('/')
-          ? form.record_data
-          : toStorageDate(form.record_data)
   try {
+    if (newCurrentTargetNum.value === 0 || newCurrentTargetNum.value === null) {
+      attributions.value = []
+      alert('无新增事件token，即使原本的token有归因，也不会被设置在字段内')
+    }
+    let finalRemark = ''
+    if (eventResult.value === 'no_event') {
+      const frozenVal = frozenReasonText.value.trim()
+      const forbidden = frozenRemarkForbidden.value || []
+      if (!forbidden.includes(frozenVal)) {
+        finalRemark = frozenVal
+      }
+    } else {
+      finalRemark = form.remark.trim()
+    }
+    if (isFrozen.value) {
+      finalRemark += isFrozen.value
+    }
+    if (newCurrentTargetNum.value > 0 && attributions.value.length === 0) {
+      finalRemark += ',无事件归因'
+    }
+    if (isRetestMode.value) {
+      form.record_data = generateCurrentTimestamp()
+    }
+
+    const finalRecordData = form.record_data.includes('T')
+        ? form.record_data
+        : form.record_data.includes('/')
+            ? form.record_data
+            : toStorageDate(form.record_data)
+
     const json = await insertRecord({
       URL: downloadUrl.value,
       bundleId: bundleId.value,
@@ -1315,12 +1317,17 @@ async function saveToMySQL() {
       submissionId: generateSubmissionId()
     })
     if (json.success) {
-      recordSubmitted.value  = true
-      isSubmit= true
+      recordSubmitted.value = true
+      isSubmit = true
+      emit('record-saved')
+    } else {
+      emit('error', json.message || '入库失败')
     }
-    else { emit('error', json.message || '入库失败') }
-  } catch (e) { emit('error', '入库请求失败：' + e.message) }
-  finally { saving.value = false }
+  } catch (e) {
+    emit('error', '入库请求失败：' + e.message)
+  } finally {
+    saving.value = false
+  }
 }
 
 function startTimer() {
@@ -1503,9 +1510,9 @@ onUnmounted(() => {
 })
 
 onMounted(() => {
-  timerMsg.value='计时结束后内容会在这里显示'
-  startRealtimeRefresh()
-  }
+      timerMsg.value='计时结束后内容会在这里显示'
+      startRealtimeRefresh()
+    }
 )
 onMounted(() => { preloadAllTemplateOptions() })
 
