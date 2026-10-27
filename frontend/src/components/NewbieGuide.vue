@@ -206,7 +206,7 @@ function isExpanded(key) {
             </table>
 
             <h4>4.3 请求地址说明</h4>
-            <p>手动模式输入 App ID 后，系统会向以下地址发起请求：<code>https://d-reporter.de123.net/ad/play/task?appleid=您输入的AppID</code>。页面上会显示完整的请求地址供您确认。</p>
+            <p>手动模式输入 App ID 后，系统会经由后端代理请求上游任务接口（实际地址由服务端环境变量配置，不在前端展示）。任务数据返回后，页面会显示下载链接、Bundle ID 等信息供您确认。</p>
           </div>
 
           <div class="guide-section" v-show="isExpanded('u-qrcode')">
@@ -929,7 +929,7 @@ function isExpanded(key) {
 
             <h4>12.6 归因查询失败</h4>
             <ol>
-              <li>检查外部归因 API 的可达性：归因查询依赖外部服务（d-reporter.de123.net），如果外部服务不可用会导致查询失败。</li>
+              <li>检查外部归因 API 的可达性：归因查询依赖上游归因平台（外部服务），如果外部服务不可用会导致查询失败。</li>
               <li>检查 Bundle ID 格式是否正确。</li>
               <li>查看后端日志中是否有外部 API 调用的超时或错误信息。</li>
             </ol>

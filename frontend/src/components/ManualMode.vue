@@ -13,7 +13,7 @@
         </button>
       </div>
       <div class="preview-url" v-if="appId.trim()">
-        <strong>请求地址：</strong>https://d-reporter.de123.net/ad/play/task?appleid={{ appId.trim() }}
+        <strong>请求地址：</strong>https://[上游域名由后端配置]/ad/play/task?appleid={{ appId.trim() }}
       </div>
     </div>
 
