@@ -28,6 +28,10 @@ public class RestTemplateConfig {
         CloseableHttpClient httpClient = HttpClients.custom()
                 .setConnectionManager(connectionManager)
                 .setDefaultRequestConfig(requestConfig)
+                // 关闭 Apache HttpClient 的自动重试：
+                // 否则 @Timeout 的 watchdog 中断线程或网络抖动抛 IOException 时，
+                // HttpClient 会盲目重发冻结等 POST 请求，且流式 body 不可重放，导致"重复发送无参数请求"
+                .disableAutomaticRetries()
                 .evictExpiredConnections()
                 .evictIdleConnections(TimeValue.ofSeconds(30))
                 .build();
