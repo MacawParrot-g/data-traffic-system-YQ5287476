@@ -224,6 +224,7 @@ const tabs = [
   { key: 'qrcode', label: '二维码生成' },
   { key: 'data', label: '数据看板&导出' },
   { key: 'mon', label: '监控面板' },
+  { key: 'DS', label: 'DeepSeek助手' },
   { key: 'grade', label: '评级管理' },
   { key: 'remark', label: '备注管理' },
   { key: 'audit', label: '审计日志' },
@@ -239,7 +240,7 @@ const tabs = [
 const filteredTabs = computed(() => {
   let result = [...tabs]
   if (accType.value !== 'DEVELOPER') {
-    result = result.filter(t => t.key !== 'develop' && t.key !== 'mon' && t.key !== 'mq')
+    result = result.filter(t => t.key !== 'develop' && t.key !== 'mon' && t.key !== 'mq' && t.key !== 'DS')
   }
   if (accType.value === 'USER') {
     result = result.filter(t => t.key !== 'audit' && t.key !== 'task' && t.key !== 'notify')
