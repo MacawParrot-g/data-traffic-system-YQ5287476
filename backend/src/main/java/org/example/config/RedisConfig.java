@@ -173,6 +173,17 @@ public class RedisConfig implements DisposableBean {
         return template;
     }
 
+    @Bean
+    public RedisTemplate<String, Object> deepSeekRedisTemplate() {
+        LettuceConnectionFactory factory = createManagedFactory(12);
+        RedisTemplate<String, Object> template = new RedisTemplate<>();
+        template.setConnectionFactory(factory);
+        template.setKeySerializer(new StringRedisSerializer());
+        template.setValueSerializer(new StringRedisSerializer());
+        template.afterPropertiesSet();
+        return template;
+    }
+
     @Override
     public void destroy() {
         log.info("开始关闭 {} 个Redis连接工厂...", managedFactories.size());

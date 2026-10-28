@@ -790,4 +790,28 @@ export function deepSeekChat(messages, options = {}) {
     }, 130000).then(safeJson)
 }
 
+export function deepSeekListSessions() {
+    return fetchWithTimeout('/api/deepseek/sessions', {}, 15000).then(safeJson)
+}
+
+export function deepSeekCreateSession() {
+    return fetchWithTimeout('/api/deepseek/session', { method: 'POST' }, 15000).then(safeJson)
+}
+
+export function deepSeekGetSession(sessionId) {
+    return fetchWithTimeout('/api/deepseek/session?sessionId=' + encodeURIComponent(sessionId), {}, 15000).then(safeJson)
+}
+
+export function deepSeekSaveSession(sessionId, messages, totalTokens) {
+    return fetchWithTimeout('/api/deepseek/session/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, messages, totalTokens })
+    }, 15000).then(safeJson)
+}
+
+export function deepSeekDeleteSession(sessionId) {
+    return fetchWithTimeout('/api/deepseek/session?sessionId=' + encodeURIComponent(sessionId), { method: 'DELETE' }, 15000).then(safeJson)
+}
+
 

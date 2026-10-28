@@ -18,6 +18,20 @@ public interface DeepSeekService {
      */
     Result chat(List<Map<String, String>> messages, String model, Double temperature, Integer maxTokens);
 
-    /** 返回配置状态（不暴露密钥）。 */
     Result status();
+
+    /** 列出当前用户的所有会话（按最近使用排序）。 */
+    Result listSessions();
+
+    /** 新建一个空会话，返回会话元数据。 */
+    Result createSession();
+
+    /** 获取指定会话的消息内容。 */
+    Result getSession(String sessionId);
+
+    /** 保存（覆盖）指定会话的消息快照与累计 token。 */
+    Result saveSession(String sessionId, List<Map<String, Object>> messages, Integer totalTokens);
+
+    /** 删除指定会话。 */
+    Result deleteSession(String sessionId);
 }
