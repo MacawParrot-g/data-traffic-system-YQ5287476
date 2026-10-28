@@ -1786,6 +1786,14 @@ watch(activeTab, async (newTab) => {
               <span class="appid-online-label">过期时间</span>
               <span class="appid-online-value">{{ formatAppIdTime(appIdOnlineResult.expireTime) }}</span>
             </div>
+            <div class="appid-online-field">
+              <span class="appid-online-label">冻结时间</span>
+              <span class="appid-online-value">{{ formatAppIdTime(appIdOnlineResult.frozenTime) }}</span>
+            </div>
+            <div class="appid-online-field appid-online-field-wide">
+              <span class="appid-online-label">冻结原因</span>
+              <span class="appid-online-value">{{ appIdOnlineResult.remark || '无' }}</span>
+            </div>
           </div>
           <div v-if="appIdSaveMsg" class="appid-sync-msg" :class="{ 'appid-sync-ok': appIdSaveMsg.startsWith('') || appIdSaveMsg.includes('已存在'), 'appid-sync-err': appIdSaveMsg.startsWith('') }">
             {{ appIdSaveMsg }}
