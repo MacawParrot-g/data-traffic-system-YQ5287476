@@ -114,4 +114,7 @@ springdoc:
   swagger-ui:
     enabled: true
     path: /swagger-ui.html
-
+deepseek:
+  api-key: ${DEEPSEEK_API_KEY:}
+  base-url: ${DEEPSEEK_BASE_URL:https://api.deepseek.com}
+  model: ${DEEPSEEK_MODEL:deepseek-chat}

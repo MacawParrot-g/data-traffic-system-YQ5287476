@@ -776,4 +776,18 @@ export function stopSecondDelivery(appId, updateVersion) {
     }, 30000).then(safeJson)
 }
 
+// ==================== DeepSeek AI ====================
+
+export function deepSeekStatus() {
+    return fetchWithTimeout('/api/deepseek/status', {}, 10000).then(safeJson)
+}
+
+export function deepSeekChat(messages, options = {}) {
+    return fetchWithTimeout('/api/deepseek/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages, ...options })
+    }, 130000).then(safeJson)
+}
+
 

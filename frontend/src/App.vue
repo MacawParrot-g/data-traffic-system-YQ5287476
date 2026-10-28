@@ -139,6 +139,7 @@ import MQPanel from "./components/MQPanel.vue";
 import DataSource from "./components/DataSource.vue";
 import PyScriptPanel from "./components/PyScriptPanel.vue";
 import TemplateManage from "./components/TemplateManage.vue";
+import DeepSeekChat from "./components/DeepSeekChat.vue";
 const notifCount = ref(0)
 let bellPollTimer = null
 const mode = ref('auto')
@@ -165,6 +166,7 @@ const tabIcons = {
   qrcode: 'Q',
   data: 'D',
   mon: 'M',
+  DS: 'C',
   grade: 'G',
   remark: 'R',
   audit: 'U',
@@ -195,6 +197,7 @@ const componentMap = computed(() => {
     map.mon = MonitorPanel
     map.mq = MQPanel
     map.py = PyScriptPanel
+    map.DS = DeepSeekChat
   }
   if (accType.value === 'USER' || accType.value === 'ADMIN' || accType.value === 'DEVELOPER') {
     map.grade = GradeManage
