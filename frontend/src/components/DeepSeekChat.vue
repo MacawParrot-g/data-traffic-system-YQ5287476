@@ -6,7 +6,7 @@ import {
   deepSeekListSessions, deepSeekCreateSession,
   deepSeekGetSession, deepSeekSaveSession, deepSeekDeleteSession
 } from '../api/index.js'
-
+import { renderMarkdown } from '../utils/markdown.js'
 const emit = defineEmits(['error'])
 
 const ACTIVE_KEY = 'deepseek.activeSession'
@@ -270,6 +270,7 @@ onMounted(async () => {
               <span class="ds-spinner"></span> 正在生成回复...
             </div>
             <div v-else-if="m.error" class="ds-error-text">{{ m.error }}</div>
+            <div v-else-if="m.role === 'assistant'" class="ds-msg-content ds-md" v-html="renderMarkdown(m.content)"></div>
             <div v-else class="ds-msg-content">{{ m.content }}</div>
 
             <div v-if="m.usage" class="ds-usage">
@@ -342,6 +343,73 @@ onMounted(async () => {
   cursor: pointer;
   border: 1px solid transparent;
 }
+
+/* ===== Markdown 渲染样式（v-html 内容需用 :deep 穿透 scoped） ===== */
+.ds-md { white-space: normal; line-height: 1.7; }
+.ds-md :deep(> :first-child) { margin-top: 0; }
+.ds-md :deep(> :last-child) { margin-bottom: 0; }
+.ds-md :deep(p) { margin: 6px 0; }
+.ds-md :deep(h1), .ds-md :deep(h2), .ds-md :deep(h3),
+.ds-md :deep(h4), .ds-md :deep(h5), .ds-md :deep(h6) {
+  margin: 12px 0 8px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+.ds-md :deep(h1) { font-size: 20px; }
+.ds-md :deep(h2) { font-size: 18px; }
+.ds-md :deep(h3) { font-size: 16px; }
+.ds-md :deep(h4) { font-size: 15px; }
+.ds-md :deep(ul), .ds-md :deep(ol) { margin: 6px 0; padding-left: 22px; }
+.ds-md :deep(li) { margin: 3px 0; }
+.ds-md :deep(li::marker) { color: #4c8dff; }
+.ds-md :deep(strong) { font-weight: 700; color: #1a1a2e; }
+.ds-md :deep(em) { font-style: italic; }
+.ds-md :deep(a) { color: #4c8dff; text-decoration: none; }
+.ds-md :deep(a:hover) { text-decoration: underline; }
+.ds-md :deep(hr) { border: none; border-top: 1px solid #eee; margin: 12px 0; }
+.ds-md :deep(blockquote) {
+  margin: 8px 0;
+  padding: 6px 14px;
+  color: #555;
+  background: #f7f9fc;
+  border-left: 3px solid #b7c8ff;
+  border-radius: 4px;
+}
+.ds-md :deep(code) {
+  background: #eef0f3;
+  color: #c7254e;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 13px;
+}
+.ds-md :deep(pre) {
+  background: #282c34;
+  padding: 12px 14px;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 8px 0;
+}
+.ds-md :deep(pre code) {
+  background: transparent;
+  color: #e6e6e6;
+  padding: 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.ds-md :deep(table) {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 10px 0;
+  font-size: 13px;
+}
+.ds-md :deep(th), .ds-md :deep(td) {
+  border: 1px solid #e0e0e0;
+  padding: 6px 10px;
+  text-align: left;
+}
+.ds-md :deep(th) { background: #f5f7fa; font-weight: 600; }
+
 .ds-session-item:hover { background: #eef2ff; }
 .ds-session-item.active { background: #e6f4ff; border-color: #91caff; }
 .ds-session-main { flex: 1; overflow: hidden; }
