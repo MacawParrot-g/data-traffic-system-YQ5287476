@@ -142,8 +142,9 @@ public class DeepSeekServiceImpl implements DeepSeekService {
 
         try {
             String ck = convKey(username, sessionId);
+            // 会话数据永久保存：SET 不带过期时间，同时会清除该 key 历史上残留的 TTL
             deepSeekRedisTemplate.opsForValue().set(ck, objectMapper.writeValueAsString(new ArrayList<>()));
-            deepSeekRedisTemplate.expire(ck, SESSION_TTL);
+            // Deleted:deepSeekRedisTemplate.expire(ck, SESSION_TTL);
         } catch (Exception e) {
             return Result.fail("创建会话失败：" + e.getMessage());
         }
@@ -178,6 +179,7 @@ public class DeepSeekServiceImpl implements DeepSeekService {
         if (sessionId == null || sessionId.isBlank()) return Result.fail("会话ID不能为空");
         if (messages == null) messages = new ArrayList<>();
 
+        long now = System.currentTimeMillis();
         List<Map<String, Object>> clean = new ArrayList<>();
         for (Map<String, Object> m : messages) {
             if (Boolean.TRUE.equals(m.get("pending"))) continue;
@@ -187,13 +189,17 @@ public class DeepSeekServiceImpl implements DeepSeekService {
             if (m.get("reasoning") != null) c.put("reasoning", m.get("reasoning"));
             if (m.get("usage") != null) c.put("usage", m.get("usage"));
             if (m.get("error") != null) c.put("error", m.get("error"));
+            if (m.get("expiresAt") instanceof Number) {
+                long expiresAt = ((Number) m.get("expiresAt")).longValue();
+                if (expiresAt <= now) continue;
+                c.put("expiresAt", expiresAt);
+            }
             clean.add(c);
         }
 
         try {
             String ck = convKey(username, sessionId);
             deepSeekRedisTemplate.opsForValue().set(ck, objectMapper.writeValueAsString(clean));
-            deepSeekRedisTemplate.expire(ck, SESSION_TTL);
         } catch (Exception e) {
             return Result.fail("保存会话失败：" + e.getMessage());
         }
@@ -203,7 +209,6 @@ public class DeepSeekServiceImpl implements DeepSeekService {
         for (Map<String, Object> m : metas) {
             if (sessionId.equals(m.get("id"))) { target = m; break; }
         }
-        long now = System.currentTimeMillis();
         if (target == null) {
             target = new LinkedHashMap<>();
             target.put("id", sessionId);
@@ -234,12 +239,58 @@ public class DeepSeekServiceImpl implements DeepSeekService {
         return Result.success("删除会话成功");
     }
 
+    @Override
+    public Result setMessageTtl(String sessionId, Integer messageIndex, Long ttlSeconds) {
+        String username = currentUsername();
+        if (username == null) return Result.fail("未获取到用户身份");
+        if (sessionId == null || sessionId.isBlank()) return Result.fail("会话ID不能为空");
+        if (messageIndex == null || messageIndex < 0) return Result.fail("消息索引不能为空");
+
+        List<Map<String, Object>> messages = readConv(username, sessionId);
+        if (messageIndex >= messages.size()) return Result.fail("消息索引超出范围");
+
+        Map<String, Object> msg = messages.get(messageIndex);
+        if (ttlSeconds == null || ttlSeconds <= 0) {
+            msg.remove("expiresAt");
+        } else {
+            msg.put("expiresAt", System.currentTimeMillis() + ttlSeconds * 1000L);
+        }
+
+        try {
+            deepSeekRedisTemplate.opsForValue().set(convKey(username, sessionId), objectMapper.writeValueAsString(messages));
+        } catch (Exception e) {
+            return Result.fail("设置过期时间失败：" + e.getMessage());
+        }
+        return Result.success(ttlSeconds == null || ttlSeconds <= 0 ? "已取消过期，该回复永久保存" : "已设置该回复的过期时间", msg);
+    }
+
     // ==================== 私有辅助 ====================
 
     private String currentUsername() {
         String u = UserContext.getUsername();
         if (u == null || u.isBlank() || "无用户参数".equals(u)) return null;
         return u;
+    }
+
+    private List<Map<String, Object>> filterExpired(String username, String sessionId, List<Map<String, Object>> msgs) {
+        long now = System.currentTimeMillis();
+        List<Map<String, Object>> valid = new ArrayList<>();
+        boolean expiredRemoved = false;
+        for (Map<String, Object> m : msgs) {
+            if (m.get("expiresAt") instanceof Number && ((Number) m.get("expiresAt")).longValue() <= now) {
+                expiredRemoved = true;
+                continue;
+            }
+            valid.add(m);
+        }
+        if (expiredRemoved) {
+            try {
+                deepSeekRedisTemplate.opsForValue().set(convKey(username, sessionId), objectMapper.writeValueAsString(valid));
+            } catch (Exception e) {
+                log.warn("清理过期回复失败: {}", e.getMessage());
+            }
+        }
+        return valid;
     }
 
     private String convKey(String username, String sessionId) {

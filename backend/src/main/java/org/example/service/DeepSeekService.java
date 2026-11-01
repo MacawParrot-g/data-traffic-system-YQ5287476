@@ -34,4 +34,6 @@ public interface DeepSeekService {
 
     /** 删除指定会话。 */
     Result deleteSession(String sessionId);
+
+    Result setMessageTtl(String sessionId, Integer messageIndex, Long ttlSeconds);
 }

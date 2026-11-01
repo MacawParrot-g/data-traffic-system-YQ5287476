@@ -4,7 +4,8 @@ import { ref, computed, onMounted, nextTick } from 'vue'
 import {
   deepSeekChat, deepSeekStatus,
   deepSeekListSessions, deepSeekCreateSession,
-  deepSeekGetSession, deepSeekSaveSession, deepSeekDeleteSession
+  deepSeekGetSession, deepSeekSaveSession, deepSeekDeleteSession,
+  deepSeekSetMessageTtl
 } from '../api/index.js'
 import { renderMarkdown } from '../utils/markdown.js'
 const emit = defineEmits(['error'])
@@ -123,7 +124,8 @@ async function persist() {
         content: m.content,
         reasoning: m.reasoning || undefined,
         usage: m.usage || undefined,
-        error: m.error || undefined
+        error: m.error || undefined,
+        expiresAt: m.expiresAt || undefined
       }))
   try {
     const json = await deepSeekSaveSession(activeId.value, snapshot, sessionTotalTokens.value)
@@ -132,6 +134,30 @@ async function persist() {
       if (idx >= 0) sessions.value[idx] = { ...sessions.value[idx], ...json.data }
     }
   } catch (e) { /* 持久化失败不阻断聊天 */ }
+}
+
+async function onTtlChange(index, e) {
+  const val = e.target.value
+  const ttlSeconds = val ? Number(val) : 0
+  try {
+    const json = await deepSeekSetMessageTtl(activeId.value, index, ttlSeconds)
+    if (json.success) {
+      if (ttlSeconds > 0) {
+        messages.value[index].expiresAt = Date.now() + ttlSeconds * 1000
+      } else {
+        delete messages.value[index].expiresAt
+      }
+    } else {
+      emit('error', json.message || '设置过期时间失败')
+    }
+  } catch (err) {
+    emit('error', '设置过期时间失败：' + err.message)
+  }
+}
+
+function formatExpire(ts) {
+  if (!ts) return ''
+  return new Date(ts).toLocaleString('zh-CN', { hour12: false })
 }
 
 async function send() {
@@ -276,6 +302,19 @@ onMounted(async () => {
             <div v-if="m.usage" class="ds-usage">
               tokens: 输入 {{ m.usage.prompt_tokens }} · 输出 {{ m.usage.completion_tokens }} · 合计 {{ m.usage.total_tokens }}
             </div>
+
+            <div v-if="m.role === 'assistant' && !m.pending && !m.error" class="ds-msg-actions">
+              <label class="ds-ttl-label">本条回复有效期</label>
+              <select class="ds-ttl-select" @change="onTtlChange(i, $event)">
+                <option value="">永久</option>
+                <option value="60">1 分钟</option>
+                <option value="300">5 分钟</option>
+                <option value="3600">1 小时</option>
+                <option value="86400">1 天</option>
+                <option value="604800">7 天</option>
+              </select>
+              <span v-if="m.expiresAt" class="ds-ttl-hint">{{ formatExpire(m.expiresAt) }} 后自动删除</span>
+            </div>
           </div>
         </div>
 
@@ -397,6 +436,30 @@ onMounted(async () => {
   font-size: 13px;
   line-height: 1.5;
 }
+
+.ds-error-text { color: #cf1322; font-size: 14px; }
+.ds-usage { margin-top: 6px; font-size: 12px; color: #999; }
+
+.ds-msg-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px dashed #e0e0e0;
+}
+.ds-ttl-label { font-size: 12px; color: #666; }
+.ds-ttl-select {
+  height: 26px;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  padding: 0 6px;
+  font-size: 12px;
+  background: #fff;
+  cursor: pointer;
+}
+.ds-ttl-hint { font-size: 12px; color: #ad6800; }
+
 .ds-md :deep(table) {
   border-collapse: collapse;
   width: 100%;

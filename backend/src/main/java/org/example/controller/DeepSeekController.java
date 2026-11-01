@@ -69,4 +69,14 @@ public class DeepSeekController {
     public Result deleteSession(@RequestParam String sessionId) {
         return deepSeekService.deleteSession(sessionId);
     }
+    @PostMapping("/message/ttl")
+    @LogExecutionTime("DeepSeek-设置回复过期")
+    public Result setMessageTtl(@RequestBody Map<String, Object> body) {
+        String sessionId = (String) body.get("sessionId");
+        Integer messageIndex = body.get("messageIndex") != null
+                ? ((Number) body.get("messageIndex")).intValue() : null;
+        Long ttlSeconds = body.get("ttlSeconds") != null
+                ? ((Number) body.get("ttlSeconds")).longValue() : null;
+        return deepSeekService.setMessageTtl(sessionId, messageIndex, ttlSeconds);
+    }
 }

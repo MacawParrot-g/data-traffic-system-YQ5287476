@@ -814,4 +814,12 @@ export function deepSeekDeleteSession(sessionId) {
     return fetchWithTimeout('/api/deepseek/session?sessionId=' + encodeURIComponent(sessionId), { method: 'DELETE' }, 15000).then(safeJson)
 }
 
+export function deepSeekSetMessageTtl(sessionId, messageIndex, ttlSeconds) {
+    return fetchWithTimeout('/api/deepseek/message/ttl', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, messageIndex, ttlSeconds })
+    }, 15000).then(safeJson)
+}
+
 
