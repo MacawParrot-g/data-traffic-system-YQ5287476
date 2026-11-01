@@ -247,7 +247,12 @@
         </div>
         <div class="grade-form-group">
           <label>测试要求 / 备注</label>
-          <textarea v-model="gradeForm.remark" placeholder="输入该应用的测试要求..." rows="3"></textarea>
+          <textarea v-model="gradeForm.remark" placeholder="输入该应用的测试要求，或从下方备注库选择..." rows="3"></textarea>
+          <select class="grade-remark-select" v-model="gradeRemarkSelect" @focus="loadTemplateOptions('冻结理由')" @change="gradeForm.remark = gradeRemarkSelect">
+            <option value="">从备注库选择（与冻结理由共用，可直接手动输入）</option>
+            <option v-for="opt in frozenReasonOptions" :key="opt" :value="opt">{{ opt }}</option>
+          </select>
+          <div class="grade-remark-lib-tip">选择备注库条目将覆盖上方输入框内容，作为本次评级的测试要求</div>
         </div>
         <div class="grade-form-group">
           <label>评分人</label>
@@ -414,7 +419,10 @@
   margin-bottom: 16px;
   flex-wrap: wrap;
 }
-
+.grade-disabled-input { width: 100%; box-sizing: border-box; padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 13px; background: #f9fafb; color: #6b7280; }
+.grade-remark-select { width: 100%; box-sizing: border-box; padding: 8px 12px; margin-top: 8px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 13px; background: #fff; cursor: pointer; transition: all 0.2s; font-family: inherit; }
+.grade-remark-select:focus { outline: none; border-color: #f59e0b; box-shadow: 0 0 0 3px rgba(245,158,11,0.1); }
+.grade-remark-lib-tip { margin-top: 6px; font-size: 11px; color: #94a3b8; }
 .version-card .version-value {
   display: flex;
   align-items: center;
@@ -763,6 +771,7 @@ const loading = ref(false)
 const eventLoading = ref(false)
 const dateSource = ref('applyTime')
 const frozenLoading = ref(false)
+const gradeRemarkSelect = ref('')
 const saving = ref(false)
 const saveMsg = ref('')
 const showRetestModal = ref(false)
@@ -851,6 +860,13 @@ function generateCurrentTimestamp() {
   const ss = String(d.getSeconds()).padStart(2, '0')
   return `${yyyy}-${mm}-${dd}T${hh}:${mi}:${ss}`
 }
+
+watch(showGradeModal, (val) => {
+  if (val) {
+    loadTemplateOptions('冻结理由')
+    gradeRemarkSelect.value = frozenReasonOptions.value.includes(gradeForm.remark) ? gradeForm.remark : ''
+  }
+})
 
 function toStorageDate(isoDate) {
   if (!isoDate) return ''
@@ -1199,6 +1215,7 @@ function resetState() {
   stopDeliveryMsg.value = ''
   versionForm.appId = ''; versionForm.bundleId = ''; versionForm.checkVersion = ''
   gradeForm.grade = ''; gradeForm.remark = ''
+  gradeRemarkSelect.value = ''
 }
 
 function generateSubmissionId() {
