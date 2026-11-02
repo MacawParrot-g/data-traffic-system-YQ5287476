@@ -1,6 +1,6 @@
 <!-- 文件路径: frontend/src/components/DeepSeekChat.vue -->
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted,nextTick } from 'vue'
 import {
   deepSeekChat, deepSeekStatus, deepSeekBalance,
   deepSeekListSessions, deepSeekCreateSession,
@@ -98,6 +98,12 @@ async function openSession(id) {
     loadingSession.value = false
     scrollToBottom()
   }
+}
+
+
+function formatAmount(val) {
+  const num = Number(val)
+  return Number.isFinite(num) ? num.toFixed(2) : '--'
 }
 
 async function newSession() {
