@@ -51,6 +51,9 @@
           <div class="qrcode-container">
             <canvas ref="qrCanvas"></canvas>
           </div>
+          <div class="app-status-row" :title="'上游 status = ' + (taskStatus === null ? '未返回' : taskStatus)">
+            <span class="app-status-badge" :class="statusInfo.cls">{{ statusInfo.text }}</span>
+          </div>
         </div>
         <div class="side-info">
           <div class="info-card">
@@ -512,10 +515,10 @@ import {
   addColumn, modifyColumn, dropColumn, executeSQL, batchImport,
   stopSecondDelivery
 } from '../api/index.js'
-
+import { useAppStatus } from '../utils/useAppStatus.js'
 import { generateCurrentTimestamp, trimApplyTime, toStorageDate } from '../utils/date.js'
 import DevGuide from './DevGuide.vue'
-
+const { taskStatus, statusInfo, setTaskStatus, resetTaskStatus } = useAppStatus()
 const emit = defineEmits(['error', 'record-saved'])
 const currentVersion = ref('')
 const checkVerion = ref('')
@@ -700,6 +703,7 @@ async function fetchData() {
       applyTime.value = trimApplyTime(json.data.applyTime || '')
       taskId.value = json.data.id ?? null
       originalCurrentTargetNum.value = json.data.currentTargetNum ?? null
+      setTaskStatus(json.data.status)
       isSubmit = false
       fillAttrBundleIds(bundleId.value)
       if (originalCurrentTargetNum.value <= 1 || originalCurrentTargetNum.value === 0) {
@@ -742,6 +746,7 @@ async function fetchByAppId() {
       bundleId.value = json.data.bundleId || ''
       applyTime.value = trimApplyTime(json.data.applyTime || '')
       originalCurrentTargetNum.value = json.data.currentTargetNum ?? null
+      setTaskStatus(json.data.status)
       isSubmit = false
       taskId.value = json.data.id ?? null
       fillAttrBundleIds(bundleId.value)
@@ -781,6 +786,7 @@ function resetState() {
   form.record_data = getTodayStr()
   isFrozen.value = ''
   frozenDone.value = false
+  resetTaskStatus()
   frozenReasonText.value = ''
   frozenReasonSelect.value = ''
   currentVersion.value = ''
@@ -841,6 +847,7 @@ async function retestFlow() {
           const obt = await fetchObtain(appId.value)
           if (obt.success && obt.data) {
             downloadUrl.value = obt.data.downloadUrl || ''
+            setTaskStatus(obt.data.status)
           }
         }
       } catch (e) {
@@ -1460,6 +1467,12 @@ async function handleBatchImport() {
   color: #dc2626;
   font-weight: 600;
 }
+
+.app-status-row { margin-top: 12px; display: flex; justify-content: center; }
+.app-status-badge { display: inline-block; padding: 4px 14px; border-radius: 8px; font-size: 12px; font-weight: 700; letter-spacing: 0.5px; border: 1px solid transparent; }
+.app-status-badge.normal { background: #dcfce7; color: #166534; border-color: #86efac; }
+.app-status-badge.frozen { background: #dbeafe; color: #1e40af; border-color: #93c5fd; }
+.app-status-badge.unknown { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }
 
 /* ... existing code ... */
 .date-source-toggle { display: flex; gap: 6px; margin-bottom: 6px; }

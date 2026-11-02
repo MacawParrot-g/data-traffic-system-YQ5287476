@@ -37,6 +37,9 @@
         <div class="qrcode-container">
           <canvas ref="qrCanvas"></canvas>
         </div>
+        <div class="app-status-row" :title="'上游 status = ' + (taskStatus === null ? '未返回' : taskStatus)">
+          <span class="app-status-badge" :class="statusInfo.cls">{{ statusInfo.text }}</span>
+        </div>
       </div>
       <div class="side-info">
         <div class="info-card">
@@ -194,6 +197,24 @@
   border-radius: 16px;
   margin-bottom: 20px;
 }
+
+.app-status-row {
+  margin-top: 12px;
+  display: flex;
+  justify-content: center;
+}
+.app-status-badge {
+  display: inline-block;
+  padding: 4px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  border: 1px solid transparent;
+}
+.app-status-badge.normal { background: #dcfce7; color: #166534; border-color: #86efac; }
+.app-status-badge.frozen { background: #dbeafe; color: #1e40af; border-color: #93c5fd; }
+.app-status-badge.unknown { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }
 
 .timer-panel .frozen-result {
   margin-top: 6px;
@@ -371,6 +392,7 @@
 import {ref, reactive, watch, nextTick, onUnmounted, onMounted} from 'vue'
 import { renderQRToCanvas } from '../utils/qrcode.js'
 import { useTemplateOptions } from '../utils/useTemplateOptions.js'
+import { useAppStatus } from '../utils/useAppStatus.js'
 import {
   fetchObtain,
   fetchEvent,
@@ -380,7 +402,7 @@ import {
   uploadFrozenV2,
   fetchCountByRecorder
 } from '../api/index.js'
-
+const { taskStatus, statusInfo, setTaskStatus, resetTaskStatus } = useAppStatus()
 const emit = defineEmits(['error'])
 // const exceptionOptions = ['正常','iOS16闪退','iOS13/14/16均闪退','需要iOS18以上','地区不支持','硬件版本过低','超过10分钟0上报','越狱检测','其他','验证已解决']
 // const frozenReasonOptions = ['需要iOS17以上','需要登陆后使用，无法注册','卡死在加载页进不去','非英语汉语软件，看不懂','网络检测，无法进入','需要订阅后使用','事件机制成因不明','逻辑混乱，无法正常游玩或使用']
@@ -475,6 +497,7 @@ async function fetchData() {
       taskId.value = json.data.id ?? null
       applyTime.value = trimApplyTime(json.data.applyTime || '')
       originalCurrentTargetNum.value = json.data.currentTargetNum ?? null
+      setTaskStatus(json.data.status)
       if(originalCurrentTargetNum.value<=1||originalCurrentTargetNum.value===0){
         alert("初始originalCurrentTargetNum数小于等于1或等于0，后续测试期间可能会没有归因，请注意")
       }
@@ -683,6 +706,7 @@ function resetState() {
   frozenDone.value = false
   frozenReasonText.value = ''
   frozenReasonSelect.value = ''
+  resetTaskStatus()
 }
 
 function startTimer() {
