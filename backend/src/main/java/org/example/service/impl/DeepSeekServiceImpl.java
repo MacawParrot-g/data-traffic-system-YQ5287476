@@ -11,14 +11,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -35,6 +34,9 @@ public class DeepSeekServiceImpl implements DeepSeekService {
     private static final String CONV_PREFIX = "deepseek:conv:";
     private static final Duration SESSION_TTL = Duration.ofDays(30);
     private static final int MAX_SESSIONS = 50;
+    private volatile Map<String, Object> cachedBalance;
+    private volatile long cachedBalanceAt;
+    private static final long BALANCE_CACHE_MILLIS = 30_000L;
 
     @Qualifier("deepSeekRestTemplate")
     @Autowired
@@ -120,6 +122,48 @@ public class DeepSeekServiceImpl implements DeepSeekService {
         data.put("model", defaultModel);
         data.put("baseUrl", baseUrl);
         return Result.success("获取配置成功", data);
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public Result balance(boolean forceRefresh) {
+        if (apiKey == null || apiKey.isBlank()) {
+            return Result.fail("DeepSeek API Key 未配置，请在服务器 .env 文件中设置 DEEPSEEK_API_KEY");
+        }
+
+        long now = System.currentTimeMillis();
+        Map<String, Object> cached = cachedBalance;
+        if (!forceRefresh && cached != null && now - cachedBalanceAt < BALANCE_CACHE_MILLIS) {
+            Map<String, Object> data = new LinkedHashMap<>(cached);
+            data.put("cached", true);
+            return Result.success("获取余额成功", data);
+        }
+
+        String url = baseUrl + "/user/balance";
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(apiKey);
+        HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+        try {
+            ResponseEntity<Map> resp = deepSeekRestTemplate.exchange(url, HttpMethod.GET, entity, Map.class);
+            Map<String, Object> json = resp.getBody();
+            if (json == null) {
+                return Result.fail("DeepSeek 返回空响应");
+            }
+
+            Map<String, Object> data = normalizeBalance(json);
+            cachedBalance = data;
+            cachedBalanceAt = System.currentTimeMillis();
+            return Result.success("获取余额成功", data);
+
+        } catch (HttpStatusCodeException e) {
+            String detail = extractErrorMessage(e.getResponseBodyAsString());
+            log.error("DeepSeek 余额查询失败, status={}, body={}", e.getStatusCode().value(), e.getResponseBodyAsString());
+            return Result.fail("余额查询失败(" + e.getStatusCode().value() + ")：" + detail);
+        } catch (Exception e) {
+            log.error("DeepSeek 余额查询异常: {}", e.getMessage());
+            return Result.fail("余额查询异常：" + e.getMessage());
+        }
     }
 
     // ==================== 会话持久化 ====================
@@ -365,5 +409,57 @@ public class DeepSeekServiceImpl implements DeepSeekService {
         } catch (Exception ignore) {
         }
         return rawBody.length() > 200 ? rawBody.substring(0, 200) : rawBody;
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> normalizeBalance(Map<String, Object> json) {
+        List<Map<String, Object>> rawInfos = (List<Map<String, Object>>) json.get("balance_infos");
+        List<Map<String, Object>> items = new ArrayList<>();
+        double total = 0d;
+        double granted = 0d;
+        double toppedUp = 0d;
+        String currency = null;
+
+        if (rawInfos != null) {
+            for (Map<String, Object> info : rawInfos) {
+                String cur = info.get("currency") == null ? null : String.valueOf(info.get("currency"));
+                Map<String, Object> item = new LinkedHashMap<>();
+                item.put("currency", cur);
+                item.put("totalBalance", round2(parseAmount(info.get("total_balance"))));
+                item.put("grantedBalance", round2(parseAmount(info.get("granted_balance"))));
+                item.put("toppedUpBalance", round2(parseAmount(info.get("topped_up_balance"))));
+                items.add(item);
+
+                total += parseAmount(info.get("total_balance"));
+                granted += parseAmount(info.get("granted_balance"));
+                toppedUp += parseAmount(info.get("topped_up_balance"));
+                if (currency == null) currency = cur;
+            }
+        }
+
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("isAvailable", Boolean.TRUE.equals(json.get("is_available")));
+        data.put("currency", currency == null ? "CNY" : currency);
+        data.put("totalBalance", round2(total));
+        data.put("grantedBalance", round2(granted));
+        data.put("toppedUpBalance", round2(toppedUp));
+        data.put("balanceInfos", items);
+        data.put("fetchedAt", System.currentTimeMillis());
+        data.put("cached", false);
+        return data;
+    }
+
+    private double parseAmount(Object v) {
+        if (v == null) return 0d;
+        if (v instanceof Number) return ((Number) v).doubleValue();
+        try {
+            return Double.parseDouble(v.toString().trim());
+        } catch (NumberFormatException e) {
+            return 0d;
+        }
+    }
+
+    private double round2(double v) {
+        return BigDecimal.valueOf(v).setScale(2, RoundingMode.HALF_UP).doubleValue();
     }
 }

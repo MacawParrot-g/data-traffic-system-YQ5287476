@@ -79,4 +79,10 @@ public class DeepSeekController {
                 ? ((Number) body.get("ttlSeconds")).longValue() : null;
         return deepSeekService.setMessageTtl(sessionId, messageIndex, ttlSeconds);
     }
+
+    @GetMapping("/balance")
+    @LogExecutionTime("DeepSeek-余额查询")
+    public Result balance(@RequestParam(defaultValue = "false") boolean refresh) {
+        return deepSeekService.balance(refresh);
+    }
 }

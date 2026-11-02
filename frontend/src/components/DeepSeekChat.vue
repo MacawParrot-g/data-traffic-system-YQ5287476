@@ -2,7 +2,7 @@
 <script setup>
 import { ref, computed, onMounted, nextTick } from 'vue'
 import {
-  deepSeekChat, deepSeekStatus,
+  deepSeekChat, deepSeekStatus, deepSeekBalance,
   deepSeekListSessions, deepSeekCreateSession,
   deepSeekGetSession, deepSeekSaveSession, deepSeekDeleteSession,
   deepSeekSetMessageTtl
@@ -12,12 +12,14 @@ const emit = defineEmits(['error'])
 
 const ACTIVE_KEY = 'deepseek.activeSession'
 
+const BALANCE_REFRESH_INTERVAL = 60000
+
 const configured = ref(false)
 const defaultModel = ref('deepseek-chat')
 const model = ref('deepseek-chat')
 const temperature = ref(0.7)
 const maxTokens = ref(1024)
-
+let balanceTimer = null
 const sessions = ref([])
 const activeId = ref('')
 const messages = ref([])
@@ -25,7 +27,9 @@ const input = ref('')
 const sending = ref(false)
 const loadingSession = ref(false)
 const scrollBox = ref(null)
-
+const balance = ref(null)
+const balanceLoading = ref(false)
+const balanceError = ref('')
 const modelOptions = [
   { value: 'deepseek-chat', label: 'DeepSeek Chat (通用对话)' },
   { value: 'deepseek-reasoner', label: 'DeepSeek Reasoner (逻辑推理)' }
@@ -35,6 +39,11 @@ const modelOptions = [
 const sessionTotalTokens = computed(() =>
     messages.value.reduce((sum, m) => sum + (m.usage && m.usage.total_tokens ? m.usage.total_tokens : 0), 0)
 )
+
+function formatTime(ts) {
+  if (!ts) return '未获取'
+  return new Date(ts).toLocaleString('zh-CN', { hour12: false })
+}
 
 async function loadStatus() {
   try {
@@ -53,6 +62,24 @@ async function loadSessions() {
     if (json.success) sessions.value = json.data || []
   } catch (e) {
     emit('error', '会话列表加载失败：' + e.message)
+  }
+}
+
+async function loadBalance(forceRefresh = false) {
+  if (balanceLoading.value) return
+  balanceLoading.value = true
+  try {
+    const json = await deepSeekBalance(forceRefresh)
+    if (json.success && json.data) {
+      balance.value = json.data
+      balanceError.value = ''
+    } else {
+      balanceError.value = json.message || '余额查询失败'
+    }
+  } catch (e) {
+    balanceError.value = '余额查询失败：' + e.message
+  } finally {
+    balanceLoading.value = false
   }
 }
 
@@ -202,6 +229,7 @@ async function send() {
     sending.value = false
     await scrollToBottom()
     await persist()
+    loadBalance(false)
   }
 }
 
@@ -213,6 +241,8 @@ function onEnter(e) {
 
 onMounted(async () => {
   await loadStatus()
+  loadBalance(true)
+  balanceTimer = setInterval(() => loadBalance(false), BALANCE_REFRESH_INTERVAL)
   await loadSessions()
   const saved = localStorage.getItem(ACTIVE_KEY)
   if (saved && sessions.value.some(s => s.id === saved)) {
@@ -221,6 +251,13 @@ onMounted(async () => {
     await openSession(sessions.value[0].id)
   } else {
     await newSession()
+  }
+})
+
+onUnmounted(() => {
+  if (balanceTimer) {
+    clearInterval(balanceTimer)
+    balanceTimer = null
   }
 })
 </script>
@@ -332,6 +369,49 @@ onMounted(async () => {
           </button>
         </div>
       </section>
+      <aside class="ds-balance">
+        <div class="ds-balance-head">
+          <span class="ds-balance-title">账户余额</span>
+          <button class="ds-balance-refresh" @click="loadBalance(true)" :disabled="balanceLoading">
+            {{ balanceLoading ? '查询中' : '刷新' }}
+          </button>
+        </div>
+
+        <div v-if="balanceError" class="ds-balance-error">{{ balanceError }}</div>
+        <div v-else-if="!configured" class="ds-balance-error">未配置 DEEPSEEK_API_KEY，无法查询余额</div>
+
+        <template v-else-if="balance">
+          <div class="ds-balance-main">
+            <span class="ds-balance-currency">{{ balance.currency === 'USD' ? '$' : '¥' }}</span>
+            <span class="ds-balance-amount">{{ formatAmount(balance.totalBalance) }}</span>
+          </div>
+          <div class="ds-balance-rows">
+            <div class="ds-balance-row">
+              <span class="ds-balance-k">充值余额</span>
+              <span class="ds-balance-v">{{ formatAmount(balance.toppedUpBalance) }}</span>
+            </div>
+            <div class="ds-balance-row">
+              <span class="ds-balance-k">赠送余额</span>
+              <span class="ds-balance-v">{{ formatAmount(balance.grantedBalance) }}</span>
+            </div>
+            <div class="ds-balance-row">
+              <span class="ds-balance-k">服务状态</span>
+              <span class="ds-balance-v" :class="balance.isAvailable ? 'ds-balance-ok' : 'ds-balance-bad'">
+                {{ balance.isAvailable ? '正常' : '已停用' }}
+              </span>
+            </div>
+          </div>
+          <div v-if="balance.balanceInfos && balance.balanceInfos.length > 1" class="ds-balance-tip">
+            含 {{ balance.balanceInfos.length }} 个币种账户，以上为合计金额
+          </div>
+        </template>
+
+        <div v-else class="ds-balance-empty">{{ balanceLoading ? '正在查询...' : '暂无余额数据' }}</div>
+
+        <div class="ds-balance-time">
+          {{ balance ? '更新于 ' + formatTime(balance.fetchedAt) + (balance.cached ? '（缓存）' : '') : '' }}
+        </div>
+      </aside>
     </div>
   </div>
 </template>
@@ -414,6 +494,77 @@ onMounted(async () => {
   border-left: 3px solid #b7c8ff;
   border-radius: 4px;
 }
+
+.ds-sider {
+  width: 220px;
+  flex-shrink: 0;
+  background: #fafafa;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+}
+
+.ds-balance {
+  width: 200px;
+  flex-shrink: 0;
+  background: #fafafa;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+}
+.ds-balance-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.ds-balance-title { font-size: 13px; color: #333; font-weight: 600; }
+.ds-balance-refresh {
+  border: 1px solid #d6e4ff;
+  background: #fff;
+  color: #4c8dff;
+  font-size: 12px;
+  border-radius: 6px;
+  padding: 2px 8px;
+  cursor: pointer;
+}
+.ds-balance-refresh:disabled { color: #a6c4ff; cursor: not-allowed; }
+.ds-balance-main {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  margin-bottom: 10px;
+}
+.ds-balance-currency { font-size: 14px; color: #2f54eb; }
+.ds-balance-amount { font-size: 24px; font-weight: 700; color: #2f54eb; }
+.ds-balance-rows { display: flex; flex-direction: column; gap: 6px; }
+.ds-balance-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+}
+.ds-balance-k { color: #888; }
+.ds-balance-v { color: #333; }
+.ds-balance-ok { color: #389e0d; }
+.ds-balance-bad { color: #cf1322; }
+.ds-balance-error {
+  font-size: 12px;
+  color: #ad6800;
+  background: #fff7e6;
+  border: 1px solid #ffd591;
+  border-radius: 6px;
+  padding: 6px 8px;
+  line-height: 1.5;
+}
+.ds-balance-empty { font-size: 12px; color: #aaa; text-align: center; margin-top: 14px; }
+.ds-balance-tip { font-size: 11px; color: #999; margin-top: 8px; }
+.ds-balance-time { font-size: 11px; color: #bbb; margin-top: auto; padding-top: 10px; }
+
 .ds-md :deep(code) {
   background: #eef0f3;
   color: #c7254e;

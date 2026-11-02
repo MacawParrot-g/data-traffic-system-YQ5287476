@@ -36,4 +36,6 @@ public interface DeepSeekService {
     Result deleteSession(String sessionId);
 
     Result setMessageTtl(String sessionId, Integer messageIndex, Long ttlSeconds);
+
+    Result balance(boolean forceRefresh);
 }

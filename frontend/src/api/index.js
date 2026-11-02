@@ -813,7 +813,9 @@ export function deepSeekSaveSession(sessionId, messages, totalTokens) {
 export function deepSeekDeleteSession(sessionId) {
     return fetchWithTimeout('/api/deepseek/session?sessionId=' + encodeURIComponent(sessionId), { method: 'DELETE' }, 15000).then(safeJson)
 }
-
+export function deepSeekBalance(refresh = false) {
+    return fetchWithTimeout('/api/deepseek/balance?refresh=' + (refresh ? 'true' : 'false'), {}, 15000).then(safeJson)
+}
 export function deepSeekSetMessageTtl(sessionId, messageIndex, ttlSeconds) {
     return fetchWithTimeout('/api/deepseek/message/ttl', {
         method: 'POST',
