@@ -83,7 +83,6 @@
             <button class="btn-frozen" @click="doFrozen" :disabled="frozenLoading || frozenDone">
               {{ frozenDone ? '已冻结' : frozenLoading ? '冻结中...' : '冻结应用' }}
             </button>
-            <div class="frozen-locked-tip" v-if="isTaskFrozen">该应用已被冻结（上游 status = -1），冻结入口已锁死，无法二次冻结</div>
             <div class="frozen-remark-tip" v-if="!isTaskFrozen">备注请写在冻结理由输入框内</div>
             <div class="frozen-reason-box" v-if="!frozenDone && !isTaskFrozen">
               <input class="frozen-reason-input" v-model="frozenReasonText" maxlength="200" placeholder="自定义冻结理由/备注(也可用下方下拉选择，200字以内)" />

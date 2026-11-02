@@ -116,7 +116,7 @@
               <div class="retest-frozen-tip" v-else>复测模式下已禁用冻结功能</div>
               <div class="frozen-remark-tip" v-if="!isRetestMode">备注请写在冻结理由输入框内</div>
               <div class="frozen-reason-box" v-if="!isRetestMode && !frozenDone">
-                <input class="frozen-reason-input" v-model="frozenReasonText" maxlength="200" placeholder="自定义冻结理由/备注(也可用下方下拉选择，200字以内)" />
+                <input class="frozen-reason-input" v-model="frozenReasonText" maxlength="200" placeholder="自定义冻结理由/备注(也可用下方下拉选择，200字以内)"  />
                 <select class="frozen-reason-select" v-model="frozenReasonText" @focus="loadTemplateOptions('冻结理由')" @open="loadTemplateOptions('冻结理由')" :disabled="frozenReasonText.trim() !== '' && !frozenReasonOptions.includes(frozenReasonText)">
                   <option value="" disabled>请选择冻结理由</option>
                   <option v-for="opt in frozenReasonOptions" :key="opt" :value="opt">{{ opt }}</option>
