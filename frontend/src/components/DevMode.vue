@@ -744,6 +744,7 @@ async function fetchByAppId() {
       duplicateTip.value = ''
       downloadUrl.value = json.data.downloadUrl || ''
       bundleId.value = json.data.bundleId || ''
+      appIds.value = json.data.appId || ''
       applyTime.value = trimApplyTime(json.data.applyTime || '')
       originalCurrentTargetNum.value = json.data.currentTargetNum ?? null
       setTaskStatus(json.data.status)
