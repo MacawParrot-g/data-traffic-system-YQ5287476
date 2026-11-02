@@ -41,7 +41,7 @@
         <div class="qrcode-container">
           <canvas ref="qrCanvas"></canvas>
         </div>
-        <div class="app-status-row" :title="'上游 status = ' + (taskStatus === null ? '未返回' : taskStatus)">
+        <div class="app-status-row" :title="'上游 status = ' + (taskStatus === null ? '未返回' : taskStatus) + (statusCheckedAt ? '（' + statusCheckedAt + ' 由事件接口静默校验）' : '')">
           <span class="app-status-badge" :class="statusInfo.cls">{{ statusInfo.text }}</span>
         </div>
       </div>
@@ -808,6 +808,7 @@ import { useTemplateOptions } from '../utils/useTemplateOptions.js'
 const timerSeconds = ref(60)
 const timerCountdown = ref(0)
 const bundleIdAlreadyGraded = ref(false)
+const statusCheckedAt = ref('')
 // const polling = ref(false)
 // const pollCount = ref(0)
 const appId = ref('')
@@ -1308,6 +1309,37 @@ async function doFrozen() {
   }
 }
 
+const STATUS_CHECK_DELAY = 800
+let statusCheckTimer = null
+
+async function silentRefreshTaskStatus() {
+  if (!bundleId.value) return
+  try {
+    const json = await fetchEvent(bundleId.value)
+    if (!json || !json.success || !json.data) {
+      console.warn('静默校验应用状态失败：', json && (json.resultMsg || json.message))
+      return
+    }
+    if (json.data.status === undefined || json.data.status === null) {
+      console.warn('事件接口未返回 status 字段，保留当前应用状态显示')
+      return
+    }
+    setTaskStatus(json.data.status)
+    statusCheckedAt.value = generateCurrentTimestamp().split('T')[1]
+  } catch (e) {
+    console.warn('静默校验应用状态异常：', e.message)
+  }
+}
+
+watch(frozenDone, (val) => {
+  if (!val) return
+  if (statusCheckTimer) clearTimeout(statusCheckTimer)
+  statusCheckTimer = setTimeout(() => {
+    statusCheckTimer = null
+    silentRefreshTaskStatus()
+  }, STATUS_CHECK_DELAY)
+})
+
 async function saveToMySQL() {
   // Deleted:emit('record-saved')
   if (recordSubmitted.value) return
@@ -1550,6 +1582,7 @@ onUnmounted(() => {
   cancelTimer()
   stopRealtimeRefresh()
   if (retryTimer) { clearTimeout(retryTimer); retryTimer = null }
+  if (statusCheckTimer) { clearTimeout(statusCheckTimer); statusCheckTimer = null }
 })
 
 onMounted(() => {
