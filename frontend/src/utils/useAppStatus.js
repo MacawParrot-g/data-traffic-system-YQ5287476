@@ -22,5 +22,7 @@ export function useAppStatus() {
         taskStatus.value = null
     }
 
-    return { taskStatus, statusInfo, setTaskStatus, resetTaskStatus }
+    const isTaskFrozen = computed(() => taskStatus.value !== null && Number(taskStatus.value) === TASK_STATUS_FROZEN)
+
+    return { taskStatus, statusInfo, isTaskFrozen, setTaskStatus, resetTaskStatus }
 }
