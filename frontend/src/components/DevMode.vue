@@ -507,6 +507,7 @@
 import { ref, reactive, onMounted, watch, nextTick, onUnmounted } from 'vue'
 import { renderQRToCanvas } from '../utils/qrcode.js'
 import { useTemplateOptions } from '../utils/useTemplateOptions.js'
+import { useTaskFetch, useEventQuery } from '../utils/useModeTasks.js'
 import {
   fetchTask, fetchObtain, fetchEvent, fetchAllAttributions, fetchAttribution, fetchRetestBundle,
   fetchFrozen, uploadFrozenV2, insertRecord, fetchRandomForRetest,
@@ -675,50 +676,72 @@ function confirmRefresh() {
   }
 }
 
-async function fetchData() {
-  loading.value = true
-  emit('error', '')
-  resetTaskState()
-  if (retryTimer) { clearTimeout(retryTimer); retryTimer = null }
-  retryCount = 0
-  try {
-    const json = await fetchTask()
-    if (json.data) {
-      if (json.duplicate) {
-        retryCount++
-        if (retryCount > MAX_RETRIES) {
-          emit('error', '已连续 ' + MAX_RETRIES + ' 次检测到重复URL，请稍后再试')
-          duplicateTip.value = ''
-          return
-        }
-        duplicateTip.value = '检测到重复URL（第' + retryCount + '次），正在为您自动刷新...'
-        retryTimer = setTimeout(() => fetchData(), 1500)
-        return
-      }
-      retryCount = 0
-      duplicateTip.value = ''
-      downloadUrl.value = json.data.downloadUrl || ''
-      bundleId.value = json.data.bundleId || ''
-      appIds.value = json.data.appId || ''
-      applyTime.value = trimApplyTime(json.data.applyTime || '')
-      taskId.value = json.data.id ?? null
-      originalCurrentTargetNum.value = json.data.currentTargetNum ?? null
-      setTaskStatus(json.data.status)
-      isSubmit = false
-      fillAttrBundleIds(bundleId.value)
-      if (originalCurrentTargetNum.value <= 1 || originalCurrentTargetNum.value === 0) {
-        alert('初始originalCurrentTargetNum数小于等于1或等于0，后续测试期间可能会没有归因，请注意')
-      }
-    } else {
-      showRetestModal.value = true
-    }
-  } catch (e) {
-    if (e.name === 'AbortError') emit('error', '请求超时，远程服务器响应太慢')
-    else emit('error', '请求失败：' + e.message)
-  } finally {
-    loading.value = false
-  }
-}
+// async function fetchData() {
+//   loading.value = true
+//   emit('error', '')
+//   resetTaskState()
+//   if (retryTimer) { clearTimeout(retryTimer); retryTimer = null }
+//   retryCount = 0
+//   try {
+//     const json = await fetchTask()
+//     if (json.data) {
+//       if (json.duplicate) {
+//         retryCount++
+//         if (retryCount > MAX_RETRIES) {
+//           emit('error', '已连续 ' + MAX_RETRIES + ' 次检测到重复URL，请稍后再试')
+//           duplicateTip.value = ''
+//           return
+//         }
+//         duplicateTip.value = '检测到重复URL（第' + retryCount + '次），正在为您自动刷新...'
+//         retryTimer = setTimeout(() => fetchData(), 1500)
+//         return
+//       }
+//       retryCount = 0
+//       duplicateTip.value = ''
+//       downloadUrl.value = json.data.downloadUrl || ''
+//       bundleId.value = json.data.bundleId || ''
+//       appIds.value = json.data.appId || ''
+//       applyTime.value = trimApplyTime(json.data.applyTime || '')
+//       taskId.value = json.data.id ?? null
+//       originalCurrentTargetNum.value = json.data.currentTargetNum ?? null
+//       setTaskStatus(json.data.status)
+//       isSubmit = false
+//       fillAttrBundleIds(bundleId.value)
+//       if (originalCurrentTargetNum.value <= 1 || originalCurrentTargetNum.value === 0) {
+//         alert('初始originalCurrentTargetNum数小于等于1或等于0，后续测试期间可能会没有归因，请注意')
+//       }
+//     } else {
+//       showRetestModal.value = true
+//     }
+//   } catch (e) {
+//     if (e.name === 'AbortError') emit('error', '请求超时，远程服务器响应太慢')
+//     else emit('error', '请求失败：' + e.message)
+//   } finally {
+//     loading.value = false
+//   }
+// }
+
+const { fetchData } = useTaskFetch({
+  emit,
+  loading,
+  bundleId,
+  appId: appIds,
+  downloadUrl,
+  taskId,
+  applyTime,
+  originalCurrentTargetNum,
+  duplicateTip,
+  setTaskStatus,
+  fetcher: () => fetchTask(),
+  onBeforeReset: () => resetTaskState(),
+  onSuccess: () => {
+    isSubmit = false
+    fillAttrBundleIds(bundleId.value)
+  },
+  onNoData: () => { showRetestModal.value = true }
+})
+
+
 
 async function fetchByAppId() {
   const id = appId.value.trim()
@@ -868,87 +891,122 @@ async function retestFlow() {
   }
 }
 
-async function queryEvent() {
-  if (!bundleId.value) return
-  eventLoading.value = true
-  emit('error', '')
-  eventResult.value = ''; newCurrentTargetNum.value = null; attributions.value = []; eventId.value = null; frozenMsg.value = ''
-  lastReportTime.value = ''
-  try {
-    const [eventJson, attrResults] = await Promise.all([
-      fetchEvent(bundleId.value),
-      fetchAllAttributions(bundleId.value)
-    ])
-    if (eventJson.success && eventJson.data) {
-      const newCurrent = eventJson.data.currentTargetNum
-      eventId.value = eventJson.data.id ?? null
-      currentVersion.value = eventJson.data.currentVersion || ''
-      checkVerion.value = eventJson.data.checkVerion || ''
-      if (currentVersion.value && checkVerion.value && currentVersion.value !== checkVerion.value) {
-        versionMismatch.value = true
-        versionAppId.value = eventJson.data.appId || appIds.value || appId.value || ''
-      } else {
-        versionMismatch.value = false
-      }
-      eventId.value = eventJson.data.id ?? null
-      if (originalCurrentTargetNum.value !== null) {
-        if (newCurrent !== originalCurrentTargetNum.value) {
-          eventResult.value = 'has_event'
-          newCurrentTargetNum.value = newCurrent
-        } else {
-          eventResult.value = 'no_event'
-        }
-      } else {
-        newCurrentTargetNum.value = newCurrent
-        eventResult.value = newCurrent != null && newCurrent > 0 ? 'has_event' : 'no_event'
-      }
+// async function queryEvent() {
+//   if (!bundleId.value) return
+//   eventLoading.value = true
+//   emit('error', '')
+//   eventResult.value = ''; newCurrentTargetNum.value = null; attributions.value = []; eventId.value = null; frozenMsg.value = ''
+//   lastReportTime.value = ''
+//   try {
+//     const [eventJson, attrResults] = await Promise.all([
+//       fetchEvent(bundleId.value),
+//       fetchAllAttributions(bundleId.value)
+//     ])
+//     if (eventJson.success && eventJson.data) {
+//       const newCurrent = eventJson.data.currentTargetNum
+//       eventId.value = eventJson.data.id ?? null
+//       currentVersion.value = eventJson.data.currentVersion || ''
+//       checkVerion.value = eventJson.data.checkVerion || ''
+//       if (currentVersion.value && checkVerion.value && currentVersion.value !== checkVerion.value) {
+//         versionMismatch.value = true
+//         versionAppId.value = eventJson.data.appId || appIds.value || appId.value || ''
+//       } else {
+//         versionMismatch.value = false
+//       }
+//       eventId.value = eventJson.data.id ?? null
+//       if (originalCurrentTargetNum.value !== null) {
+//         if (newCurrent !== originalCurrentTargetNum.value) {
+//           eventResult.value = 'has_event'
+//           newCurrentTargetNum.value = newCurrent
+//         } else {
+//           eventResult.value = 'no_event'
+//         }
+//       } else {
+//         newCurrentTargetNum.value = newCurrent
+//         eventResult.value = newCurrent != null && newCurrent > 0 ? 'has_event' : 'no_event'
+//       }
+//     } else {
+//       emit('error', '事件接口返回异常：' + (eventJson.resultMsg || '未知错误'))
+//     }
+//     const found = []
+//     for (const { type, json } of attrResults) {
+//       if (json.success && json.data) {
+//         if (Array.isArray(json.data) && json.data.length > 0) found.push(type)
+//         else if (!Array.isArray(json.data) && Object.keys(json.data).length > 0) found.push(type)
+//       }
+//     }
+//     attributions.value = found
+//     let lrt = ''
+//     const appflyerResult = attrResults.find(r => r.type === 'appflyer')
+//     if (appflyerResult && appflyerResult.json.success && Array.isArray(appflyerResult.json.data) && appflyerResult.json.data.length > 0) {
+//       lrt = appflyerResult.json.data[appflyerResult.json.data.length - 1].lastReportTime || ''
+//     }
+//     if (!lrt) {
+//       for (const { json } of attrResults) {
+//         if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+//           lrt = json.data[json.data.length - 1].lastReportTime || ''
+//           if (lrt) break
+//         }
+//       }
+//     }
+//     lastReportTime.value = lrt
+//     if (!isRetestMode.value) {
+//       if (dateSource.value === 'applyTime') form.record_data = applyTime.value || lrt
+//       else form.record_data = getTodayStr()
+//     }
+//   } catch (e) {
+//     emit('error', '事件查询失败：' + e.message)
+//   } finally {
+//     if (isRetestMode.value) {
+//       form.record_data = generateCurrentTimestamp()
+//     }
+//     eventLoading.value = false
+//   }
+// }
+
+// async function queryEventWithFullMsg() {
+//   try {
+//     const data = await fetchEvent(bundleId.value)
+//     if (data.success) alert(JSON.stringify(data, null, 2))
+//   } catch (e) {
+//     alert('服务器无响应，请联系技术人员')
+//   }
+// }
+
+const { queryEvent, queryEventWithFullMsg } = useEventQuery({
+  emit,
+  bundleId,
+  originalCurrentTargetNum,
+  eventLoading,
+  eventResult,
+  newCurrentTargetNum,
+  attributions,
+  eventId,
+  frozenMsg,
+  lastReportTime,
+  onEventData: (data) => {
+    currentVersion.value = data.currentVersion || ''
+    checkVerion.value = data.checkVerion || ''
+    if (currentVersion.value && checkVerion.value && currentVersion.value !== checkVerion.value) {
+      versionMismatch.value = true
+      versionAppId.value = data.appId || appIds.value || appId.value || ''
     } else {
-      emit('error', '事件接口返回异常：' + (eventJson.resultMsg || '未知错误'))
+      versionMismatch.value = false
     }
-    const found = []
-    for (const { type, json } of attrResults) {
-      if (json.success && json.data) {
-        if (Array.isArray(json.data) && json.data.length > 0) found.push(type)
-        else if (!Array.isArray(json.data) && Object.keys(json.data).length > 0) found.push(type)
-      }
-    }
-    attributions.value = found
-    let lrt = ''
-    const appflyerResult = attrResults.find(r => r.type === 'appflyer')
-    if (appflyerResult && appflyerResult.json.success && Array.isArray(appflyerResult.json.data) && appflyerResult.json.data.length > 0) {
-      lrt = appflyerResult.json.data[appflyerResult.json.data.length - 1].lastReportTime || ''
-    }
-    if (!lrt) {
-      for (const { json } of attrResults) {
-        if (json.success && Array.isArray(json.data) && json.data.length > 0) {
-          lrt = json.data[json.data.length - 1].lastReportTime || ''
-          if (lrt) break
-        }
-      }
-    }
-    lastReportTime.value = lrt
+  },
+  onRecordData: (lrt) => {
     if (!isRetestMode.value) {
       if (dateSource.value === 'applyTime') form.record_data = applyTime.value || lrt
       else form.record_data = getTodayStr()
     }
-  } catch (e) {
-    emit('error', '事件查询失败：' + e.message)
-  } finally {
-    if (isRetestMode.value) {
-      form.record_data = generateCurrentTimestamp()
-    }
-    eventLoading.value = false
+  },
+  onFinally: () => {
+    if (isRetestMode.value) form.record_data = generateCurrentTimestamp()
   }
-}
+})
 
-async function queryEventWithFullMsg() {
-  try {
-    const data = await fetchEvent(bundleId.value)
-    if (data.success) alert(JSON.stringify(data, null, 2))
-  } catch (e) {
-    alert('服务器无响应，请联系技术人员')
-  }
-}
+
+
 
 async function querySingleAttr(type) {
   const bid = attrStates[type].bundleId
