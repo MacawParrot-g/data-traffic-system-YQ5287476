@@ -2603,7 +2603,7 @@ select.form-input { cursor: pointer; }
 .online-yes { color: #16715d; background: #eef9f5; border-color: #c9e9dd; }
 .online-no { color: var(--text-tertiary); background: #f3f6f6; border-color: var(--border-color); }
 .online-dot { width: 5px; height: 5px; background: currentColor; border-radius: 50%; }
-.sup-area { width: 20px; height: 15px; color: transparent; font-size: 10px; user-select: none; }
+.sup-area { width: 20px; height: 15px; color: transparent; font-size: 10px;}
 .stats-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 14px; }
 .stat-card { display: flex; min-width: 0; align-items: center; gap: 12px; padding: 14px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg); }
 .stat-card-icon { color: var(--accent); font-family: var(--font-mono); }
