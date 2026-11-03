@@ -30,7 +30,7 @@ export function fetchEvent(bundleId) {
 }
 
 export function fetchAttribution(bundleId, type) {
-    return fetchWithTimeout('/api/proxy/attribution?bundleId=' + encodeURIComponent(bundleId) + '&type=' + type, {}, 60000).then(safeJson)
+    return fetchWithTimeout('/api/proxy/attribution?bundleId=' + encodeURIComponent(bundleId) + '&type=' + type, {}, 90000).then(safeJson)
 }
 
 export function fetchFrozen(id) {
@@ -81,7 +81,9 @@ export const ATTR_TYPES = ['appflyer', 'adjust', 'singular', 'tenjin']
 export function fetchAllAttributions(bundleId) {
     return Promise.all(
         ATTR_TYPES.map(type =>
-            fetchAttribution(bundleId, type).then(json => ({ type, json }))
+            fetchAttribution(bundleId, type)
+                .then(json => ({ type, json }))
+                .catch(e => ({ type, json: { success: false, resultMsg: e && e.message ? e.message : '归因查询失败' } }))
         )
     )
 }

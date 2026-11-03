@@ -65,8 +65,8 @@ public class URLController {
 
     @GetMapping("/api/proxy/attribution")
     @LogExecutionTime("获取事件归因")
-    @Retryable(maxAttempts=5, delay=300)
-    @Timeout(value = 8,unit=SECONDS)
+    @Retryable(maxAttempts=2, delay=300)
+    @Timeout(value = 40,unit=SECONDS)
     public Result proxyAttribution(@RequestParam String bundleId, @RequestParam String type) {
         Map<String, Object> map = urlService.proxyAttribution(bundleId, type);
         return mapToResult(map);
