@@ -23,13 +23,18 @@ function isExpanded(key) {
     <div class="guide-modal">
       <div class="guide-header">
         <div class="guide-header-left">
-          <span class="guide-header-icon">📘</span>
+          <span class="guide-header-icon" aria-hidden="true">
+            <svg viewBox="0 0 28 28" fill="none"><path d="M5 5.5A2.5 2.5 0 0 1 7.5 3H14v19H7.5A2.5 2.5 0 0 0 5 24.5v-19Zm18 0A2.5 2.5 0 0 0 20.5 3H14v19h6.5a2.5 2.5 0 0 1 2.5 2.5v-19Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M8 8h3m-3 4h3m6-4h3m-3 4h3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+          </span>
           <div>
+            <span class="guide-header-kicker">KNOWLEDGE BASE / ONBOARDING</span>
             <h2>新人指南</h2>
             <div class="guide-header-sub">游戏测试数据管理平台 · 完整使用手册</div>
           </div>
         </div>
-        <button class="guide-close-btn" @click="close">✕</button>
+        <button class="guide-close-btn" @click="close" aria-label="关闭新人指南" title="关闭">
+          <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m6 6 8 8m0-8-8 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </button>
       </div>
 
       <div class="guide-body">
@@ -39,22 +44,25 @@ function isExpanded(key) {
           <p>您当前的角色为：<span class="role-badge" :class="'role-' + accType.toLowerCase()">{{ accType === 'ADMIN' ? '管理员' : accType === 'DEVELOPER' ? 'root账户' : '普通用户' }}</span></p>
         </div>
 
-        <div class="guide-role-tabs">
+        <div class="guide-role-tabs" aria-label="按角色查看指南">
           <button class="guide-role-tab" :class="{ active: activeRole === 'user' }" @click="activeRole = 'user'">
-            <span class="role-tab-icon">👤</span><span>普通用户</span>
+            <span class="role-tab-icon" aria-hidden="true"><svg viewBox="0 0 22 22" fill="none"><circle cx="11" cy="7" r="3.2" stroke="currentColor" stroke-width="1.5"/><path d="M4.5 18c.7-3.4 3-5.2 6.5-5.2s5.8 1.8 6.5 5.2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>
+            <span>普通用户</span><small>USER</small>
           </button>
           <button class="guide-role-tab" :class="{ active: activeRole === 'admin' }" @click="activeRole = 'admin'">
-            <span class="role-tab-icon">🛡️</span><span>管理员</span>
+            <span class="role-tab-icon" aria-hidden="true"><svg viewBox="0 0 22 22" fill="none"><path d="M11 2.8 18 5.5v5.2c0 4.2-2.4 6.8-7 8.5-4.6-1.7-7-4.3-7-8.5V5.5l7-2.7Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="m8 10.8 2 2 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <span>管理员</span><small>ADMIN</small>
           </button>
           <button class="guide-role-tab" :class="{ active: activeRole === 'developer' }" @click="activeRole = 'developer'">
-            <span class="role-tab-icon">🛠️</span><span>开发者</span>
+            <span class="role-tab-icon" aria-hidden="true"><svg viewBox="0 0 22 22" fill="none"><path d="m7.5 6-5 5 5 5m7-10 5 5-5 5M13 3l-4 16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <span>开发者</span><small>DEVELOPER</small>
           </button>
         </div>
 
         <!-- ======================== 普通用户教程 ======================== -->
         <div v-if="activeRole === 'user'" class="guide-content">
           <div class="guide-toc">
-            <h3>📑 目录</h3>
+            <h3><span>CONTENTS</span>目录</h3>
             <ul>
               <li><a @click="toggleSection('u-overview')">一、系统概览与界面介绍</a></li>
               <li><a @click="toggleSection('u-login')">二、登录与账户安全</a></li>
@@ -84,6 +92,7 @@ function isExpanded(key) {
 
             <h4>1.2 普通用户可用功能一览</h4>
             <p>作为普通用户，您可以使用以下功能模块：</p>
+            <div class="guide-table-wrap">
             <table class="guide-table">
               <thead><tr><th>功能模块</th><th>导航标签</th><th>核心用途</th></tr></thead>
               <tbody>
@@ -94,6 +103,7 @@ function isExpanded(key) {
               <tr><td>数据看板</td><td>D</td><td>查看、编辑、删除已入库记录，支持筛选和复测</td></tr>
               </tbody>
             </table>
+            </div>
 
             <h4>1.3 技术架构简述</h4>
             <p>系统后端运行在 Spring Boot 容器上，通过 JdbcTemplate 操作 MySQL 数据库，使用 Redis 进行会话管理、去重控制和缓存加速。RabbitMQ 消息队列用于异步处理导出等耗时任务。前端通过 RESTful API 与后端通信，所有请求均携带认证信息。了解这些技术背景有助于您在遇到问题时更好地定位原因。</p>
@@ -159,7 +169,7 @@ function isExpanded(key) {
             <p>点击「查询事件」按钮，系统会同时请求事件接口和四个归因平台（AppFlyer、Adjust、Singular、Tenjin）的归因数据。查询结果会显示在页面右侧面板：</p>
             <ul>
               <li><strong>有事件</strong>：显示最新的 currentTargetNum 值，并与原始值进行对比。如果数值发生变化，说明有新事件上报。同时会显示归因标签（如 appflyer、adjust 等），表示该应用在哪些归因平台有记录。</li>
-              <li><strong>无事件</strong>：显示「✅ 无事件」，表示 currentTargetNum 未变化。此时您可以选择「冻结应用」将其标记为无事件状态。</li>
+              <li><strong>无事件</strong>：显示「无事件」，表示 currentTargetNum 未变化。此时您可以选择「冻结应用」将其标记为无事件状态。</li>
               <li><strong>查看 JSON</strong>：点击此按钮可以查看事件接口返回的原始 JSON 数据，用于调试和详细分析。</li>
             </ul>
 
@@ -194,6 +204,7 @@ function isExpanded(key) {
             </ol>
 
             <h4>4.2 与自动模式的区别</h4>
+            <div class="guide-table-wrap">
             <table class="guide-table">
               <thead><tr><th>对比项</th><th>自动模式</th><th>手动模式</th></tr></thead>
               <tbody>
@@ -204,6 +215,7 @@ function isExpanded(key) {
               <tr><td>适用场景</td><td>日常批量测试</td><td>临时/指定应用测试</td></tr>
               </tbody>
             </table>
+            </div>
 
             <h4>4.3 请求地址说明</h4>
             <p>手动模式输入 App ID 后，系统会经由后端代理请求上游任务接口（实际地址由服务端环境变量配置，不在前端展示）。任务数据返回后，页面会显示下载链接、Bundle ID 等信息供您确认。</p>
@@ -298,7 +310,7 @@ function isExpanded(key) {
               <li>去重功能仅在自动模式下生效，手动模式下不生效。</li>
               <li>去重是按用户维度隔离的，A 用户的去重记录不会影响 B 用户。</li>
               <li>去重开关的状态在服务端维护，即使刷新页面或重新登录也会保持。</li>
-              <li>如果页面提示「⚠️ 重复应用」，说明当前拉取到的任务已经在您的去重记录中，请继续轮询获取下一个任务。</li>
+              <li>如果页面提示「重复应用」，说明当前拉取到的任务已经在您的去重记录中，请继续轮询获取下一个任务。</li>
             </ul>
           </div>
 
@@ -354,7 +366,7 @@ function isExpanded(key) {
         <!-- ======================== 管理员教程 ======================== -->
         <div v-if="activeRole === 'admin'" class="guide-content">
           <div class="guide-toc">
-            <h3>📑 目录</h3>
+            <h3><span>CONTENTS</span>目录</h3>
             <ul>
               <li><a @click="toggleSection('a-overview')">一、管理员角色概述</a></li>
               <li><a @click="toggleSection('a-panel')">二、管理员后台入口</a></li>
@@ -433,7 +445,7 @@ function isExpanded(key) {
             <p>用户列表每 15 秒自动刷新一次，确保在线状态的实时性。</p>
 
             <h4>4.2 删除用户</h4>
-            <p>点击用户行中的「🗑 删除」按钮，系统会弹出确认对话框。确认后该用户将被永久删除，其账户将无法再登录。请注意：</p>
+            <p>点击用户行中的「删除」按钮，系统会弹出确认对话框。确认后该用户将被永久删除，其账户将无法再登录。请注意：</p>
             <ul>
               <li>删除用户不会删除该用户已入库的数据记录。</li>
               <li>删除操作不可撤销，请谨慎操作。</li>
@@ -445,7 +457,7 @@ function isExpanded(key) {
             <h3>五、踢下线与会话管理</h3>
 
             <h4>5.1 踢下线操作</h4>
-            <p>对于在线用户，您可以点击「⚡ 踢下线」按钮强制终止其会话。踢下线时可以选择是否同时封禁账户：</p>
+            <p>对于在线用户，您可以点击「踢下线」按钮强制终止其会话。踢下线时可以选择是否同时封禁账户：</p>
             <ul>
               <li>在用户列表右上角的「踢下线封禁」输入框中设置封禁秒数（默认 300 秒）。</li>
               <li>如果封禁秒数设为 0，则仅踢下线不封禁，用户可以立即重新登录。</li>
@@ -570,7 +582,7 @@ function isExpanded(key) {
         <!-- ======================== 开发者教程 ======================== -->
         <div v-if="activeRole === 'developer'" class="guide-content">
           <div class="guide-toc">
-            <h3>📑 目录</h3>
+            <h3><span>CONTENTS</span>目录</h3>
             <ul>
               <li><a @click="toggleSection('d-overview')">一、开发者角色概述</a></li>
               <li><a @click="toggleSection('d-permissions')">二、权限范围与功能矩阵</a></li>
@@ -602,23 +614,25 @@ function isExpanded(key) {
           <div class="guide-section" v-show="isExpanded('d-permissions')">
             <h3>二、权限范围与功能矩阵</h3>
             <p>以下是三种角色的完整功能权限对比：</p>
+            <div class="guide-table-wrap">
             <table class="guide-table">
               <thead><tr><th>功能模块</th><th>普通用户</th><th>管理员</th><th>开发者</th></tr></thead>
               <tbody>
-              <tr><td>自动模式</td><td>✅</td><td>✅</td><td>✅</td></tr>
-              <tr><td>手动模式</td><td>✅</td><td>✅</td><td>✅</td></tr>
-              <tr><td>二维码生成器</td><td>✅</td><td>✅</td><td>✅</td></tr>
-              <tr><td>数据导出</td><td>✅（仅自己）</td><td>✅（仅自己）</td><td>✅（仅自己）</td></tr>
-              <tr><td>数据看板</td><td>✅（基础）</td><td>✅（管理员看板）</td><td>✅（管理员看板）</td></tr>
-              <tr><td>自动去重开关</td><td>✅</td><td>❌</td><td>✅</td></tr>
-              <tr><td>用户管理</td><td>❌</td><td>✅</td><td>✅</td></tr>
-              <tr><td>数据批量操作</td><td>❌</td><td>✅</td><td>✅</td></tr>
-              <tr><td>统计报表/日报</td><td>❌</td><td>✅</td><td>✅</td></tr>
-              <tr><td>开发者模式</td><td>❌</td><td>❌</td><td>✅</td></tr>
-              <tr><td>数据建表与治理</td><td>❌</td><td>❌</td><td>✅</td></tr>
-              <tr><td>系统监控面板</td><td>❌</td><td>❌</td><td>✅</td></tr>
+              <tr><td>自动模式</td><td>支持</td><td>支持</td><td>支持</td></tr>
+              <tr><td>手动模式</td><td>支持</td><td>支持</td><td>支持</td></tr>
+              <tr><td>二维码生成器</td><td>支持</td><td>支持</td><td>支持</td></tr>
+              <tr><td>数据导出</td><td>支持（仅自己）</td><td>支持（仅自己）</td><td>支持（仅自己）</td></tr>
+              <tr><td>数据看板</td><td>支持（基础）</td><td>支持（管理员看板）</td><td>支持（管理员看板）</td></tr>
+              <tr><td>自动去重开关</td><td>支持</td><td>不支持</td><td>支持</td></tr>
+              <tr><td>用户管理</td><td>不支持</td><td>支持</td><td>支持</td></tr>
+              <tr><td>数据批量操作</td><td>不支持</td><td>支持</td><td>支持</td></tr>
+              <tr><td>统计报表/日报</td><td>不支持</td><td>支持</td><td>支持</td></tr>
+              <tr><td>开发者模式</td><td>不支持</td><td>不支持</td><td>支持</td></tr>
+              <tr><td>数据建表与治理</td><td>不支持</td><td>不支持</td><td>支持</td></tr>
+              <tr><td>系统监控面板</td><td>不支持</td><td>不支持</td><td>支持</td></tr>
               </tbody>
             </table>
+            </div>
             <p>开发者登录后，导航栏会额外显示「开发者模式」和「监控面板」两个入口。</p>
           </div>
 
@@ -629,7 +643,7 @@ function isExpanded(key) {
               <li><strong>专业测试</strong>：整合了自动模式和手动模式的全部功能，并增加了独立的四平台归因查询面板和今日测试历史记录。</li>
               <li><strong>数据建表和治理</strong>：提供数据库表结构管理功能，支持 DDL 操作。</li>
             </ul>
-            <p>开发者模式页面顶部会显示一个紫色的「🛠️ 开发者模式」徽章，以区分普通用户界面。右上角还有「📖 使用指南」按钮，可以快速查看开发者模式的使用说明。</p>
+            <p>开发者模式页面顶部会显示一个紫色的「开发者模式」徽章，以区分普通用户界面。右上角还有「使用指南」按钮，可以快速查看开发者模式的使用说明。</p>
           </div>
 
           <div class="guide-section" v-show="isExpanded('d-protest')">
@@ -729,7 +743,7 @@ function isExpanded(key) {
 
             <h4>7.8 执行自定义 SQL</h4>
             <p>这是最灵活的功能，允许您输入任意 SQL 语句并执行。支持 SELECT、INSERT、UPDATE、DELETE、ALTER 等所有 SQL 操作。执行结果会以表格形式展示。</p>
-            <p><strong>⚠️ 安全警告</strong>：自定义 SQL 功能非常强大，但也意味着误操作可能造成严重后果。执行前请务必仔细检查 SQL 语句，特别是 DROP、DELETE、TRUNCATE 等破坏性操作。建议在生产环境中使用此功能前先做好数据备份。</p>
+            <p><strong>安全警告</strong>：自定义 SQL 功能非常强大，但也意味着误操作可能造成严重后果。执行前请务必仔细检查 SQL 语句，特别是 DROP、DELETE、TRUNCATE 等破坏性操作。建议在生产环境中使用此功能前先做好数据备份。</p>
           </div>
 
           <div class="guide-section" v-show="isExpanded('d-monitor')">
@@ -780,26 +794,26 @@ function isExpanded(key) {
             <h3>测试规范与冻结标准</h3>
 
             <div class="rules-card">
-              <h4>📋 测试规范（重要）</h4>
+              <h4>测试规范（重要）</h4>
 
               <div class="rule-group">
-                <h5>🎮 游戏类应用（能正常运行）</h5>
+                <h5>游戏类应用（能正常运行）</h5>
                 <p>请玩够 <strong>10 分钟以上</strong>再进行入库操作，确保事件数据充分上报。</p>
               </div>
 
               <div class="rule-group">
-                <h5>📦 其他类型应用</h5>
+                <h5>其他类型应用</h5>
                 <p>如无法运行的应用、商城类、需要登录的应用、其他工具类应用等，<strong>5 分钟以内能出事件就可以入库</strong>。</p>
               </div>
 
               <div class="rule-group rule-warning">
-                <h5>⚠️ 测试服特别提醒</h5>
+                <h5>测试服特别提醒</h5>
                 <p>如果您使用的是测试服（在标题一栏会用括号标记测试服三字），请记得一定及时导出数据，测试环境一旦出现数据损坏概不负责！！！</p>
               </div>
             </div>
 
             <div class="rules-card rules-card-danger">
-              <h4>🧊 直接冻结（无需抢救）</h4>
+              <h4>直接冻结（无需抢救）</h4>
               <p class="freeze-intro">以下情况不用抢救，直接冻结：</p>
               <ul class="freeze-list">
                 <li>需要登录但无法注册的应用</li>
@@ -944,8 +958,8 @@ function isExpanded(key) {
             <p class="guide-dev-name">蓝黄金刚鹦鹉</p>
             <p>开发维护</p>
             <div class="guide-contact">
-              <p>📧 联系开发者：2448248501@qq.com</p>
-              <p>🏢 深圳市慧动创想科技有限公司</p>
+              <p>联系开发者：2448248501@qq.com</p>
+              <p>深圳市慧动创想科技有限公司</p>
             </div>
           </div>
         </div>
@@ -954,542 +968,212 @@ function isExpanded(key) {
   </div>
 </template>
 
-<style scoped>.guide-overlay {
+<style scoped>
+.guide-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(15, 15, 26, 0.6);
-  backdrop-filter: blur(6px);
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  inset: 0;
   z-index: 9999;
-  animation: guideFadeIn 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  box-sizing: border-box;
+  background: rgba(4, 18, 18, 0.5);
+  backdrop-filter: blur(14px) saturate(120%);
+  -webkit-backdrop-filter: blur(14px) saturate(120%);
+  animation: guide-fade-in 220ms ease both;
 }
-
-@keyframes guideFadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes guideSlideUp {
-  from { transform: translateY(40px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
-}
-
-@keyframes guidePulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.3); }
-  50% { box-shadow: 0 0 0 8px rgba(99, 102, 241, 0); }
-}
-
 .guide-modal {
-  background: #fff;
-  border-radius: 20px;
-  max-width: 800px;
-  width: 94%;
-  max-height: 88vh;
-  overflow: hidden;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 32px 80px rgba(0, 0, 0, 0.3), 0 0 1px rgba(0, 0, 0, 0.1);
-  animation: guideSlideUp 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  width: min(1120px, 100%);
+  height: min(900px, calc(100vh - 48px));
+  height: min(900px, calc(100dvh - 48px));
+  max-height: calc(100vh - 48px);
+  max-height: calc(100dvh - 48px);
+  overflow: hidden;
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  background: rgba(248, 252, 250, 0.94);
+  border: 1px solid rgba(255,255,255,0.72);
+  border-radius: 24px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.96), inset 0 -1px 0 rgba(15,143,131,0.05), var(--shadow-lg);
+  backdrop-filter: blur(28px) saturate(145%);
+  -webkit-backdrop-filter: blur(28px) saturate(145%);
+  animation: guide-slide-up 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
-
 .guide-header {
+  position: relative;
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  align-items: center;
-  padding: 22px 28px 18px;
-  border-bottom: 1px solid #e8eaef;
-  background: linear-gradient(135deg, #f8f9fc 0%, #fff 100%);
+  gap: 18px;
   flex-shrink: 0;
+  padding: 20px 26px;
+  border-bottom: 1px solid rgba(203,220,215,0.85);
+  background: linear-gradient(115deg, rgba(231,246,242,0.72), rgba(255,255,255,0.6) 55%, rgba(255,255,255,0.82));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.9);
 }
-
-.guide-header-left {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.guide-header-icon {
-  font-size: 32px;
-  line-height: 1;
-}
-
-.guide-header h2 {
-  font-size: 20px;
-  font-weight: 700;
-  color: #1a1a2e;
-  margin: 0;
-  letter-spacing: -0.3px;
-}
-
-.guide-header-sub {
-  font-size: 12px;
-  color: #64748b;
-  margin-top: 3px;
-  font-weight: 500;
-}
-
-.guide-close-btn {
-  background: none;
-  border: 1px solid transparent;
-  font-size: 18px;
-  cursor: pointer;
-  color: #94a3b8;
-  transition: all 0.2s ease;
-  padding: 6px 10px;
-  border-radius: 8px;
-  line-height: 1;
-}
-
-.guide-close-btn:hover {
-  color: #ef4444;
-  background: #fef2f2;
-  border-color: #fecaca;
-}
+.guide-header::after { content: ''; position: absolute; left: 26px; right: 26px; bottom: -1px; height: 1px; background: linear-gradient(90deg, var(--accent-light), transparent 38%); opacity: 0.55; }
+.guide-header-left { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.guide-header-icon { display: grid; place-items: center; width: 46px; height: 46px; flex: 0 0 46px; color: var(--accent-strong); background: rgba(255,255,255,0.66); border: 1px solid #cee4dc; border-radius: 14px; box-shadow: inset 0 1px 0 #fff, 0 8px 20px rgba(15,45,42,0.05); }
+.guide-header-icon svg { width: 27px; height: 27px; }
+.guide-header-kicker { display: block; margin-bottom: 4px; color: var(--accent); font-size: 8px; line-height: 1.2; font-weight: 800; letter-spacing: 1.6px; }
+.guide-header h2 { margin: 0; color: var(--text-primary); font-size: 21px; line-height: 1.25; font-weight: 750; letter-spacing: -0.5px; }
+.guide-header-sub { margin-top: 4px; color: var(--text-secondary); font-size: 10px; line-height: 1.5; }
+.guide-close-btn { display: grid; place-items: center; width: 36px; height: 36px; flex: 0 0 36px; padding: 8px; color: var(--text-secondary); background: rgba(255,255,255,0.48); border: 1px solid rgba(203,220,215,0.85); border-radius: 10px; cursor: pointer; box-shadow: inset 0 1px 0 rgba(255,255,255,0.8); transition: color var(--transition, 180ms ease), background var(--transition, 180ms ease), border-color var(--transition, 180ms ease); }
+.guide-close-btn svg { width: 18px; height: 18px; }
+.guide-close-btn:hover { color: var(--danger); background: var(--danger-soft); border-color: #edceca; }
 
 .guide-body {
-  padding: 20px 28px 28px;
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
-  flex: 1;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  padding: 22px 26px 30px;
+  scroll-behavior: smooth;
+  scrollbar-gutter: stable;
 }
-
-.guide-body::-webkit-scrollbar {
-  width: 6px;
-}
-
-.guide-body::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.guide-body::-webkit-scrollbar-thumb {
-  background: #d1d5db;
-  border-radius: 3px;
-}
-
-.guide-body::-webkit-scrollbar-thumb:hover {
-  background: #9ca3af;
-}
-
+.guide-body::-webkit-scrollbar, .guide-toc::-webkit-scrollbar, .guide-table-wrap::-webkit-scrollbar { width: 6px; height: 6px; }
+.guide-body::-webkit-scrollbar-thumb, .guide-toc::-webkit-scrollbar-thumb, .guide-table-wrap::-webkit-scrollbar-thumb { background: #bfd2cc; border-radius: 6px; }
 .guide-welcome {
-  background: linear-gradient(135deg, #eef2ff 0%, #faf5ff 100%);
-  border: 1px solid #e0e7ff;
-  border-radius: 14px;
-  padding: 20px 22px;
-  margin-bottom: 20px;
-  line-height: 1.8;
-  font-size: 14px;
-  color: #374151;
-}
-
-.guide-welcome p {
-  margin-bottom: 8px;
-}
-
-.guide-welcome p:last-child {
-  margin-bottom: 0;
-}
-
-.guide-welcome strong {
-  color: #1a1a2e;
-}
-
-.role-badge {
-  display: inline-block;
-  padding: 2px 12px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.3px;
-}
-
-.role-user {
-  background: #dbeafe;
-  color: #1e40af;
-}
-
-.role-admin {
-  background: #fef3c7;
-  color: #92400e;
-}
-
-.role-developer {
-  background: #dcfce7;
-  color: #166534;
-}
-
-.guide-role-tabs {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 22px;
-}
-
-.guide-role-tab {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 12px 16px;
-  border: 2px solid #e8eaef;
-  border-radius: 12px;
-  background: #fff;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 600;
-  color: #64748b;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.guide-role-tab:hover {
-  border-color: #c7d2fe;
-  background: #f8f9fc;
-  color: #4f46e5;
-}
-
-.guide-role-tab.active {
-  border-color: #6366f1;
-  background: linear-gradient(135deg, #eef2ff 0%, #faf5ff 100%);
-  color: #4338ca;
-  box-shadow: 0 2px 12px rgba(99, 102, 241, 0.15);
-}
-
-.role-tab-icon {
-  font-size: 18px;
-}
-
-.guide-content {
-  animation: guideContentFade 0.25s ease;
-}
-
-@keyframes guideContentFade {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.guide-toc {
-  background: #f8f9fc;
-  border: 1px solid #e8eaef;
-  border-radius: 12px;
-  padding: 18px 22px;
-  margin-bottom: 22px;
-}
-
-.guide-toc h3 {
-  font-size: 15px;
-  font-weight: 700;
-  color: #1a1a2e;
-  margin: 0 0 12px 0;
-}
-
-.guide-toc ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6px 20px;
-}
-
-.guide-toc li a {
-  display: block;
-  padding: 6px 10px;
-  font-size: 13px;
-  color: #4f46e5;
-  cursor: pointer;
-  border-radius: 6px;
-  transition: all 0.15s ease;
-  text-decoration: none;
-  line-height: 1.5;
-}
-
-.guide-toc li a:hover {
-  background: #eef2ff;
-  color: #3730a3;
-}
-
-.guide-section {
-  margin-bottom: 16px;
-  background: #fff;
-  border: 1px solid #e8eaef;
-  border-radius: 12px;
-  padding: 20px 22px;
-  transition: box-shadow 0.2s ease;
-}
-
-.guide-section:hover {
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
-}
-
-.guide-section h3 {
-  font-size: 17px;
-  font-weight: 700;
-  color: #1a1a2e;
-  margin: 0 0 14px 0;
-  padding-bottom: 10px;
-  border-bottom: 2px solid #eef2ff;
-  letter-spacing: -0.2px;
-}
-
-.guide-section h4 {
-  font-size: 14px;
-  font-weight: 600;
-  color: #4f46e5;
-  margin: 18px 0 8px 0;
-}
-
-.guide-section h4:first-of-type {
-  margin-top: 4px;
-}
-
-.guide-section p {
-  font-size: 13.5px;
-  color: #374151;
-  line-height: 1.8;
-  margin: 0 0 10px 0;
-}
-
-.guide-section ul,
-.guide-section ol {
-  padding-left: 20px;
-  margin: 0 0 10px 0;
-}
-
-.guide-section li {
-  font-size: 13.5px;
-  color: #374151;
-  line-height: 1.8;
-  margin-bottom: 4px;
-}
-
-.guide-section li strong {
-  color: #1a1a2e;
-}
-
-.guide-section code {
-  background: #f1f5f9;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 12px;
-  color: #6366f1;
-  font-family: 'Cascadia Code', 'Fira Code', monospace;
-}
-
-.guide-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin: 12px 0;
-  font-size: 13px;
-  border-radius: 10px;
+  position: relative;
+  margin-bottom: 18px;
+  padding: 20px 22px 18px;
   overflow: hidden;
-  border: 1px solid #e8eaef;
-}
-
-.guide-table thead tr {
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-  color: #fff;
-}
-
-.guide-table th {
-  padding: 10px 14px;
-  text-align: left;
-  font-weight: 600;
+  color: #36534e;
+  background: linear-gradient(125deg, rgba(231,246,242,0.9), rgba(255,255,255,0.7));
+  border: 1px solid #d4e8e1;
+  border-radius: var(--radius);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.9);
   font-size: 12px;
-  letter-spacing: 0.3px;
+  line-height: 1.9;
+}
+.guide-welcome::before { content: 'START HERE'; display: block; margin-bottom: 9px; color: var(--accent); font-size: 8px; line-height: 1.2; font-weight: 800; letter-spacing: 1.6px; }
+.guide-welcome::after { content: ''; position: absolute; width: 180px; height: 180px; right: -100px; top: -110px; border: 1px solid rgba(15,143,131,0.1); border-radius: 50%; box-shadow: 0 0 0 34px rgba(15,143,131,0.025); pointer-events: none; }
+.guide-welcome p { position: relative; z-index: 1; margin: 0 0 7px; }
+.guide-welcome p:last-child { margin-bottom: 0; }
+.guide-welcome strong { color: #153e38; font-weight: 700; }
+.role-badge { display: inline-flex; align-items: center; margin-left: 4px; padding: 3px 9px; border: 1px solid transparent; border-radius: 6px; font-size: 10px; line-height: 1.3; font-weight: 700; }
+.role-user { color: var(--info); background: var(--info-soft); border-color: #cfe3eb; }
+.role-admin { color: var(--warning); background: var(--warning-soft); border-color: #eddfc4; }
+.role-developer { color: var(--success); background: var(--success-soft); border-color: #cde7dc; }
+
+.guide-role-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 22px; }
+.guide-role-tab { display: flex; align-items: center; justify-content: center; gap: 8px; min-width: 0; min-height: 46px; padding: 10px 13px; color: var(--text-secondary); background: rgba(255,255,255,0.62); border: 1px solid var(--border-color); border-radius: 11px; cursor: pointer; font-size: 12px; font-weight: 650; box-shadow: inset 0 1px 0 rgba(255,255,255,0.8); transition: color var(--transition, 180ms ease), background var(--transition, 180ms ease), border-color var(--transition, 180ms ease), transform var(--transition, 180ms ease); }
+.guide-role-tab small { margin-left: auto; color: var(--text-tertiary, #91a2a1); font-family: var(--font-mono); font-size: 7px; letter-spacing: 0.5px; }
+.role-tab-icon { display: grid; place-items: center; width: 22px; height: 22px; flex: 0 0 22px; }
+.role-tab-icon svg { width: 20px; height: 20px; }
+.guide-role-tab:hover { color: var(--accent-strong); background: #fff; border-color: #bedbd2; transform: translateY(-1px); }
+.guide-role-tab.active { color: var(--accent-strong); background: var(--accent-soft); border-color: #add5c8; box-shadow: inset 0 1px 0 rgba(255,255,255,0.85), 0 6px 16px rgba(15,143,131,0.07); }
+.guide-role-tab.active small { color: #5e9489; }
+
+.guide-content { display: grid; grid-template-columns: 190px minmax(0, 1fr); column-gap: 22px; align-items: start; animation: guide-content-in 220ms ease both; }
+.guide-toc { grid-column: 1; grid-row: 1 / span 40; position: sticky; top: 0; align-self: start; max-height: calc(100dvh - 260px); overflow-y: auto; padding: 16px 12px 12px; background: rgba(237,245,242,0.76); border: 1px solid #d9e6e1; border-radius: 12px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.75); }
+.guide-toc h3 { margin: 0 6px 12px; padding-bottom: 11px; color: var(--text-primary); border-bottom: 1px solid #d7e4df; font-size: 13px; font-weight: 750; }
+.guide-toc h3 span { display: block; margin-bottom: 4px; color: var(--accent); font-size: 7px; letter-spacing: 1.4px; }
+.guide-toc ul { display: flex; flex-direction: column; gap: 2px; list-style: none; padding: 0; margin: 0; counter-reset: guide-item; }
+.guide-toc li { min-width: 0; }
+.guide-toc li a { position: relative; display: block; padding: 7px 7px 7px 12px; color: #5a736e; border-radius: 7px; cursor: pointer; font-size: 10px; line-height: 1.55; text-decoration: none; overflow-wrap: anywhere; transition: color var(--transition, 180ms ease), background var(--transition, 180ms ease); }
+.guide-toc li a::before { content: ''; position: absolute; left: 2px; top: 12px; width: 3px; height: 3px; border-radius: 50%; background: #9fb9b1; }
+.guide-toc li a:hover { color: var(--accent-strong); background: rgba(255,255,255,0.72); }
+.guide-toc li a:hover::before { background: var(--accent); }
+
+.guide-section { grid-column: 2; min-width: 0; margin-bottom: 14px; padding: 23px 25px; color: #354d49; background: rgba(255,255,255,0.84); border: 1px solid #dfe9e5; border-radius: var(--radius); box-shadow: 0 4px 18px rgba(15,45,42,0.025), inset 0 1px 0 rgba(255,255,255,0.9); }
+.guide-section h3 { margin: 0 0 17px; padding-bottom: 13px; color: #143a35; border-bottom: 1px solid #e2ece8; font-size: 17px; line-height: 1.5; font-weight: 750; letter-spacing: -0.25px; }
+.guide-section h4 { position: relative; margin: 22px 0 9px; padding-left: 11px; color: var(--accent-strong); font-size: 13px; line-height: 1.6; font-weight: 750; }
+.guide-section h4::before { content: ''; position: absolute; left: 0; top: 0.42em; width: 3px; height: 1em; border-radius: 2px; background: var(--accent-light); }
+.guide-section h4:first-of-type { margin-top: 5px; }
+.guide-section p { margin: 0 0 11px; color: #435c57; font-size: 12.5px; line-height: 1.95; overflow-wrap: anywhere; }
+.guide-section ul, .guide-section ol { margin: 7px 0 13px; padding-left: 21px; }
+.guide-section li { margin-bottom: 5px; padding-left: 2px; color: #435c57; font-size: 12.5px; line-height: 1.85; overflow-wrap: anywhere; }
+.guide-section li::marker { color: var(--accent); font-weight: 700; }
+.guide-section li strong, .guide-section p strong { color: #173f39; font-weight: 700; }
+.guide-section code { padding: 2px 5px; color: var(--accent-strong); background: #eaf3f0; border: 1px solid #dce9e4; border-radius: 5px; font-family: var(--font-mono); font-size: 0.9em; overflow-wrap: anywhere; }
+.guide-table-wrap { width: 100%; max-width: 100%; margin: 13px 0 17px; overflow-x: auto; overscroll-behavior-x: contain; border: 1px solid #dce8e3; border-radius: 10px; }
+.guide-table { width: 100%; min-width: 540px; border-collapse: collapse; font-size: 11px; text-align: left; }
+.guide-table th { padding: 11px 13px; color: #42635c; background: #edf5f2; border-bottom: 1px solid #dce8e3; font-size: 10px; font-weight: 750; white-space: nowrap; }
+.guide-table td { padding: 10px 13px; color: #435c57; border-bottom: 1px solid #edf2ef; line-height: 1.65; overflow-wrap: anywhere; }
+.guide-table tbody tr:last-child td { border-bottom: 0; }
+.guide-table tbody tr:hover { background: #f6faf8; }
+
+.rules-card { margin: 14px 0; padding: 18px 19px; background: #f0f8f4; border: 1px solid #d1e8dc; border-radius: 11px; }
+.rules-card h4 { margin: 0 0 12px; padding: 0; color: var(--success); font-size: 14px; }
+.rules-card h4::before { display: none; }
+.rules-card-danger { background: #fff7ed; border-color: #efddc2; }
+.rules-card-danger h4 { color: #a56217; }
+.rule-group { padding: 12px 0; border-bottom: 1px dashed #cfddd7; }
+.rule-group:first-child { padding-top: 0; }
+.rule-group:last-child { padding-bottom: 0; border-bottom: 0; }
+.rule-group h5 { margin: 0 0 6px; color: #173f39; font-size: 12px; font-weight: 750; }
+.rule-group p { margin: 0; font-size: 12px; }
+.rule-warning { margin-top: 8px; padding: 12px 13px; background: var(--warning-soft); border: 1px solid #ecdcbf; border-radius: 8px; }
+.rule-warning h5 { color: var(--warning); }
+.freeze-intro { margin-bottom: 10px !important; }
+.freeze-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; list-style: none; padding: 0 !important; margin: 0 !important; }
+.freeze-list li { position: relative; display: flex; align-items: flex-start; gap: 8px; margin: 0; padding: 9px 10px; color: #63533f; background: rgba(255,255,255,0.62); border: 1px solid #eddfc9; border-radius: 8px; font-size: 11px; line-height: 1.65; }
+.freeze-list li::before { content: ''; width: 5px; height: 5px; flex: 0 0 5px; margin-top: 0.65em; border-radius: 50%; background: #cf8a34; }
+
+.guide-divider { height: 1px; margin: 26px 0 8px; background: linear-gradient(90deg, transparent, #cfdfd9 20%, #cfdfd9 80%, transparent); }
+.guide-footer { margin-top: 8px; }
+.guide-footer-signature { padding: 19px 0 8px; color: var(--text-tertiary, #91a2a1); text-align: center; font-size: 10px; line-height: 1.8; }
+.guide-footer-signature p { margin: 0; }
+.guide-dev-name { margin: 4px 0 !important; color: var(--accent-strong); font-size: 18px; font-weight: 750; letter-spacing: -0.3px; }
+.guide-contact { margin-top: 10px; color: var(--text-secondary); font-size: 10px; }
+.guide-contact p { margin: 2px 0; overflow-wrap: anywhere; }
+
+@keyframes guide-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes guide-slide-up { from { opacity: 0; transform: translateY(18px) scale(0.99); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes guide-content-in { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+@media (max-width: 900px) {
+  .guide-content { grid-template-columns: 165px minmax(0, 1fr); column-gap: 16px; }
+  .guide-section { padding: 20px; }
+  .guide-role-tab small { display: none; }
 }
 
-.guide-table td {
-  padding: 9px 14px;
-  border-bottom: 1px solid #f1f5f9;
-  color: #374151;
+@media (max-width: 700px) {
+  .guide-overlay { padding: 12px; }
+  .guide-modal { height: calc(100vh - 24px); height: calc(100dvh - 24px); max-height: calc(100vh - 24px); max-height: calc(100dvh - 24px); border-radius: 19px; }
+  .guide-header { padding: 16px 18px; }
+  .guide-header-icon { width: 40px; height: 40px; flex-basis: 40px; border-radius: 12px; }
+  .guide-header-icon svg { width: 23px; height: 23px; }
+  .guide-header h2 { font-size: 19px; }
+  .guide-body { padding: 16px 18px 22px; scrollbar-gutter: auto; }
+  .guide-welcome { padding: 17px 18px; }
+  .guide-content { display: block; }
+  .guide-toc { position: static; max-height: none; margin-bottom: 16px; padding: 15px 14px; overflow: visible; }
+  .guide-toc ul { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px 8px; }
+  .guide-section { padding: 20px; }
+  .freeze-list { grid-template-columns: 1fr; }
 }
 
-.guide-table tbody tr:hover {
-  background: #f8f9fc;
+@media (max-width: 390px) {
+  .guide-overlay { padding: 8px; }
+  .guide-modal { height: calc(100vh - 16px); height: calc(100dvh - 16px); max-height: calc(100vh - 16px); max-height: calc(100dvh - 16px); border-radius: 16px; }
+  .guide-header { gap: 10px; padding: 13px 12px; }
+  .guide-header-left { gap: 9px; }
+  .guide-header-icon { width: 36px; height: 36px; flex-basis: 36px; }
+  .guide-header-kicker { display: none; }
+  .guide-header h2 { font-size: 17px; }
+  .guide-header-sub { font-size: 9px; }
+  .guide-close-btn { width: 32px; height: 32px; flex-basis: 32px; }
+  .guide-body { padding: 12px 11px 18px; }
+  .guide-welcome { padding: 15px 14px; font-size: 11px; }
+  .guide-role-tabs { gap: 5px; margin-bottom: 15px; }
+  .guide-role-tab { flex-direction: column; gap: 4px; min-height: 56px; padding: 8px 4px; font-size: 10px; }
+  .role-tab-icon, .role-tab-icon svg { width: 18px; height: 18px; }
+  .guide-toc ul { grid-template-columns: 1fr; }
+  .guide-section { margin-bottom: 11px; padding: 17px 15px; border-radius: 12px; }
+  .guide-section h3 { font-size: 15px; }
+  .guide-section h4 { font-size: 12px; }
+  .guide-section p, .guide-section li { font-size: 11.5px; line-height: 1.85; }
+  .guide-table { min-width: 500px; }
 }
 
-.guide-table tbody tr:last-child td {
-  border-bottom: none;
-}
-
-.rules-card {
-  background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
-  border: 1px solid #bbf7d0;
-  border-radius: 12px;
-  padding: 20px 22px;
-  margin-bottom: 16px;
-}
-
-.rules-card h4 {
-  font-size: 15px;
-  font-weight: 700;
-  color: #166534;
-  margin: 0 0 14px 0;
-}
-
-.rules-card-danger {
-  background: linear-gradient(135deg, #fff7ed 0%, #fefce8 100%);
-  border-color: #fed7aa;
-}
-
-.rules-card-danger h4 {
-  color: #c2410c;
-}
-
-.rule-group {
-  padding: 12px 0;
-  border-bottom: 1px dashed #d1d5db;
-}
-
-.rule-group:last-child {
-  border-bottom: none;
-  padding-bottom: 0;
-}
-
-.rule-group:first-child {
-  padding-top: 0;
-}
-
-.rule-group h5 {
-  font-size: 14px;
-  font-weight: 600;
-  color: #1a1a2e;
-  margin: 0 0 6px 0;
-}
-
-.rule-group p {
-  font-size: 13.5px;
-  color: #374151;
-  line-height: 1.8;
-  margin: 0;
-}
-
-.rule-warning {
-  background: #fefce8;
-  border: 1px solid #fde68a;
-  border-radius: 8px;
-  padding: 12px 14px;
-  margin-top: 4px;
-}
-
-.rule-warning h5 {
-  color: #92400e;
-}
-
-.freeze-intro {
-  font-size: 13.5px;
-  color: #374151;
-  margin: 0 0 10px 0;
-}
-
-.freeze-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-
-.freeze-list li {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  font-size: 13px;
-  color: #374151;
-  line-height: 1.6;
-  padding: 8px 12px;
-  background: rgba(255, 255, 255, 0.7);
-  border-radius: 8px;
-  border: 1px solid #fed7aa;
-}
-
-.freeze-list li::before {
-  content: '🧊';
-  flex-shrink: 0;
-  font-size: 14px;
-}
-
-.guide-divider {
-  height: 1px;
-  background: linear-gradient(90deg, transparent, #d1d5db, transparent);
-  margin: 24px 0;
-}
-
-.guide-footer {
-  margin-top: 8px;
-}
-
-.guide-footer-signature {
-  text-align: center;
-  padding: 20px 0 12px;
-  color: #94a3b8;
-  font-size: 13px;
-  line-height: 1.8;
-}
-
-.guide-footer-signature p {
-  margin: 0;
-}
-
-.guide-dev-name {
-  font-size: 20px;
-  font-weight: 700;
-  background: linear-gradient(135deg, #6366f1, #a855f7);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  margin: 4px 0;
-}
-
-.guide-contact {
-  margin-top: 10px;
-  font-size: 12px;
-  color: #94a3b8;
-}
-
-.guide-contact p {
-  margin: 2px 0;
-}
-
-@media (max-width: 768px) {
-  .guide-modal {
-    width: 98%;
-    max-height: 92vh;
-    border-radius: 16px;
-  }
-
-  .guide-header {
-    padding: 16px 18px 14px;
-  }
-
-  .guide-body {
-    padding: 14px 18px 20px;
-  }
-
-  .guide-toc ul {
-    grid-template-columns: 1fr;
-  }
-
-  .guide-role-tabs {
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .freeze-list {
-    grid-template-columns: 1fr;
-  }
-
-  .guide-table {
-    font-size: 12px;
-  }
-
-  .guide-table th,
-  .guide-table td {
-    padding: 7px 10px;
-  }
+@media (prefers-reduced-motion: reduce) {
+  .guide-overlay, .guide-modal, .guide-content { animation: none; }
+  .guide-body { scroll-behavior: auto; }
 }
 </style>

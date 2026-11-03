@@ -284,35 +284,39 @@ onUnmounted(() => {
 <template>
   <div class="monitor-page">
     <div class="page-header">
-      <h2>🖥系统监控面板</h2>
-      <div class="page-header-sub">实时日志 · Redis监控 · 服务器状态 · 远程终端</div>
+      <div class="page-heading">
+        <span class="page-kicker">SYSTEM / OBSERVABILITY</span>
+        <h2>系统监控面板</h2>
+        <div class="page-header-sub">统一观测主机指标、实时日志、Redis 状态与远程终端</div>
+      </div>
+      <span class="header-signal"><i></i>LIVE TELEMETRY</span>
     </div>
 
     <div class="monitor-tabs">
       <button class="monitor-tab" :class="{ active: activeTab === 'server' }" @click="activeTab = 'server'; loadSystemInfo()">
-        <span class="tab-icon">S</span><span>服务器状态</span>
+        <span class="tab-icon">SV</span><span>服务器状态</span>
       </button>
       <button class="monitor-tab" :class="{ active: activeTab === 'logs' }" @click="activeTab = 'logs'">
-        <span class="tab-icon">L</span><span>实时日志</span>
+        <span class="tab-icon">LG</span><span>实时日志</span>
       </button>
       <button class="monitor-tab" :class="{ active: activeTab === 'redis' }" @click="activeTab = 'redis'; loadRedisInfo()">
-        <span class="tab-icon">M</span><span>Redis监控</span>
+        <span class="tab-icon">RD</span><span>Redis 监控</span>
       </button>
       <button class="monitor-tab" :class="{ active: activeTab === 'terminal' }" @click="activeTab = 'terminal'">
-        <span class="tab-icon">R</span><span>远程终端</span>
+        <span class="tab-icon">CLI</span><span>远程终端</span>
       </button>
     </div>
 
-    <!-- ==================== 服务器状态 ==================== -->
     <div v-if="activeTab === 'server'" class="monitor-section">
       <div class="card">
         <div class="card-header card-header-between">
           <div class="card-header-left">
-            <span class="card-icon"></span>
-            <h3>服务器运行状态</h3>
+            <span class="card-icon">SV</span>
+            <div class="card-title-copy"><span class="card-kicker">HOST / RUNTIME</span><h3>服务器运行状态</h3></div>
+            <span v-if="sysInfo" class="live-badge"><i></i>ONLINE</span>
           </div>
           <button class="btn-action btn-refresh" @click="loadSystemInfo" :disabled="sysLoading">
-            {{ sysLoading ? '加载中...' : '刷新' }}
+            {{ sysLoading ? '加载中...' : '刷新指标' }}
           </button>
         </div>
         <div class="card-body">
@@ -321,52 +325,64 @@ onUnmounted(() => {
               <div class="sys-item">
                 <span class="sys-label">操作系统</span>
                 <span class="sys-val">{{ sysInfo.osName }}</span>
+                <span class="sys-code">PLATFORM</span>
               </div>
               <div class="sys-item">
                 <span class="sys-label">系统架构</span>
-                <span class="sys-val">{{ sysInfo.osArch }}</span>
+                <span class="sys-val sys-val-mono">{{ sysInfo.osArch }}</span>
+                <span class="sys-code">ARCHITECTURE</span>
               </div>
-              <div class="sys-item">
+              <div class="sys-item sys-item-wide">
                 <span class="sys-label">CPU</span>
                 <span class="sys-val">{{ sysInfo.cpuName }} ({{ sysInfo.cpuCores }}核)</span>
+                <span class="sys-code">PROCESSOR</span>
               </div>
               <div class="sys-item">
-                <span class="sys-label">CPU占用</span>
-                <span class="sys-val" :class="{ 'val-warn': sysInfo.cpuUsagePercent > 80 }">{{ sysInfo.cpuUsagePercent }}%</span>
+                <span class="sys-label">CPU 占用</span>
+                <span class="sys-val sys-val-metric" :class="{ 'val-warn': sysInfo.cpuUsagePercent > 80 }">{{ sysInfo.cpuUsagePercent }}<small>%</small></span>
+                <span class="sys-code">UTILIZATION</span>
               </div>
               <div class="sys-item">
                 <span class="sys-label">内存总量</span>
-                <span class="sys-val">{{ sysInfo.totalMemoryGB }} GB</span>
+                <span class="sys-val sys-val-metric">{{ sysInfo.totalMemoryGB }}<small>GB</small></span>
+                <span class="sys-code">TOTAL MEMORY</span>
               </div>
               <div class="sys-item">
                 <span class="sys-label">已用内存</span>
-                <span class="sys-val" :class="{ 'val-warn': sysInfo.memoryUsagePercent > 85 }">{{ sysInfo.usedMemoryGB }} GB ({{ sysInfo.memoryUsagePercent }}%)</span>
+                <span class="sys-val sys-val-metric" :class="{ 'val-warn': sysInfo.memoryUsagePercent > 85 }">{{ sysInfo.usedMemoryGB }}<small>GB</small></span>
+                <span class="sys-code">USED / {{ sysInfo.memoryUsagePercent }}%</span>
               </div>
               <div class="sys-item">
                 <span class="sys-label">可用内存</span>
-                <span class="sys-val">{{ sysInfo.availableMemoryGB }} GB</span>
+                <span class="sys-val sys-val-metric">{{ sysInfo.availableMemoryGB }}<small>GB</small></span>
+                <span class="sys-code">AVAILABLE</span>
               </div>
               <div class="sys-item">
                 <span class="sys-label">服务运行时长</span>
                 <span class="sys-val">{{ sysInfo.javaUptime }}</span>
+                <span class="sys-code">SERVICE UPTIME</span>
               </div>
             </div>
-            <div class="meter">
-              <div class="meter-header">
-                <span class="meter-label">内存使用率</span>
-                <span class="meter-value">{{ sysInfo.memoryUsagePercent }}%</span>
+            <div class="meter-grid">
+              <div class="meter">
+                <div class="meter-header">
+                  <span class="meter-label">内存使用率</span>
+                  <span class="meter-value">{{ sysInfo.memoryUsagePercent }}%</span>
+                </div>
+                <div class="meter-track">
+                  <div class="meter-fill" :style="{ width: sysInfo.memoryUsagePercent + '%' }" :class="{ 'meter-danger': sysInfo.memoryUsagePercent > 85 }"></div>
+                </div>
+                <div class="meter-caption"><span>MEMORY PRESSURE</span><span>{{ sysInfo.usedMemoryGB }} / {{ sysInfo.totalMemoryGB }} GB</span></div>
               </div>
-              <div class="meter-track">
-                <div class="meter-fill" :style="{ width: sysInfo.memoryUsagePercent + '%' }" :class="{ 'meter-danger': sysInfo.memoryUsagePercent > 85 }"></div>
-              </div>
-            </div>
-            <div class="meter">
-              <div class="meter-header">
-                <span class="meter-label">CPU使用率</span>
-                <span class="meter-value">{{ sysInfo.cpuUsagePercent }}%</span>
-              </div>
-              <div class="meter-track">
-                <div class="meter-fill" :style="{ width: sysInfo.cpuUsagePercent + '%' }" :class="{ 'meter-danger': sysInfo.cpuUsagePercent > 80 }"></div>
+              <div class="meter">
+                <div class="meter-header">
+                  <span class="meter-label">CPU 使用率</span>
+                  <span class="meter-value">{{ sysInfo.cpuUsagePercent }}%</span>
+                </div>
+                <div class="meter-track">
+                  <div class="meter-fill" :style="{ width: sysInfo.cpuUsagePercent + '%' }" :class="{ 'meter-danger': sysInfo.cpuUsagePercent > 80 }"></div>
+                </div>
+                <div class="meter-caption"><span>COMPUTE LOAD</span><span>{{ sysInfo.cpuCores }} CORES</span></div>
               </div>
             </div>
           </div>
@@ -378,15 +394,16 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <!-- ==================== 实时日志 ==================== -->
     <div v-if="activeTab === 'logs'" class="monitor-section">
       <div class="card">
         <div class="card-header card-header-between">
           <div class="card-header-left">
-            <span class="card-icon"></span>
-            <h3>实时日志</h3>
-            <span class="log-status-dot" :class="{ 'log-paused': logPaused || logSearchMode }"></span>
-            <span class="log-status-text">{{ logSearchMode ? '结构化查询模式' : (logPaused ? '已暂停' : '实时监控中') }}</span>
+            <span class="card-icon">LG</span>
+            <div class="card-title-copy"><span class="card-kicker">LOG / STREAM</span><h3>实时日志</h3></div>
+            <div class="log-stream-state">
+              <span class="log-status-dot" :class="{ 'log-paused': logPaused || logSearchMode }"></span>
+              <span class="log-status-text">{{ logSearchMode ? '结构化查询模式' : (logPaused ? '已暂停' : '实时监控中') }}</span>
+            </div>
           </div>
           <div class="card-header-right">
             <button class="btn-sm-action" :class="{ 'btn-sm-active': logSearchMode }" @click="toggleLogSearchMode">
@@ -401,7 +418,7 @@ onUnmounted(() => {
                 <option value="DEBUG">DEBUG</option>
               </select>
               <button class="btn-action btn-sm-action" @click="togglePause">
-                {{ logPaused ? '▶ 恢复' : '⏸ 暂停' }}
+                {{ logPaused ? '恢复流' : '暂停流' }}
               </button>
               <button class="btn-action btn-refresh" @click="loadLogs" :disabled="logLoading">
                 {{ logLoading ? '刷新中...' : '刷新' }}
@@ -412,6 +429,10 @@ onUnmounted(() => {
 
         <template v-if="!logSearchMode">
           <div class="card-body log-card-body">
+            <div class="log-console-bar">
+              <span>APPLICATION.LOG</span>
+              <span>TAIL {{ logTailCount }} / LEVEL {{ logLevel }}</span>
+            </div>
             <div class="log-viewer" ref="logContainer">
               <div v-if="logLines.length === 0 && !logLoading" class="log-empty">暂无日志数据...</div>
               <div v-for="(line, i) in logLines" :key="i" class="log-line" :class="getLogLineClass(line)">{{ line }}</div>
@@ -431,10 +452,10 @@ onUnmounted(() => {
         </template>
 
         <template v-else>
-          <div class="card-body">
+          <div class="card-body log-filter-body">
             <div class="log-search-filters">
               <div class="lsf-hint">
-                <span class="lsf-hint-icon">L</span>
+                <span class="lsf-hint-icon">Q</span>
                 <span>填写任意一个或多个条件均可查询，留空的条件不参与过滤。支持输入框回车键直接发起查询。</span>
                 <span v-if="activeFilterCount > 0" class="lsf-active-badge">已启用 {{ activeFilterCount }} 个条件</span>
                 <span v-else class="lsf-active-badge lsf-active-badge-none">未设置条件，将返回全部结构化日志</span>
@@ -492,15 +513,16 @@ onUnmounted(() => {
                 </div>
               </div>
               <div class="lsf-actions">
+                <span class="lsf-action-note">查询范围由扫描行数决定</span>
+                <button class="btn-sm-action" @click="resetLogSearchFilters">重置条件</button>
                 <button class="btn-action btn-refresh" @click="doLogSearch" :disabled="logSearchLoading">
-                  {{ logSearchLoading ? '查询中...' : '查询' }}
+                  {{ logSearchLoading ? '查询中...' : '执行查询' }}
                 </button>
-                <button class="btn-sm-action" @click="resetLogSearchFilters">重置</button>
               </div>
             </div>
           </div>
 
-          <div class="card-body log-card-body" style="padding-top:0">
+          <div class="card-body log-card-body log-result-body">
             <div v-if="logSearchLoading && logSearchRecords.length === 0" class="log-empty">
               <div class="state-spinner"></div>
               <div>正在查询日志...</div>
@@ -508,7 +530,7 @@ onUnmounted(() => {
             <div v-else-if="!logSearchQueried" class="log-empty">
               <div class="log-search-init-hint">
                 <div class="lsih-icon">Q</div>
-                <div class="lsih-text">点击「查询」按钮或在任意输入框按 Enter 发起查询</div>
+                <div class="lsih-text">点击“执行查询”或在任意输入框按 Enter 发起查询</div>
                 <div class="lsih-sub">无需填写全部条件，填写单个字段即可检索</div>
               </div>
             </div>
@@ -544,7 +566,7 @@ onUnmounted(() => {
             </div>
             <div v-else class="log-empty">
               <div class="log-search-empty-result">
-                <div class="lser-icon">N</div>
+                <div class="lser-icon">0</div>
                 <div class="lser-text">未找到符合条件的日志记录</div>
                 <div class="lser-hint">
                   <template v-if="activeFilterCount > 0">当前已启用 {{ activeFilterCount }} 个条件，尝试减少条件或扩大扫描行数</template>
@@ -553,6 +575,7 @@ onUnmounted(() => {
               </div>
             </div>
             <div class="log-footer" v-if="logSearchRecords.length > 0">
+              <span class="log-footer-label">STRUCTURED RESULT</span>
               <span class="log-count">共 {{ logSearchTotal }} 条记录</span>
             </div>
           </div>
@@ -560,17 +583,16 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <!-- ==================== Redis监控 ==================== -->
     <div v-if="activeTab === 'redis'" class="monitor-section">
       <div class="card">
         <div class="card-header card-header-between">
           <div class="card-header-left">
-            <span class="card-icon"></span>
-            <h3>Redis 数据库监控</h3>
+            <span class="card-icon">RD</span>
+            <div class="card-title-copy"><span class="card-kicker">REDIS / KEYSPACE</span><h3>Redis 数据库监控</h3></div>
             <span v-if="redisInfo" class="redis-host-badge">{{ redisInfo.host }}</span>
           </div>
           <button class="btn-action btn-refresh" @click="loadRedisInfo" :disabled="redisLoading">
-            {{ redisLoading ? '加载中...' : '刷新' }}
+            {{ redisLoading ? '加载中...' : '刷新状态' }}
           </button>
         </div>
         <div class="card-body">
@@ -579,25 +601,31 @@ onUnmounted(() => {
               <div class="redis-si-item">
                 <span class="redis-si-label">版本</span>
                 <span class="redis-si-val">{{ redisInfo.redisVersion }}</span>
+                <span class="redis-si-code">ENGINE</span>
               </div>
               <div class="redis-si-item">
                 <span class="redis-si-label">已用内存</span>
                 <span class="redis-si-val">{{ redisInfo.usedMemory }}</span>
+                <span class="redis-si-code">MEMORY</span>
               </div>
               <div class="redis-si-item">
                 <span class="redis-si-label">峰值内存</span>
                 <span class="redis-si-val">{{ redisInfo.usedMemoryPeak }}</span>
+                <span class="redis-si-code">PEAK</span>
               </div>
               <div class="redis-si-item">
                 <span class="redis-si-label">连接数</span>
                 <span class="redis-si-val">{{ redisInfo.connectedClients }}</span>
+                <span class="redis-si-code">CLIENTS</span>
               </div>
               <div class="redis-si-item">
                 <span class="redis-si-label">运行时长</span>
                 <span class="redis-si-val">{{ formatUptime(redisInfo.uptimeSeconds) }}</span>
+                <span class="redis-si-code">UPTIME</span>
               </div>
             </div>
 
+            <div class="redis-section-heading"><span>数据库键空间</span><span>选择 DB 查看键详情</span></div>
             <div class="redis-db-grid">
               <div v-for="dbInfo in redisInfo.databases" :key="dbInfo.db"
                    class="redis-db-card"
@@ -605,14 +633,14 @@ onUnmounted(() => {
                    @click="loadRedisKeys(dbInfo.db)">
                 <div class="redis-db-num">DB {{ dbInfo.db }}</div>
                 <div class="redis-db-keys">{{ dbInfo.keys }}</div>
-                <div class="redis-db-keys-label">keys</div>
+                <div class="redis-db-keys-label">KEYS</div>
               </div>
             </div>
 
             <div v-if="selectedDb >= 0" class="redis-key-viewer">
               <div class="rkv-header">
-                <h4> DB{{ selectedDb }} 的键</h4>
-                <button class="btn-sm-action" @click="closeKeyViewer">✕ 关闭</button>
+                <div><span class="rkv-kicker">KEYSPACE INSPECTOR</span><h4>DB{{ selectedDb }} 的键</h4></div>
+                <button class="btn-sm-action" @click="closeKeyViewer">关闭</button>
               </div>
               <div v-if="redisKeysLoading" class="rkv-loading">
                 <div class="state-spinner"></div>
@@ -641,45 +669,45 @@ onUnmounted(() => {
           </div>
           <div v-else-if="redisLoading" class="state-block">
             <div class="state-spinner"></div>
-            <div class="state-text">正在获取Redis信息...</div>
+            <div class="state-text">正在获取 Redis 信息...</div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- ==================== 远程终端 ==================== -->
     <div v-if="activeTab === 'terminal'" class="monitor-section">
       <div class="card">
         <div class="card-header card-header-between">
           <div class="card-header-left">
-            <span class="card-icon"></span>
-            <h3>远程终端</h3>
-            <span class="term-warning-badge">⚠️ 谨慎操作</span>
+            <span class="card-icon">CLI</span>
+            <div class="card-title-copy"><span class="card-kicker">REMOTE / SHELL</span><h3>远程终端</h3></div>
+            <span class="term-warning-badge">PRIVILEGED SESSION</span>
           </div>
           <div class="card-header-right">
-            <button class="btn-action btn-sm-action" @click="clearTerminal">🗑 清屏</button>
+            <button class="btn-action btn-sm-action" @click="clearTerminal">清屏</button>
           </div>
         </div>
         <div class="card-body term-card-body">
+          <div class="term-console-bar"><span>REMOTE SHELL</span><span>ENTER TO EXECUTE</span></div>
           <div class="term-output-area" ref="termContainer">
             <div v-if="!termOutput && !termExecuting" class="term-placeholder">
-              <div class="term-placeholder-icon"></div>
+              <div class="term-placeholder-icon">$_</div>
               <div class="term-placeholder-text">在下方输入命令，按 Enter 执行</div>
-              <div class="term-placeholder-hint">支持 ↑↓ 键浏览历史命令 · Ctrl+Enter 换行</div>
+              <div class="term-placeholder-hint">支持上下方向键浏览历史命令，Shift+Enter 换行</div>
             </div>
             <div v-if="termOutput" class="term-output-content">
               <pre class="term-pre">{{ termOutput }}</pre>
             </div>
             <div v-if="termExecuting" class="term-executing">
-              <div class="state-spinner" style="width:18px;height:18px;border-width:2px;margin:0;display:inline-block;vertical-align:middle;margin-right:8px;"></div>
+              <div class="state-spinner term-spinner"></div>
               正在执行命令...
             </div>
           </div>
           <div class="term-status-bar" v-if="termExitCode !== null">
             <span class="term-exit-code" :class="{ 'term-exit-ok': termExitCode === 0, 'term-exit-err': termExitCode !== 0 }">
-              Exit Code: {{ termExitCode }}
+              EXIT CODE {{ termExitCode }}
             </span>
-            <span class="term-elapsed" v-if="termElapsed !== null">耗时: {{ termElapsed }}ms</span>
+            <span class="term-elapsed" v-if="termElapsed !== null">ELAPSED {{ termElapsed }} ms</span>
           </div>
           <div class="term-input-area">
             <span class="term-prompt">$</span>
@@ -687,17 +715,17 @@ onUnmounted(() => {
                 ref="termInput"
                 v-model="termCommand"
                 class="term-input"
-                placeholder="输入命令... (Enter 执行, ↑↓ 历史)"
+                placeholder="输入命令... Enter 执行，上下方向键浏览历史"
                 rows="1"
                 @keydown="handleTermKeydown"
                 :disabled="termExecuting"
             ></textarea>
             <button class="btn-action term-exec-btn" @click="executeTerminalCommand" :disabled="termExecuting || !termCommand.trim()">
-              {{ termExecuting ? '执行中...' : '▶ 执行' }}
+              {{ termExecuting ? '执行中...' : '执行命令' }}
             </button>
           </div>
           <div class="term-history-bar" v-if="termHistory.length > 0">
-            <span class="term-history-label">最近命令:</span>
+            <span class="term-history-label">最近命令</span>
             <div class="term-history-items">
               <span v-for="(cmd, i) in termHistory.slice(0, 8)" :key="i" class="term-history-item" @click="termCommand = cmd" :title="cmd">
                 {{ cmd.length > 40 ? cmd.substring(0, 40) + '...' : cmd }}
@@ -711,202 +739,250 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-.monitor-page { width: 100%; max-width: 1600px; margin: 0 auto; padding: 0 20px 40px; box-sizing: border-box; }
-.page-header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 2px solid #f0f0f0; }
-.page-header h2 { margin: 0; font-size: 22px; color: #1a1a2e; font-weight: 700; }
-.page-header-sub { font-size: 13px; color: #999; }
-
-.monitor-tabs { display: flex; gap: 4px; background: #f4f5f7; border-radius: 12px; padding: 4px; margin-bottom: 24px; }
-.monitor-tab { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 0; font-size: 14px; border: none; border-radius: 10px; cursor: pointer; background: transparent; color: #888; font-weight: 600; transition: all 0.25s ease; }
-.monitor-tab.active { background: #fff; color: #1a1a2e; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
-.monitor-tab:not(.active):hover { color: #555; background: rgba(255,255,255,0.5); }
-.tab-icon { font-size: 16px; }
-
-.monitor-section { animation: fadeUp 0.3s ease; }
-@keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-
-.card { background: #fff; border-radius: 14px; padding: 0; margin-bottom: 20px; border: 1px solid #eaeaea; box-shadow: 0 1px 4px rgba(0,0,0,0.04); overflow: hidden; }
-.card-header { display: flex; align-items: center; gap: 8px; padding: 16px 20px; border-bottom: 1px solid #f0f0f0; }
-.card-header h3 { margin: 0; font-size: 15px; color: #333; font-weight: 700; }
+.monitor-page { width: 100%; max-width: 1600px; min-width: 0; margin: 0 auto; padding: 0 20px 40px; color: var(--text-primary); font-family: var(--font-sans); }
+.page-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; margin-bottom: 22px; padding: 4px 0 18px; border-bottom: 1px solid var(--border-color); }
+.page-heading { min-width: 0; }
+.page-kicker, .card-kicker, .rkv-kicker { display: block; margin-bottom: 7px; color: var(--accent); font-size: 10px; font-weight: 800; letter-spacing: 1.7px; }
+.page-header h2 { margin: 0; font-size: 24px; line-height: 1.25; letter-spacing: -0.6px; font-weight: 800; }
+.page-header-sub { margin-top: 7px; color: var(--text-secondary); font-size: 13px; }
+.header-signal { display: inline-flex; align-items: center; gap: 7px; flex: 0 0 auto; padding: 7px 11px; border: 1px solid rgba(15,143,131,0.15); border-radius: 999px; background: rgba(255,255,255,0.62); color: var(--accent-strong); box-shadow: inset 0 1px 0 rgba(255,255,255,0.85); font-size: 9px; font-weight: 800; letter-spacing: 1px; }
+.header-signal i { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 4px var(--accent-glow); animation: pulse 2.4s ease-in-out infinite; }
+.monitor-tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin-bottom: 20px; padding: 7px; border: 1px solid rgba(203,220,215,0.85); border-radius: var(--radius); background: rgba(255,255,255,0.66); box-shadow: var(--glass-shadow, var(--shadow-sm)); backdrop-filter: blur(18px); }
+.monitor-tab { display: flex; min-width: 0; min-height: 44px; align-items: center; justify-content: center; gap: 9px; padding: 8px 12px; border: 1px solid transparent; border-radius: var(--radius-sm); background: transparent; color: var(--text-secondary); cursor: pointer; font-size: 12px; font-weight: 700; transition: var(--transition); }
+.monitor-tab:hover { background: rgba(231,246,242,0.58); color: var(--text-primary); }
+.monitor-tab.active { border-color: rgba(15,143,131,0.13); background: var(--accent-soft); color: var(--accent-strong); box-shadow: inset 0 1px 0 rgba(255,255,255,0.76); }
+.tab-icon { display: grid; min-width: 28px; height: 28px; padding: 0 5px; place-items: center; border: 1px solid var(--border-color); border-radius: 8px; background: rgba(255,255,255,0.62); color: var(--text-secondary); font-family: var(--font-mono); font-size: 9px; font-weight: 800; }
+.monitor-tab.active .tab-icon { border-color: rgba(15,143,131,0.15); color: var(--accent); }
+.monitor-section { min-width: 0; animation: reveal 260ms ease-out; }
+@keyframes reveal { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+.card { min-width: 0; overflow: hidden; border: 1px solid var(--border-color); border-radius: var(--radius-lg); background: rgba(255,255,255,0.9); box-shadow: var(--shadow-sm); }
+.card-header { display: flex; min-height: 76px; align-items: center; gap: 12px; padding: 15px 18px; border-bottom: 1px solid var(--border-color); background: linear-gradient(110deg, rgba(247,251,250,0.9), rgba(255,255,255,0.68)); }
 .card-header-between { justify-content: space-between; }
-.card-header-left { display: flex; align-items: center; gap: 8px; }
-.card-header-right { display: flex; align-items: center; gap: 8px; }
-.card-icon { font-size: 18px; }
-.card-body { padding: 20px; }
-
-.sys-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
-@media (max-width: 900px) { .sys-grid { grid-template-columns: 1fr 1fr; } }
-.sys-item { display: flex; flex-direction: column; gap: 4px; padding: 12px 16px; background: #f8f9fc; border-radius: 10px; }
-.sys-label { font-size: 11px; color: #999; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; }
-.sys-val { font-size: 14px; color: #333; font-weight: 600; }
-.val-warn { color: #ef4444; }
-
-.meter { margin-bottom: 12px; }
-.meter-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
-.meter-label { font-size: 12px; color: #666; font-weight: 600; }
-.meter-value { font-size: 13px; font-weight: 700; color: #333; }
-.meter-track { height: 10px; background: #f0f0f0; border-radius: 5px; overflow: hidden; }
-.meter-fill { height: 100%; background: linear-gradient(90deg, #43e97b, #38f9d7); border-radius: 5px; transition: width 0.5s ease; }
-.meter-fill.meter-danger { background: linear-gradient(90deg, #f87171, #ef4444); }
-
-.state-block { text-align: center; padding: 50px 20px; }
-.state-text { color: #aaa; font-size: 14px; }
-.state-spinner { width: 32px; height: 32px; border: 3px solid #e0e0e0; border-top-color: #667eea; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 12px; }
+.card-header-left, .card-header-right { display: flex; min-width: 0; align-items: center; gap: 10px; flex-wrap: wrap; }
+.card-header-right { justify-content: flex-end; }
+.card-icon { display: grid; min-width: 34px; height: 34px; padding: 0 6px; place-items: center; border: 1px solid rgba(15,143,131,0.14); border-radius: 10px; background: var(--accent-soft); color: var(--accent-strong); font-family: var(--font-mono); font-size: 9px; font-weight: 800; }
+.card-title-copy { min-width: 0; }
+.card-kicker { margin-bottom: 3px; font-size: 8px; letter-spacing: 1.1px; }
+.card-header h3 { margin: 0; font-size: 14px; font-weight: 800; }
+.card-body { min-width: 0; padding: 20px; }
+.live-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 999px; background: var(--success-soft); color: var(--success); font-family: var(--font-mono); font-size: 8px; font-weight: 800; }
+.live-badge i { width: 5px; height: 5px; border-radius: 50%; background: var(--success); }
+.btn-action, .btn-sm-action { min-height: 34px; padding: 7px 13px; border: 1px solid transparent; border-radius: var(--radius-sm); cursor: pointer; font-size: 11px; font-weight: 750; white-space: nowrap; transition: var(--transition); }
+.btn-action:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+.btn-refresh { background: linear-gradient(135deg, var(--accent), var(--accent-strong)); color: #fff; box-shadow: 0 6px 16px rgba(15,143,131,0.15), inset 0 1px 0 rgba(255,255,255,0.2); }
+.btn-refresh:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 9px 20px rgba(15,143,131,0.22); }
+.btn-sm-action { border-color: var(--border-color); background: rgba(255,255,255,0.75); color: var(--text-secondary); }
+.btn-sm-action:hover { border-color: var(--accent-light); color: var(--accent-strong); }
+.btn-sm-active { border-color: rgba(15,143,131,0.18); background: var(--accent-soft); color: var(--accent-strong); }
+.sys-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 13px; margin-bottom: 20px; }
+.sys-item { position: relative; display: flex; min-width: 0; min-height: 116px; flex-direction: column; gap: 7px; padding: 15px; overflow: hidden; border: 1px solid #e6efec; border-radius: var(--radius); background: linear-gradient(135deg, #f8fbfa, rgba(255,255,255,0.78)); }
+.sys-item::after { content: ''; position: absolute; right: -20px; bottom: -28px; width: 80px; height: 80px; border-radius: 50%; background: radial-gradient(circle, rgba(83,200,184,0.09), transparent 70%); }
+.sys-label { color: var(--text-secondary); font-size: 11px; font-weight: 650; }
+.sys-val { position: relative; z-index: 1; color: var(--text-primary); font-size: 13px; line-height: 1.5; font-weight: 750; overflow-wrap: anywhere; }
+.sys-val-mono, .sys-val-metric { font-family: var(--font-mono); }
+.sys-val-metric { font-size: 24px; line-height: 1.2; letter-spacing: -0.7px; }
+.sys-val-metric small { margin-left: 4px; color: var(--text-secondary); font-size: 10px; font-weight: 600; letter-spacing: 0; }
+.sys-code { margin-top: auto; color: var(--text-tertiary); font-family: var(--font-mono); font-size: 8px; letter-spacing: 0.75px; }
+.val-warn { color: var(--danger); }
+.meter-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.meter { padding: 16px; border: 1px solid var(--border-color); border-radius: var(--radius); background: rgba(248,251,250,0.76); }
+.meter-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 11px; }
+.meter-label { color: var(--text-secondary); font-size: 12px; font-weight: 650; }
+.meter-value { color: var(--accent-strong); font-family: var(--font-mono); font-size: 17px; font-weight: 750; }
+.meter-track { height: 8px; overflow: hidden; border-radius: 999px; background: #e3ece9; box-shadow: inset 0 1px 2px rgba(15,45,42,0.06); }
+.meter-fill { height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--accent-strong), var(--accent-light)); box-shadow: 0 0 12px rgba(83,200,184,0.25); transition: width 500ms ease; }
+.meter-fill.meter-danger { background: linear-gradient(90deg, #bd4747, #e68178); box-shadow: none; }
+.meter-caption { display: flex; justify-content: space-between; gap: 10px; margin-top: 9px; color: var(--text-tertiary); font-family: var(--font-mono); font-size: 8px; letter-spacing: 0.5px; }
+.state-block { padding: 64px 20px; text-align: center; }
+.state-text { color: var(--text-secondary); font-size: 13px; }
+.state-spinner { width: 28px; height: 28px; margin: 0 auto 12px; border: 2px solid var(--accent-soft); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
-
-.btn-sm-active { background: #667eea !important; color: #fff !important; border-color: #667eea !important; }
-
-.log-search-filters { margin-bottom: 16px; }
-.lsf-row { display: flex; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
-.lsf-item { flex: 1; min-width: 160px; display: flex; flex-direction: column; gap: 4px; }
-.lsf-item label { font-size: 11px; color: #888; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; }
-.lsf-input { padding: 8px 12px; font-size: 13px; border: 2px solid #e8e8e8; border-radius: 8px; outline: none; background: #fff; transition: border-color 0.2s; }
-.lsf-input:focus { border-color: #667eea; }
-.lsf-actions { display: flex; gap: 8px; margin-top: 4px; }
-.btn-sm-active { background: #667eea !important; color: #fff !important; border-color: #667eea !important; }
-.log-search-result { overflow-x: auto; }
-.log-search-filters { margin-bottom: 16px; }
-.lsf-hint { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 10px 14px; background: #eef2ff; border-radius: 8px; border: 1px solid #c7d2fe; margin-bottom: 14px; font-size: 12px; color: #4338ca; line-height: 1.6; }
-.lsf-hint-icon { font-weight: 800; font-size: 14px; }
-.lsf-active-badge { margin-left: auto; padding: 2px 10px; background: #667eea; color: #fff; border-radius: 20px; font-size: 11px; font-weight: 700; white-space: nowrap; }
-.lsf-active-badge-none { background: #94a3b8; }
-
-.lsf-row { display: flex; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
-.lsf-item { flex: 1; min-width: 160px; display: flex; flex-direction: column; gap: 4px; }
-.lsf-item label { font-size: 11px; color: #888; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; display: flex; align-items: center; gap: 6px; }
-.lsf-optional { font-size: 10px; color: #bbb; font-weight: 400; text-transform: none; letter-spacing: 0; background: #f4f4f4; padding: 1px 6px; border-radius: 4px; }
-.lsf-input { padding: 8px 12px; font-size: 13px; border: 2px solid #e8e8e8; border-radius: 8px; outline: none; background: #fff; transition: border-color 0.2s; }
-.lsf-input:focus { border-color: #667eea; }
-.lsf-actions { display: flex; gap: 8px; margin-top: 4px; align-items: center; }
-
-.log-search-init-hint { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 50px 20px; gap: 10px; }
-.lsih-icon { font-size: 36px; opacity: 0.3; }
-.lsih-text { font-size: 14px; color: #888; font-weight: 600; }
-.lsih-sub { font-size: 12px; color: #bbb; }
-
-.log-search-empty-result { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px; gap: 8px; }
-.lser-icon { font-size: 32px; opacity: 0.3; }
-.lser-text { font-size: 14px; color: #888; font-weight: 600; }
-.lser-hint { font-size: 12px; color: #bbb; text-align: center; max-width: 400px; line-height: 1.6; }
-
-.log-search-result { overflow-x: auto; }
-.lsr-table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: left; }
-.lsr-table th { background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; padding: 10px 12px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; position: sticky; top: 0; z-index: 1; white-space: nowrap; }
-.lsr-table td { padding: 8px 12px; border-bottom: 1px solid #f0f0f0; color: #333; white-space: nowrap; }
-.lsr-table tbody tr:hover td { background: #f8f9ff; }
-.lsr-time { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 11px; color: #666; }
-.lsr-level { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 700; }
-.lsr-level-info { background: #dbeafe; color: #1d4ed8; }
-.lsr-level-warn { background: #fef3c7; color: #92400e; }
-.lsr-level-error { background: #fee2e2; color: #991b1b; }
-.lsr-level-debug { background: #ede9fe; color: #5b21b6; }
-.lsr-clazz { font-family: 'SF Mono', monospace; font-size: 11px; color: #555; }
-.lsr-method { font-family: 'SF Mono', monospace; font-size: 11px; color: #667eea; font-weight: 600; }
-.lsr-status { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 700; }
-.lsr-status-ok { background: #dcfce7; color: #166534; }
-.lsr-status-fail { background: #fee2e2; color: #991b1b; }
-.lsr-duration { font-family: 'SF Mono', monospace; font-weight: 600; color: #333; }
-.lsr-duration-warn { color: #f59e0b; }
-.lsr-duration-slow { color: #ef4444; }
-.lsr-ip { font-family: 'SF Mono', monospace; font-size: 11px; color: #888; }
-
-
-.btn-action { border: none; padding: 10px 24px; font-size: 13px; border-radius: 10px; cursor: pointer; font-weight: 600; transition: transform 0.15s, box-shadow 0.15s; }
-.btn-action:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
-.btn-refresh { background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; padding: 6px 18px; font-size: 12px; }
-.btn-refresh:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(102,126,234,0.35); }
-.btn-sm-action { background: #f4f5f7; color: #666; border: 1px solid #e0e0e0; padding: 6px 16px; font-size: 12px; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.2s; }
-.btn-sm-action:hover { background: #e8e8e8; color: #333; }
-
-/* ===== 日志查看器 ===== */
-.log-card-body { padding: 0 !important; }
-.log-status-dot { width: 10px; height: 10px; border-radius: 50%; background: #22c55e; display: inline-block; animation: pulse-dot 2s ease-in-out infinite; }
-.log-status-dot.log-paused { background: #f59e0b; animation: none; }
-@keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
-.log-status-text { font-size: 12px; color: #888; font-weight: 500; }
-
-.log-level-select { padding: 6px 12px; font-size: 12px; border: 2px solid #e8e8e8; border-radius: 8px; outline: none; cursor: pointer; background: #fff; }
-.log-level-select:focus { border-color: #667eea; }
-
-.log-viewer { background: #1a1a2e; color: #d4d4d8; font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; font-size: 12px; line-height: 1.7; padding: 16px 20px; min-height: 400px; max-height: 600px; overflow-y: auto; }
-.log-line { padding: 1px 0; white-space: pre-wrap; word-break: break-all; border-bottom: 1px solid rgba(255,255,255,0.03); }
-.log-line:hover { background: rgba(255,255,255,0.05); }
-.log-error { color: #f87171; font-weight: 600; }
-.log-warn { color: #fbbf24; }
-.log-info { color: #60a5fa; }
-.log-debug { color: #a78bfa; }
-.log-empty { color: #666; text-align: center; padding: 60px 20px; }
-
-.log-footer { display: flex; justify-content: space-between; align-items: center; padding: 10px 20px; background: #f8f9fc; border-top: 1px solid #f0f0f0; }
-.log-auto-scroll-label { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #666; cursor: pointer; }
-.log-count { font-size: 12px; color: #999; }
-
-/* ===== Redis监控 ===== */
-.redis-server-info { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 24px; }
-@media (max-width: 900px) { .redis-server-info { grid-template-columns: repeat(3, 1fr); } }
-.redis-si-item { display: flex; flex-direction: column; gap: 4px; padding: 12px 16px; background: linear-gradient(135deg, #f8f9fc, #eef2ff); border-radius: 10px; border: 1px solid #e8eaef; }
-.redis-si-label { font-size: 11px; color: #999; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; }
-.redis-si-val { font-size: 14px; color: #333; font-weight: 700; }
-.redis-host-badge { font-size: 11px; font-weight: 600; color: #667eea; background: #eef2ff; padding: 3px 12px; border-radius: 20px; }
-
-.redis-db-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 12px; }
-@media (max-width: 1100px) { .redis-db-grid { grid-template-columns: repeat(4, 1fr); } }
-@media (max-width: 600px) { .redis-db-grid { grid-template-columns: repeat(4, 1fr); } }
-
-.redis-db-card { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 16px 8px; background: #f8f9fc; border-radius: 12px; border: 2px solid #e8eaef; cursor: pointer; transition: all 0.2s; }
-.redis-db-card:hover { border-color: #667eea; transform: translateY(-2px); box-shadow: 0 4px 16px rgba(102,126,234,0.15); }
-.redis-db-card-active { border-color: #667eea; background: #eef2ff; box-shadow: 0 4px 16px rgba(102,126,234,0.2); }
+.log-stream-state { display: flex; align-items: center; gap: 7px; }
+.log-status-dot { width: 7px; height: 7px; flex: 0 0 7px; border-radius: 50%; background: var(--success); box-shadow: 0 0 0 4px rgba(23,140,104,0.09); animation: pulse 2s ease-in-out infinite; }
+.log-status-dot.log-paused { background: var(--warning); box-shadow: 0 0 0 4px rgba(197,122,22,0.09); animation: none; }
+.log-status-text { color: var(--text-secondary); font-size: 10px; }
+.log-level-select, .lsf-input { min-height: 36px; padding: 7px 11px; border: 1px solid var(--border-color); border-radius: var(--radius-sm); outline: none; background: rgba(255,255,255,0.82); color: var(--text-primary); font-size: 11px; transition: border-color var(--transition), box-shadow var(--transition), background var(--transition); }
+.log-level-select:focus, .lsf-input:focus { border-color: var(--accent-light); background: #fff; box-shadow: 0 0 0 3px var(--accent-glow); }
+.log-card-body, .term-card-body { padding: 0; }
+.log-console-bar, .term-console-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 18px; border-bottom: 1px solid rgba(164,232,222,0.09); background: #0a211d; color: #628b82; font-family: var(--font-mono); font-size: 8px; letter-spacing: 0.9px; }
+.log-viewer { width: 100%; max-width: 100%; min-height: 420px; max-height: 62vh; padding: 16px 18px; overflow: auto; overscroll-behavior: contain; background: radial-gradient(circle at 100% 0%, rgba(51,145,126,0.08), transparent 35%), #071b18; color: #b8d0ca; font-family: var(--font-mono); font-size: 11px; line-height: 1.75; }
+.log-line { max-width: 100%; padding: 2px 5px; border-left: 2px solid transparent; white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-word; }
+.log-line:hover { border-left-color: rgba(128,229,210,0.24); background: rgba(255,255,255,0.025); }
+.log-error { color: #ff9b93; }
+.log-warn { color: #e8bb74; }
+.log-info { color: #87cbd2; }
+.log-debug { color: #8fa9a2; }
+.log-empty { padding: 58px 20px; color: var(--text-secondary); text-align: center; font-size: 13px; }
+.log-viewer .log-empty { color: #64847d; }
+.log-viewer .state-spinner, .term-output-area .state-spinner { border-color: rgba(128,229,210,0.12); border-top-color: #80e5d2; }
+.log-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 18px; border-top: 1px solid var(--border-color); background: #f7faf9; }
+.log-auto-scroll-label { display: flex; align-items: center; gap: 7px; color: var(--text-secondary); cursor: pointer; font-size: 11px; }
+.log-auto-scroll-label input { accent-color: var(--accent); }
+.log-count { color: var(--text-secondary); font-family: var(--font-mono); font-size: 10px; }
+.log-footer-label { color: var(--text-tertiary); font-family: var(--font-mono); font-size: 8px; letter-spacing: 0.8px; }
+.log-filter-body { border-bottom: 1px solid var(--border-color); background: linear-gradient(130deg, rgba(248,252,250,0.72), rgba(231,246,242,0.3)); }
+.log-search-filters { min-width: 0; }
+.lsf-hint { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; margin-bottom: 16px; padding: 11px 13px; border: 1px solid rgba(15,143,131,0.13); border-radius: var(--radius-sm); background: rgba(231,246,242,0.68); color: var(--text-secondary); font-size: 11px; line-height: 1.6; }
+.lsf-hint-icon { display: grid; width: 24px; height: 24px; flex: 0 0 24px; place-items: center; border-radius: 7px; background: #fff; color: var(--accent); font-family: var(--font-mono); font-size: 10px; font-weight: 800; }
+.lsf-active-badge { margin-left: auto; padding: 4px 8px; border-radius: 999px; background: var(--accent); color: #fff; font-size: 9px; font-weight: 700; white-space: nowrap; }
+.lsf-active-badge-none { background: #e6efec; color: var(--text-secondary); }
+.lsf-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 13px; }
+.lsf-item { display: flex; min-width: 0; flex-direction: column; gap: 6px; }
+.lsf-item label { display: flex; align-items: center; gap: 6px; color: var(--text-secondary); font-size: 10px; font-weight: 700; }
+.lsf-optional { padding: 1px 5px; border-radius: 4px; background: #eaf1ee; color: var(--text-tertiary); font-size: 8px; font-weight: 500; }
+.lsf-input { width: 100%; min-width: 0; min-height: 40px; font-size: 12px; }
+.lsf-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+.lsf-action-note { margin-right: auto; color: var(--text-tertiary); font-size: 10px; }
+.log-result-body { min-height: 280px; }
+.log-search-init-hint, .log-search-empty-result { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 9px; }
+.lsih-icon, .lser-icon { display: grid; width: 46px; height: 46px; margin-bottom: 5px; place-items: center; border: 1px solid var(--border-color); border-radius: 14px; background: var(--accent-soft); color: var(--accent); font-family: var(--font-mono); font-size: 17px; font-weight: 750; }
+.lsih-text, .lser-text { color: var(--text-primary); font-size: 13px; font-weight: 650; }
+.lsih-sub, .lser-hint { max-width: 520px; color: var(--text-tertiary); font-size: 11px; line-height: 1.65; }
+.log-search-result { width: 100%; max-width: 100%; max-height: 560px; overflow: auto; overscroll-behavior: contain; border: 1px solid var(--border-color); border-radius: var(--radius); }
+.lsr-table { width: 100%; min-width: 1080px; border-collapse: separate; border-spacing: 0; font-size: 11px; text-align: left; }
+.lsr-table th { position: sticky; top: 0; z-index: 1; padding: 12px; border-bottom: 1px solid var(--border-color); background: #f0f7f4; color: var(--text-secondary); white-space: nowrap; font-size: 9px; font-weight: 800; letter-spacing: 0.5px; }
+.lsr-table td { padding: 11px 12px; border-bottom: 1px solid #edf3f1; color: var(--text-primary); white-space: nowrap; }
+.lsr-table tbody tr:last-child td { border-bottom: 0; }
+.lsr-table tbody tr:hover td { background: #f7fbfa; }
+.lsr-time, .lsr-clazz, .lsr-method, .lsr-duration, .lsr-ip { font-family: var(--font-mono); font-size: 10px; }
+.lsr-time, .lsr-clazz, .lsr-ip { color: var(--text-secondary); }
+.lsr-method { color: var(--accent-strong); font-weight: 700; }
+.lsr-level, .lsr-status { display: inline-flex; padding: 3px 8px; border-radius: 999px; font-family: var(--font-mono); font-size: 9px; font-weight: 750; }
+.lsr-level-info { background: var(--info-soft); color: var(--info); }
+.lsr-level-warn { background: var(--warning-soft); color: var(--warning); }
+.lsr-level-error { background: var(--danger-soft); color: var(--danger); }
+.lsr-level-debug { background: #edf3f1; color: var(--text-secondary); }
+.lsr-status-ok { background: var(--success-soft); color: var(--success); }
+.lsr-status-fail { background: var(--danger-soft); color: var(--danger); }
+.lsr-duration { font-weight: 700; }
+.lsr-duration-warn { color: var(--warning); }
+.lsr-duration-slow { color: var(--danger); }
+.redis-host-badge { max-width: 220px; overflow: hidden; padding: 4px 9px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-strong); font-family: var(--font-mono); font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.redis-server-info { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin-bottom: 24px; }
+.redis-si-item { display: flex; min-width: 0; min-height: 105px; flex-direction: column; gap: 7px; padding: 14px; border: 1px solid #e6efec; border-radius: var(--radius); background: linear-gradient(135deg, var(--accent-soft), rgba(255,255,255,0.76)); }
+.redis-si-label { color: var(--text-secondary); font-size: 10px; }
+.redis-si-val { font-family: var(--font-mono); font-size: 14px; line-height: 1.45; font-weight: 750; overflow-wrap: anywhere; }
+.redis-si-code { margin-top: auto; color: var(--text-tertiary); font-family: var(--font-mono); font-size: 8px; letter-spacing: 0.8px; }
+.redis-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 2px 12px; }
+.redis-section-heading span:first-child { font-size: 13px; font-weight: 800; }
+.redis-section-heading span:last-child { color: var(--text-secondary); font-size: 10px; }
+.redis-db-grid { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 10px; }
+.redis-db-card { display: flex; min-width: 0; min-height: 112px; flex-direction: column; align-items: center; justify-content: center; padding: 13px 7px; border: 1px solid var(--border-color); border-radius: var(--radius); background: #f8fbfa; cursor: pointer; transition: var(--transition); }
+.redis-db-card:hover { border-color: var(--accent-light); background: #fff; box-shadow: var(--shadow-sm); transform: translateY(-2px); }
+.redis-db-card-active { border-color: var(--accent); background: var(--accent-soft); box-shadow: 0 0 0 3px var(--accent-glow); }
 .redis-db-empty { opacity: 0.5; }
-.redis-db-empty:hover { opacity: 0.8; }
-.redis-db-num { font-size: 11px; font-weight: 700; color: #999; text-transform: uppercase; margin-bottom: 4px; }
-.redis-db-keys { font-size: 24px; font-weight: 800; color: #1a1a2e; }
-.redis-db-keys-label { font-size: 10px; color: #bbb; font-weight: 600; text-transform: uppercase; }
-
-.redis-key-viewer { margin-top: 20px; border: 1px solid #e8eaef; border-radius: 12px; overflow: hidden; }
-.rkv-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; background: #f8f9fc; border-bottom: 1px solid #f0f0f0; }
-.rkv-header h4 { margin: 0; font-size: 14px; font-weight: 700; color: #333; }
-.rkv-loading { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 40px 20px; color: #999; font-size: 14px; }
-.rkv-empty { text-align: center; padding: 40px 20px; color: #aaa; font-size: 14px; }
-.rkv-table-wrap { overflow-x: auto; max-height: 400px; overflow-y: auto; }
-.rkv-table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: left; }
-.rkv-table th { background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; padding: 10px 14px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; position: sticky; top: 0; z-index: 1; }
-.rkv-table td { padding: 9px 14px; border-bottom: 1px solid #f0f0f0; color: #333; }
-.rkv-table tbody tr:hover td { background: #f8f9ff; }
-.rkv-key { max-width: 400px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 11px; color: #555; }
-.rkv-type { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
-.rkv-type-string { background: #dcfce7; color: #166534; }
-.rkv-type-list { background: #e0e7ff; color: #3730a3; }
-.rkv-type-set { background: #fef3c7; color: #92400e; }
-.rkv-type-zset { background: #fce7f3; color: #9d174d; }
-.rkv-type-hash { background: #e0f2fe; color: #075985; }
-.rkv-ttl { font-family: 'SF Mono', monospace; font-weight: 600; color: #666; }
-
-/* ===== 远程终端 ===== */
-.term-card-body { padding: 0 !important; }
-.term-warning-badge { font-size: 11px; font-weight: 700; color: #dc2626; background: #fef2f2; padding: 3px 10px; border-radius: 20px; border: 1px solid #fecaca; }
-.term-output-area { background: #0d1117; color: #c9d1d9; font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; font-size: 13px; line-height: 1.6; min-height: 350px; max-height: 550px; overflow-y: auto; padding: 16px 20px; }
-.term-placeholder { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 300px; color: #484f58; }
-.term-placeholder-icon { font-size: 48px; margin-bottom: 12px; opacity: 0.5; }
-.term-placeholder-text { font-size: 14px; margin-bottom: 6px; }
-.term-placeholder-hint { font-size: 12px; opacity: 0.6; }
-.term-output-content { margin-bottom: 8px; }
-.term-pre { margin: 0; white-space: pre-wrap; word-break: break-all; font-family: inherit; font-size: inherit; color: inherit; }
-.term-executing { color: #58a6ff; padding: 8px 0; display: flex; align-items: center; font-size: 13px; }
-.term-status-bar { display: flex; align-items: center; gap: 16px; padding: 8px 20px; background: #161b22; border-top: 1px solid #21262d; font-size: 12px; }
-.term-exit-code { font-weight: 700; font-family: 'SF Mono', monospace; }
-.term-exit-ok { color: #3fb950; }
-.term-exit-err { color: #f85149; }
-.term-elapsed { color: #8b949e; font-family: 'SF Mono', monospace; }
-.term-input-area { display: flex; align-items: flex-start; gap: 8px; padding: 12px 20px; background: #161b22; border-top: 1px solid #21262d; }
-.term-prompt { color: #3fb950; font-family: 'SF Mono', monospace; font-size: 14px; font-weight: 700; line-height: 32px; flex-shrink: 0; }
-.term-input { flex: 1; background: #0d1117; color: #c9d1d9; border: 1px solid #30363d; border-radius: 6px; padding: 6px 12px; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 13px; resize: none; outline: none; min-height: 32px; line-height: 1.5; }
-.term-input:focus { border-color: #58a6ff; box-shadow: 0 0 0 2px rgba(88,166,255,0.15); }
-.term-input:disabled { opacity: 0.5; }
-.term-exec-btn { background: linear-gradient(135deg, #238636, #2ea043) !important; color: #fff !important; padding: 6px 20px !important; font-size: 12px !important; border-radius: 6px !important; flex-shrink: 0; }
-.term-exec-btn:hover:not(:disabled) { box-shadow: 0 2px 10px rgba(46,160,67,0.4) !important; }
-.term-history-bar { display: flex; align-items: flex-start; gap: 8px; padding: 10px 20px; background: #f8f9fc; border-top: 1px solid #f0f0f0; flex-wrap: wrap; }
-.term-history-label { font-size: 11px; color: #999; font-weight: 600; flex-shrink: 0; line-height: 24px; }
-.term-history-items { display: flex; gap: 6px; flex-wrap: wrap; }
-.term-history-item { font-size: 11px; font-family: 'SF Mono', monospace; color: #555; background: #e8e8e8; padding: 3px 10px; border-radius: 6px; cursor: pointer; transition: all 0.15s; max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.term-history-item:hover { background: #667eea; color: #fff; }
+.redis-db-empty:hover { opacity: 0.85; }
+.redis-db-num { color: var(--text-secondary); font-family: var(--font-mono); font-size: 9px; font-weight: 750; }
+.redis-db-keys { margin: 6px 0 3px; font-family: var(--font-mono); font-size: 24px; line-height: 1; font-weight: 700; }
+.redis-db-keys-label { color: var(--text-tertiary); font-family: var(--font-mono); font-size: 8px; letter-spacing: 0.7px; }
+.redis-key-viewer { margin-top: 20px; overflow: hidden; border: 1px solid var(--border-color); border-radius: var(--radius-lg); background: #fff; }
+.rkv-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 17px; border-bottom: 1px solid var(--border-color); background: #f7faf9; }
+.rkv-kicker { margin-bottom: 3px; font-size: 8px; letter-spacing: 1px; }
+.rkv-header h4 { margin: 0; font-size: 13px; }
+.rkv-loading { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 45px 20px; color: var(--text-secondary); font-size: 12px; }
+.rkv-loading .state-spinner { width: 22px; height: 22px; margin: 0; }
+.rkv-empty { padding: 45px 20px; color: var(--text-secondary); text-align: center; font-size: 12px; }
+.rkv-table-wrap { max-width: 100%; max-height: 430px; overflow: auto; overscroll-behavior: contain; }
+.rkv-table { width: 100%; min-width: 620px; border-collapse: separate; border-spacing: 0; font-size: 11px; text-align: left; }
+.rkv-table th { position: sticky; top: 0; z-index: 1; padding: 11px 14px; border-bottom: 1px solid var(--border-color); background: #f0f7f4; color: var(--text-secondary); font-size: 9px; font-weight: 800; }
+.rkv-table td { padding: 11px 14px; border-bottom: 1px solid #edf3f1; }
+.rkv-table tbody tr:last-child td { border-bottom: 0; }
+.rkv-table tbody tr:hover td { background: #f7fbfa; }
+.rkv-key { max-width: 480px; overflow: hidden; font-family: var(--font-mono); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.rkv-type { display: inline-flex; padding: 3px 8px; border-radius: 999px; font-family: var(--font-mono); font-size: 9px; font-weight: 750; }
+.rkv-type-string { background: var(--success-soft); color: var(--success); }
+.rkv-type-list { background: var(--info-soft); color: var(--info); }
+.rkv-type-set { background: var(--warning-soft); color: var(--warning); }
+.rkv-type-zset { background: #f3eee8; color: #8c643b; }
+.rkv-type-hash { background: var(--accent-soft); color: var(--accent-strong); }
+.rkv-ttl { font-family: var(--font-mono); font-weight: 650; }
+.term-warning-badge { padding: 4px 8px; border: 1px solid rgba(197,122,22,0.15); border-radius: 999px; background: var(--warning-soft); color: var(--warning); font-family: var(--font-mono); font-size: 8px; font-weight: 800; letter-spacing: 0.6px; }
+.term-output-area { width: 100%; max-width: 100%; min-height: 380px; max-height: 62vh; padding: 17px 18px; overflow: auto; overscroll-behavior: contain; background: radial-gradient(circle at 100% 0%, rgba(51,145,126,0.1), transparent 36%), #071b18; color: #c3ddd5; font-family: var(--font-mono); font-size: 12px; line-height: 1.7; }
+.term-placeholder { display: flex; min-height: 330px; flex-direction: column; align-items: center; justify-content: center; color: #63867e; text-align: center; }
+.term-placeholder-icon { display: grid; width: 62px; height: 52px; margin-bottom: 16px; place-items: center; border: 1px solid rgba(128,229,210,0.13); border-radius: 13px; background: rgba(128,229,210,0.04); color: #80e5d2; font-family: var(--font-mono); font-size: 17px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.04); }
+.term-placeholder-text { margin-bottom: 7px; color: #a2beb6; font-size: 13px; }
+.term-placeholder-hint { font-size: 10px; }
+.term-output-content { max-width: 100%; }
+.term-pre { max-width: 100%; margin: 0; color: inherit; font-family: inherit; font-size: inherit; white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-word; }
+.term-executing { display: flex; align-items: center; gap: 9px; padding: 9px 0; color: #80e5d2; }
+.term-spinner { width: 17px; height: 17px; margin: 0; }
+.term-status-bar { display: flex; align-items: center; gap: 18px; padding: 9px 18px; border-top: 1px solid rgba(164,232,222,0.09); background: #0a211d; font-family: var(--font-mono); font-size: 9px; }
+.term-exit-code { font-weight: 750; }
+.term-exit-ok { color: #7bd3ac; }
+.term-exit-err { color: #ff9b93; }
+.term-elapsed { color: #6e958b; }
+.term-input-area { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: start; gap: 9px; padding: 13px 18px; border-top: 1px solid rgba(164,232,222,0.09); background: #0a211d; }
+.term-prompt { color: #80e5d2; font-family: var(--font-mono); font-size: 15px; font-weight: 750; line-height: 38px; }
+.term-input { width: 100%; min-width: 0; max-width: 100%; min-height: 38px; padding: 8px 11px; resize: vertical; border: 1px solid rgba(164,232,222,0.14); border-radius: 9px; outline: none; background: #071b18; color: #d1e6df; font-family: var(--font-mono); font-size: 11px; line-height: 1.6; transition: border-color var(--transition), box-shadow var(--transition); }
+.term-input:focus { border-color: #53c8b8; box-shadow: 0 0 0 3px rgba(83,200,184,0.1); }
+.term-input:disabled { opacity: 0.45; }
+.term-exec-btn { min-height: 38px; background: linear-gradient(135deg, var(--accent), var(--accent-strong)); color: #fff; box-shadow: inset 0 1px 0 rgba(255,255,255,0.18); }
+.term-exec-btn:hover:not(:disabled) { box-shadow: 0 6px 18px rgba(15,143,131,0.22); }
+.term-history-bar { display: flex; align-items: flex-start; gap: 10px; padding: 12px 18px; border-top: 1px solid var(--border-color); background: #f7faf9; }
+.term-history-label { flex: 0 0 auto; color: var(--text-secondary); font-size: 10px; line-height: 25px; }
+.term-history-items { display: flex; min-width: 0; gap: 6px; flex-wrap: wrap; }
+.term-history-item { max-width: 250px; overflow: hidden; padding: 5px 8px; border: 1px solid var(--border-color); border-radius: 7px; background: #fff; color: var(--text-secondary); cursor: pointer; font-family: var(--font-mono); font-size: 9px; text-overflow: ellipsis; white-space: nowrap; transition: var(--transition); }
+.term-history-item:hover { border-color: var(--accent-light); background: var(--accent-soft); color: var(--accent-strong); }
+.log-viewer::-webkit-scrollbar-thumb, .term-output-area::-webkit-scrollbar-thumb { background-color: #274a42; }
+@media (max-width: 1100px) {
+  .sys-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .redis-server-info { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .redis-db-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .lsf-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 700px) {
+  .monitor-page { padding: 0 14px 28px; }
+  .page-header { align-items: flex-start; gap: 14px; }
+  .page-header h2 { font-size: 21px; }
+  .header-signal { margin-top: 3px; }
+  .monitor-tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .card-header { align-items: flex-start; flex-direction: column; }
+  .card-header-right { width: 100%; justify-content: flex-start; }
+  .card-body { padding: 15px; }
+  .log-card-body, .term-card-body { padding: 0; }
+  .meter-grid { grid-template-columns: 1fr; }
+  .lsf-row { grid-template-columns: 1fr; }
+  .lsf-hint { align-items: flex-start; }
+  .lsf-active-badge { margin-left: 0; }
+  .lsf-actions { flex-wrap: wrap; }
+  .lsf-action-note { width: 100%; margin: 0 0 3px; }
+  .log-viewer, .term-output-area { min-height: 360px; max-height: 64vh; }
+  .redis-server-info { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .term-history-item { max-width: 100%; }
+}
+@media (max-width: 480px) {
+  .monitor-page { padding-inline: 10px; }
+  .page-header { display: block; }
+  .header-signal { margin-top: 13px; }
+  .page-kicker { font-size: 9px; letter-spacing: 1.3px; }
+  .monitor-tab { padding-inline: 7px; font-size: 11px; }
+  .tab-icon { min-width: 25px; height: 25px; }
+  .card-header { padding: 14px; }
+  .card-header-left { gap: 8px; }
+  .log-stream-state { width: 100%; margin-left: 42px; }
+  .card-header-right .btn-sm-action, .card-header-right .btn-action { flex: 1; }
+  .log-level-select { flex: 1; min-width: 110px; }
+  .sys-grid { grid-template-columns: 1fr; }
+  .sys-item { min-height: 105px; }
+  .meter { padding: 14px; }
+  .meter-caption { align-items: flex-start; flex-direction: column; }
+  .log-console-bar, .term-console-bar { padding-inline: 13px; font-size: 7px; }
+  .log-viewer, .term-output-area { min-height: 340px; padding: 13px; font-size: 10px; }
+  .log-footer { padding-inline: 13px; }
+  .lsf-actions .btn-action, .lsf-actions .btn-sm-action { flex: 1; }
+  .redis-server-info { gap: 9px; }
+  .redis-si-item { min-height: 100px; padding: 12px; }
+  .redis-db-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .redis-section-heading span:last-child { display: none; }
+  .redis-host-badge { max-width: 150px; }
+  .term-warning-badge { margin-left: 42px; }
+  .term-placeholder-hint { max-width: 250px; line-height: 1.6; }
+  .term-input-area { grid-template-columns: auto minmax(0, 1fr); padding: 12px; }
+  .term-exec-btn { grid-column: 1 / -1; width: 100%; }
+  .term-history-bar { flex-direction: column; padding-inline: 13px; }
+  .term-history-label { line-height: 1; }
+  .term-history-items { width: 100%; }
+  .term-history-item { max-width: 100%; }
+}
 </style>

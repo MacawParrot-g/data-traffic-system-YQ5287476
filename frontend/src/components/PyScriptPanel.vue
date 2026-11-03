@@ -118,26 +118,35 @@ onMounted(() => { loadScripts() })
 <template>
   <div class="pyscript-page">
     <div class="page-header">
-      <h2>Python 脚本管理</h2>
-      <div class="page-header-sub">上传 · 执行 · 查看运维脚本运行结果</div>
+      <div class="page-heading">
+        <span class="page-kicker">PYTHON / OPS RUNNER</span>
+        <h2>Python 脚本管理</h2>
+        <div class="page-header-sub">上传、执行并检查运维脚本的结构化运行结果</div>
+      </div>
+      <span class="header-signal"><i></i>RUNNER READY</span>
     </div>
 
     <div class="ps-toolbar">
-      <button class="btn-action btn-primary" @click="triggerUpload" :disabled="uploading">
-        {{ uploading ? '上传中...' : '+ 上传脚本' }}
-      </button>
-      <input ref="fileInput" type="file" accept=".py" style="display:none" @change="handleFileUpload" />
-      <button class="btn-action btn-secondary" @click="loadScripts" :disabled="loading">
-        {{ loading ? '刷新中...' : '刷新列表' }}
-      </button>
-      <span class="ps-toolbar-hint">脚本存放路径: /opt/pyscript/sc/ | 虚拟环境: /opt/pyscript/venv</span>
+      <div class="ps-toolbar-actions">
+        <button class="btn-action btn-primary" @click="triggerUpload" :disabled="uploading">
+          {{ uploading ? '上传中...' : '上传脚本' }}
+        </button>
+        <input ref="fileInput" type="file" accept=".py" style="display:none" @change="handleFileUpload" />
+        <button class="btn-action btn-secondary" @click="loadScripts" :disabled="loading">
+          {{ loading ? '刷新中...' : '刷新列表' }}
+        </button>
+      </div>
+      <span class="ps-toolbar-hint"><span>WORKSPACE</span>/opt/pyscript/sc/<i></i><span>VENV</span>/opt/pyscript/venv</span>
     </div>
 
     <div class="ps-layout">
       <div class="ps-left">
         <div class="card">
           <div class="card-header">
-            <h3>脚本列表</h3>
+            <div class="card-title-group">
+              <span class="card-code">PY</span>
+              <div><span class="card-kicker">SCRIPT LIBRARY</span><h3>脚本列表</h3></div>
+            </div>
             <span class="ps-count">{{ scripts.length }} 个脚本</span>
           </div>
           <div class="card-body">
@@ -146,19 +155,21 @@ onMounted(() => { loadScripts() })
               <div>正在加载脚本列表...</div>
             </div>
             <div v-else-if="scripts.length === 0" class="ps-empty">
-              <div class="ps-empty-icon">P</div>
-              <div class="ps-empty-text">暂无Python脚本</div>
-              <div class="ps-empty-hint">点击上方「上传脚本」按钮上传 .py 文件</div>
+              <div class="ps-empty-icon">PY</div>
+              <div class="ps-empty-text">暂无 Python 脚本</div>
+              <div class="ps-empty-hint">点击上方“上传脚本”添加 .py 文件</div>
             </div>
             <div v-else class="ps-script-list">
               <div v-for="s in scripts" :key="s.name" class="ps-script-item" :class="{ 'ps-script-running': executing === s.name }">
+                <div class="psi-file-mark">PY</div>
                 <div class="psi-info">
-                  <div class="psi-name">{{ s.name }}</div>
-                  <div class="psi-meta">{{ formatSize(s.size) }} · {{ formatTime(s.lastModified) }}</div>
+                  <div class="psi-name" :title="s.name">{{ s.name }}</div>
+                  <div class="psi-meta">{{ formatSize(s.size) }}<i></i>{{ formatTime(s.lastModified) }}</div>
+                  <div v-if="executing === s.name" class="psi-running-label">PROCESS RUNNING</div>
                 </div>
                 <div class="psi-actions">
                   <button class="btn-run" @click="runScript(s.name)" :disabled="executing !== ''">
-                    {{ executing === s.name ? '执行中...' : '▶ 执行' }}
+                    {{ executing === s.name ? '执行中...' : '执行' }}
                   </button>
                   <button class="btn-del" @click="removeScript(s.name)" :disabled="executing !== ''">删除</button>
                 </div>
@@ -171,23 +182,27 @@ onMounted(() => { loadScripts() })
       <div class="ps-right">
         <div class="card">
           <div class="card-header">
-            <h3>执行结果</h3>
+            <div class="card-title-group">
+              <span class="card-code">JS</span>
+              <div><span class="card-kicker">EXECUTION OUTPUT</span><h3>执行结果</h3></div>
+            </div>
             <span v-if="lastResult" class="ps-result-badge" :class="getResultStatusClass()">
               {{ lastResult.success ? (lastResult.data?.status === 'error' ? 'ERROR' : lastResult.data?.status === 'warning' ? 'WARNING' : 'SUCCESS') : 'FAIL' }}
             </span>
             <span v-if="resultLoading" class="ps-executing-badge">
-              <span class="state-spinner-sm"></span> 执行中
+              <span class="state-spinner-sm"></span>执行中
             </span>
           </div>
           <div class="card-body ps-result-body">
             <div v-if="resultLoading" class="ps-empty">
               <div class="state-spinner"></div>
               <div>正在执行脚本，请稍候...</div>
+              <div class="ps-empty-hint">运行完成后将在此展示结构化输出</div>
             </div>
             <div v-else-if="!lastResult" class="ps-empty">
-              <div class="ps-empty-icon">R</div>
+              <div class="ps-empty-icon">{}</div>
               <div class="ps-empty-text">暂无执行结果</div>
-              <div class="ps-empty-hint">选择左侧脚本并点击「执行」按钮</div>
+              <div class="ps-empty-hint">选择左侧脚本并点击“执行”</div>
             </div>
             <template v-else>
               <div class="ps-result-summary" :class="getResultStatusClass()">
@@ -197,11 +212,11 @@ onMounted(() => { loadScripts() })
                 </div>
                 <div class="prs-row" v-if="lastResult.data?._elapsed">
                   <span class="prs-label">耗时</span>
-                  <span class="prs-val">{{ lastResult.data._elapsed }} ms</span>
+                  <span class="prs-val prs-mono">{{ lastResult.data._elapsed }} ms</span>
                 </div>
                 <div class="prs-row" v-if="lastResult.data?.status">
                   <span class="prs-label">脚本状态</span>
-                  <span class="prs-val">{{ lastResult.data.status }}</span>
+                  <span class="prs-val prs-mono">{{ lastResult.data.status }}</span>
                 </div>
                 <div class="prs-row" v-if="lastResult.data?.message">
                   <span class="prs-label">脚本消息</span>
@@ -211,6 +226,7 @@ onMounted(() => { loadScripts() })
               <div class="ps-result-detail" ref="resultContainer">
                 <div class="ps-result-tabs">
                   <span class="ps-result-tab-label">JSON 数据</span>
+                  <span class="ps-result-tab-meta">READ ONLY / UTF-8</span>
                 </div>
                 <pre class="ps-result-pre">{{ resultRaw }}</pre>
               </div>
@@ -223,77 +239,111 @@ onMounted(() => { loadScripts() })
 </template>
 
 <style scoped>
-.pyscript-page { width: 100%; max-width: 1600px; margin: 0 auto; padding: 0 20px 40px; box-sizing: border-box; }
-.page-header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 2px solid #f0f0f0; }
-.page-header h2 { margin: 0; font-size: 22px; color: #1a1a2e; font-weight: 700; }
-.page-header-sub { font-size: 13px; color: #999; }
-
-.ps-toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
-.ps-toolbar-hint { font-size: 12px; color: #999; margin-left: auto; }
-
-.btn-action { border: none; padding: 10px 24px; font-size: 13px; border-radius: 10px; cursor: pointer; font-weight: 600; transition: transform 0.15s, box-shadow 0.15s; }
-.btn-action:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
-.btn-primary { background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; }
-.btn-primary:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(102,126,234,0.35); }
-.btn-secondary { background: #f4f5f7; color: #666; border: 1px solid #e0e0e0; padding: 8px 20px; font-size: 12px; }
-.btn-secondary:hover:not(:disabled) { background: #e8e8e8; color: #333; }
-
-.ps-layout { display: grid; grid-template-columns: 420px 1fr; gap: 20px; }
-@media (max-width: 1100px) { .ps-layout { grid-template-columns: 1fr; } }
-
-.card { background: #fff; border-radius: 14px; padding: 0; margin-bottom: 0; border: 1px solid #eaeaea; box-shadow: 0 1px 4px rgba(0,0,0,0.04); overflow: hidden; }
-.card-header { display: flex; align-items: center; gap: 8px; padding: 16px 20px; border-bottom: 1px solid #f0f0f0; }
-.card-header h3 { margin: 0; font-size: 15px; color: #333; font-weight: 700; }
-.card-body { padding: 20px; }
-
-.ps-count { font-size: 12px; color: #999; margin-left: auto; }
-
-.ps-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 50px 20px; gap: 8px; }
-.ps-empty-icon { font-size: 40px; opacity: 0.25; font-weight: 800; color: #667eea; }
-.ps-empty-text { font-size: 14px; color: #888; font-weight: 600; }
-.ps-empty-hint { font-size: 12px; color: #bbb; }
-
-.state-spinner { width: 28px; height: 28px; border: 3px solid #e0e0e0; border-top-color: #667eea; border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 10px; }
-.state-spinner-sm { width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.4); border-top-color: #fff; border-radius: 50%; animation: spin 0.8s linear infinite; display: inline-block; vertical-align: middle; margin-right: 6px; }
+.pyscript-page { width: 100%; max-width: 1600px; min-width: 0; margin: 0 auto; padding: 0 20px 40px; color: var(--text-primary); font-family: var(--font-sans); }
+.page-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; margin-bottom: 22px; padding: 4px 0 18px; border-bottom: 1px solid var(--border-color); }
+.page-heading { min-width: 0; }
+.page-kicker, .card-kicker { display: block; margin-bottom: 7px; color: var(--accent); font-size: 10px; font-weight: 800; letter-spacing: 1.7px; }
+.page-header h2 { margin: 0; font-size: 24px; line-height: 1.25; letter-spacing: -0.6px; font-weight: 800; }
+.page-header-sub { margin-top: 7px; color: var(--text-secondary); font-size: 13px; }
+.header-signal { display: inline-flex; align-items: center; gap: 7px; flex: 0 0 auto; padding: 7px 11px; border: 1px solid rgba(15,143,131,0.15); border-radius: 999px; background: rgba(255,255,255,0.62); color: var(--accent-strong); box-shadow: inset 0 1px 0 rgba(255,255,255,0.85); font-size: 9px; font-weight: 800; letter-spacing: 1px; }
+.header-signal i { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 4px var(--accent-glow); }
+.ps-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 20px; padding: 10px; border: 1px solid rgba(203,220,215,0.85); border-radius: var(--radius); background: rgba(255,255,255,0.66); box-shadow: var(--glass-shadow, var(--shadow-sm)); backdrop-filter: blur(18px); }
+.ps-toolbar-actions { display: flex; flex: 0 0 auto; gap: 8px; }
+.btn-action { min-height: 38px; padding: 8px 16px; border: 1px solid transparent; border-radius: var(--radius-sm); cursor: pointer; font-size: 12px; font-weight: 750; transition: var(--transition); }
+.btn-action:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+.btn-primary { background: linear-gradient(135deg, var(--accent), var(--accent-strong)); color: #fff; box-shadow: 0 6px 16px rgba(15,143,131,0.17), inset 0 1px 0 rgba(255,255,255,0.22); }
+.btn-primary:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 9px 20px rgba(15,143,131,0.23); }
+.btn-secondary { border-color: var(--border-color); background: rgba(255,255,255,0.76); color: var(--text-secondary); }
+.btn-secondary:hover:not(:disabled) { border-color: var(--accent-light); color: var(--accent-strong); }
+.ps-toolbar-hint { display: flex; min-width: 0; align-items: center; justify-content: flex-end; gap: 6px; flex-wrap: wrap; color: var(--text-secondary); font-family: var(--font-mono); font-size: 9px; overflow-wrap: anywhere; }
+.ps-toolbar-hint span { color: var(--accent); font-size: 8px; font-weight: 800; letter-spacing: 0.7px; }
+.ps-toolbar-hint i { width: 1px; height: 12px; margin: 0 4px; background: var(--border-color); }
+.ps-layout { display: grid; grid-template-columns: minmax(340px, 410px) minmax(0, 1fr); align-items: start; gap: 20px; }
+.ps-left, .ps-right { min-width: 0; }
+.card { min-width: 0; overflow: hidden; border: 1px solid var(--border-color); border-radius: var(--radius-lg); background: rgba(255,255,255,0.9); box-shadow: var(--shadow-sm); }
+.card-header { display: flex; min-height: 76px; align-items: center; justify-content: space-between; gap: 12px; padding: 15px 18px; border-bottom: 1px solid var(--border-color); background: linear-gradient(110deg, rgba(247,251,250,0.85), rgba(255,255,255,0.65)); }
+.card-title-group { display: flex; min-width: 0; align-items: center; gap: 11px; }
+.card-code { display: grid; width: 34px; height: 34px; flex: 0 0 34px; place-items: center; border: 1px solid rgba(15,143,131,0.14); border-radius: 10px; background: var(--accent-soft); color: var(--accent-strong); font-family: var(--font-mono); font-size: 10px; font-weight: 800; }
+.card-kicker { margin-bottom: 3px; font-size: 8px; letter-spacing: 1.1px; }
+.card-header h3 { margin: 0; font-size: 14px; font-weight: 800; }
+.card-body { min-width: 0; padding: 14px; }
+.ps-count { flex: 0 0 auto; padding: 4px 8px; border-radius: 999px; background: #eef5f2; color: var(--text-secondary); font-size: 10px; }
+.ps-empty { display: flex; min-height: 330px; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 40px 18px; color: var(--text-secondary); text-align: center; font-size: 13px; }
+.ps-empty-icon { display: grid; min-width: 52px; height: 52px; margin-bottom: 6px; padding: 0 10px; place-items: center; border: 1px solid var(--border-color); border-radius: 15px; background: var(--accent-soft); color: var(--accent); font-family: var(--font-mono); font-size: 16px; font-weight: 750; }
+.ps-empty-text { color: var(--text-primary); font-size: 14px; font-weight: 700; }
+.ps-empty-hint { color: var(--text-tertiary); font-size: 11px; }
+.state-spinner { width: 28px; height: 28px; margin-bottom: 8px; border: 2px solid var(--accent-soft); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+.state-spinner-sm { width: 12px; height: 12px; border: 2px solid rgba(15,143,131,0.17); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
-
-.ps-script-list { display: flex; flex-direction: column; gap: 6px; max-height: 600px; overflow-y: auto; }
-.ps-script-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: #f8f9fc; border-radius: 10px; border: 1px solid #eee; transition: all 0.2s; }
-.ps-script-item:hover { border-color: #667eea; background: #f0f2ff; }
-.ps-script-running { border-color: #667eea; background: #eef2ff; box-shadow: 0 0 0 2px rgba(102,126,234,0.15); }
-
+.ps-script-list { display: flex; max-height: 620px; flex-direction: column; gap: 8px; overflow-y: auto; }
+.ps-script-item { display: flex; min-width: 0; align-items: center; gap: 11px; padding: 12px; border: 1px solid #e8efed; border-radius: var(--radius); background: #f8fbfa; transition: border-color var(--transition), background var(--transition), box-shadow var(--transition), transform var(--transition); }
+.ps-script-item:hover { border-color: var(--border-strong); background: #fff; box-shadow: var(--shadow-sm); transform: translateY(-1px); }
+.ps-script-running { border-color: var(--accent-light); background: var(--accent-soft); box-shadow: 0 0 0 3px var(--accent-glow); }
+.psi-file-mark { display: grid; width: 32px; height: 38px; flex: 0 0 32px; place-items: center; border: 1px solid var(--border-color); border-radius: 7px 7px 9px 7px; background: #fff; color: var(--accent); font-family: var(--font-mono); font-size: 9px; font-weight: 800; }
 .psi-info { flex: 1; min-width: 0; }
-.psi-name { font-size: 13px; font-weight: 700; color: #333; font-family: 'SF Mono', 'Fira Code', monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.psi-meta { font-size: 11px; color: #999; margin-top: 3px; }
-
-.psi-actions { display: flex; gap: 6px; flex-shrink: 0; margin-left: 12px; }
-.btn-run { background: linear-gradient(135deg, #22c55e, #16a34a); color: #fff; border: none; padding: 6px 14px; font-size: 12px; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.15s; white-space: nowrap; }
-.btn-run:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 2px 8px rgba(34,197,94,0.35); }
-.btn-run:disabled { opacity: 0.5; cursor: not-allowed; }
-.btn-del { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; padding: 6px 12px; font-size: 12px; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.15s; white-space: nowrap; }
-.btn-del:hover:not(:disabled) { background: #fee2e2; }
-.btn-del:disabled { opacity: 0.5; cursor: not-allowed; }
-
-.ps-result-body { padding: 0 !important; }
-.ps-result-badge { font-size: 11px; font-weight: 700; padding: 3px 12px; border-radius: 20px; margin-left: auto; }
-.ps-result-badge.result-ok { background: #dcfce7; color: #166534; }
-.ps-result-badge.result-fail { background: #fee2e2; color: #991b1b; }
-.ps-result-badge.result-error { background: #fee2e2; color: #991b1b; }
-.ps-result-badge.result-warn { background: #fef3c7; color: #92400e; }
-.ps-executing-badge { display: flex; align-items: center; font-size: 12px; color: #667eea; font-weight: 600; margin-left: auto; background: #eef2ff; padding: 4px 12px; border-radius: 20px; }
-
-.ps-result-summary { padding: 16px 20px; border-bottom: 1px solid #f0f0f0; }
-.ps-result-summary.result-ok { background: linear-gradient(135deg, #f0fdf4, #dcfce7); }
-.ps-result-summary.result-fail { background: linear-gradient(135deg, #fef2f2, #fee2e2); }
-.ps-result-summary.result-error { background: linear-gradient(135deg, #fef2f2, #fee2e2); }
-.ps-result-summary.result-warn { background: linear-gradient(135deg, #fffbeb, #fef3c7); }
-.prs-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.psi-name { overflow: hidden; color: var(--text-primary); font-family: var(--font-mono); font-size: 12px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.psi-meta { display: flex; align-items: center; gap: 6px; margin-top: 5px; color: var(--text-secondary); font-size: 9px; white-space: nowrap; }
+.psi-meta i { width: 3px; height: 3px; border-radius: 50%; background: var(--text-tertiary); }
+.psi-running-label { margin-top: 5px; color: var(--accent); font-family: var(--font-mono); font-size: 8px; font-weight: 800; letter-spacing: 0.7px; }
+.psi-actions { display: flex; flex: 0 0 auto; gap: 5px; }
+.btn-run, .btn-del { min-height: 32px; padding: 6px 10px; border: 1px solid transparent; border-radius: 8px; cursor: pointer; font-size: 10px; font-weight: 750; white-space: nowrap; transition: var(--transition); }
+.btn-run { background: linear-gradient(135deg, var(--accent), var(--accent-strong)); color: #fff; box-shadow: inset 0 1px 0 rgba(255,255,255,0.2); }
+.btn-run:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 5px 12px rgba(15,143,131,0.2); }
+.btn-del { border-color: rgba(213,82,82,0.14); background: var(--danger-soft); color: var(--danger); }
+.btn-del:hover:not(:disabled) { background: #ffe4e1; }
+.btn-run:disabled, .btn-del:disabled { opacity: 0.45; cursor: not-allowed; }
+.ps-result-body { padding: 0; }
+.ps-result-badge { margin-left: auto; padding: 5px 9px; border-radius: 999px; font-family: var(--font-mono); font-size: 9px; font-weight: 800; letter-spacing: 0.5px; }
+.ps-result-badge.result-ok { background: var(--success-soft); color: var(--success); }
+.ps-result-badge.result-fail, .ps-result-badge.result-error { background: var(--danger-soft); color: var(--danger); }
+.ps-result-badge.result-warn { background: var(--warning-soft); color: var(--warning); }
+.ps-executing-badge { display: flex; align-items: center; gap: 7px; margin-left: auto; padding: 5px 9px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-strong); font-size: 10px; font-weight: 700; }
+.ps-result-summary { padding: 17px 19px; border-bottom: 1px solid var(--border-color); background: #f8fbfa; }
+.ps-result-summary.result-ok { background: linear-gradient(115deg, var(--success-soft), rgba(255,255,255,0.7)); }
+.ps-result-summary.result-fail, .ps-result-summary.result-error { background: linear-gradient(115deg, var(--danger-soft), rgba(255,255,255,0.7)); }
+.ps-result-summary.result-warn { background: linear-gradient(115deg, var(--warning-soft), rgba(255,255,255,0.7)); }
+.prs-row { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 10px; margin-bottom: 9px; }
 .prs-row:last-child { margin-bottom: 0; }
-.prs-label { font-size: 12px; color: #666; font-weight: 600; min-width: 70px; }
-.prs-val { font-size: 13px; color: #333; font-weight: 600; }
-
-.ps-result-detail { }
-.ps-result-tabs { padding: 10px 20px; background: #f8f9fc; border-bottom: 1px solid #f0f0f0; }
-.ps-result-tab-label { font-size: 12px; font-weight: 700; color: #667eea; text-transform: uppercase; letter-spacing: 0.3px; }
-.ps-result-pre { margin: 0; padding: 16px 20px; background: #1a1a2e; color: #d4d4d8; font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; font-size: 12px; line-height: 1.7; max-height: 450px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; }
+.prs-label { color: var(--text-secondary); font-size: 11px; }
+.prs-val { min-width: 0; color: var(--text-primary); font-size: 12px; font-weight: 650; overflow-wrap: anywhere; }
+.prs-mono { font-family: var(--font-mono); }
+.ps-result-detail { min-width: 0; max-width: 100%; overflow: hidden; background: #071b18; }
+.ps-result-tabs { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 18px; border-bottom: 1px solid rgba(164,232,222,0.1); background: #0a211d; }
+.ps-result-tab-label { color: #8fe0cf; font-family: var(--font-mono); font-size: 10px; font-weight: 750; letter-spacing: 0.5px; }
+.ps-result-tab-meta { color: #527a72; font-family: var(--font-mono); font-size: 8px; letter-spacing: 0.8px; }
+.ps-result-pre { max-width: 100%; min-height: 260px; max-height: 480px; margin: 0; padding: 18px; overflow: auto; overscroll-behavior: contain; background: radial-gradient(circle at 100% 0%, rgba(51,145,126,0.09), transparent 38%), #071b18; color: #c3ddd5; font-family: var(--font-mono); font-size: 11px; line-height: 1.75; tab-size: 2; white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-word; }
+.ps-result-pre::-webkit-scrollbar-thumb { background-color: #274a42; }
+@media (max-width: 1100px) {
+  .ps-layout { grid-template-columns: 1fr; }
+  .ps-script-list { max-height: 430px; }
+  .ps-toolbar { align-items: flex-start; flex-direction: column; }
+  .ps-toolbar-hint { justify-content: flex-start; padding: 0 4px 4px; }
+}
+@media (max-width: 700px) {
+  .pyscript-page { padding: 0 14px 28px; }
+  .page-header { align-items: flex-start; gap: 14px; }
+  .page-header h2 { font-size: 21px; }
+  .header-signal { margin-top: 3px; }
+  .ps-layout { gap: 15px; }
+  .card-header { padding-inline: 15px; }
+}
+@media (max-width: 480px) {
+  .pyscript-page { padding-inline: 10px; }
+  .page-header { display: block; }
+  .header-signal { margin-top: 13px; }
+  .page-kicker { font-size: 9px; letter-spacing: 1.3px; }
+  .ps-toolbar-actions { width: 100%; }
+  .ps-toolbar-actions .btn-action { flex: 1; }
+  .ps-toolbar-hint { display: block; line-height: 1.8; }
+  .ps-toolbar-hint span { margin-right: 5px; }
+  .ps-toolbar-hint i { display: block; width: 100%; height: 1px; margin: 5px 0; }
+  .ps-script-item { align-items: flex-start; flex-wrap: wrap; }
+  .psi-info { min-width: calc(100% - 48px); }
+  .psi-actions { width: 100%; padding-left: 43px; }
+  .psi-actions .btn-run { flex: 1; }
+  .psi-meta { white-space: normal; flex-wrap: wrap; }
+  .prs-row { grid-template-columns: 64px minmax(0, 1fr); }
+  .ps-result-tab-meta { display: none; }
+  .ps-result-pre { padding: 14px; font-size: 10px; }
+}
 </style>

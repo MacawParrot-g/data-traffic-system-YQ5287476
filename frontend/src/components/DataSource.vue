@@ -1,28 +1,43 @@
 <template>
   <div class="ds-container">
-    <div class="ds-header">
-      <h3>数据源切换</h3>
+    <header class="ds-header">
+      <div class="ds-heading">
+        <span class="ds-eyebrow">CONNECTION SETTINGS</span>
+        <h3>数据源切换</h3>
+        <p>管理测试工作区的数据连接与运行上下文</p>
+      </div>
       <div class="ds-status-badge" :class="status.useCustom ? 'custom' : 'default'">
+        <span class="ds-status-dot" aria-hidden="true"></span>
         当前：{{ status.useCustom ? '自定义数据源' : '默认数据源' }}
       </div>
-    </div>
+    </header>
 
-    <div class="ds-card">
-      <h4>自定义 MySQL 数据源</h4>
-      <p class="ds-desc">配置您自己的 MySQL 数据库连接信息，切换后将使用您的数据源进行数据操作。</p>
+    <section class="ds-card">
+      <div class="ds-card-heading">
+        <span class="ds-section-index" aria-hidden="true">01</span>
+        <div>
+          <h4>自定义 MySQL 数据源</h4>
+          <p class="ds-desc">配置您自己的 MySQL 数据库连接信息，切换后将使用您的数据源进行数据操作。</p>
+        </div>
+      </div>
+
+      <div class="ds-connection-context">
+        <span>当前连接上下文</span>
+        <strong>{{ status.currentSource }}</strong>
+      </div>
 
       <div class="ds-form">
-        <div class="ds-field">
+        <div class="ds-field ds-field-wide">
           <label>JDBC URL</label>
           <input v-model="form.url" placeholder="jdbc:mysql://host:port/database?useSSL=false&serverTimezone=Asia/Shanghai" />
         </div>
         <div class="ds-field">
           <label>用户名</label>
-          <input v-model="form.username" placeholder="数据库用户名" />
+          <input v-model="form.username" placeholder="数据库用户名" autocomplete="username" />
         </div>
         <div class="ds-field">
           <label>密码</label>
-          <input v-model="form.password" type="password" placeholder="数据库密码" />
+          <input v-model="form.password" type="password" placeholder="数据库密码" autocomplete="current-password" />
         </div>
       </div>
 
@@ -38,13 +53,20 @@
         </button>
       </div>
 
-      <div v-if="testResult" class="ds-result" :class="testResult.success ? 'success' : 'fail'">
-        {{ testResult.message }}
+      <div v-if="testResult" class="ds-result" :class="testResult.success ? 'success' : 'fail'" role="status">
+        <span class="ds-result-mark" aria-hidden="true"></span>
+        <span>{{ testResult.message }}</span>
       </div>
-    </div>
+    </section>
 
-    <div class="ds-card ds-switch-card">
-      <h4>快速切换</h4>
+    <section class="ds-card ds-switch-card">
+      <div class="ds-card-heading">
+        <span class="ds-section-index" aria-hidden="true">02</span>
+        <div>
+          <h4>快速切换</h4>
+          <p class="ds-desc">选择后续数据操作使用的连接，切换前请确认当前数据已保存。</p>
+        </div>
+      </div>
       <div class="ds-switch-row">
         <button
             class="ds-btn ds-btn-switch"
@@ -52,7 +74,8 @@
             @click="doSwitch(false)"
             :disabled="switching"
         >
-          默认数据源
+          <span class="ds-switch-name">默认数据源</span>
+          <span class="ds-switch-meta">系统内置连接</span>
         </button>
         <button
             class="ds-btn ds-btn-switch"
@@ -60,11 +83,12 @@
             @click="doSwitch(true)"
             :disabled="switching || !status.hasConfig"
         >
-          自定义数据源
+          <span class="ds-switch-name">自定义数据源</span>
+          <span class="ds-switch-meta">已保存的 MySQL 连接</span>
         </button>
       </div>
       <p v-if="!status.hasConfig" class="ds-hint">请先配置并保存自定义数据源后再切换</p>
-    </div>
+    </section>
   </div>
 </template>
 
@@ -225,175 +249,236 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.ds-container,
+.ds-container * { box-sizing: border-box; }
 .ds-container {
-  max-width: 680px;
+  width: 100%;
+  max-width: 860px;
   margin: 0 auto;
+  padding-bottom: 36px;
+  color: var(--text-primary);
+  font-family: var(--font-sans);
 }
 .ds-header {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
-  margin-bottom: 24px;
+  gap: 20px;
+  margin-bottom: 20px;
+  padding: 0 0 18px;
+  border-bottom: 1px solid var(--border-color);
+}
+.ds-heading { min-width: 0; }
+.ds-eyebrow,
+.ds-section-index {
+  font-family: var(--font-mono);
+  letter-spacing: .12em;
+}
+.ds-eyebrow {
+  display: block;
+  margin-bottom: 7px;
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 700;
 }
 .ds-header h3 {
-  font-size: 20px;
-  font-weight: 700;
+  margin: 0;
   color: var(--text-primary);
-}
-.ds-status-badge {
-  font-size: 12px;
-  font-weight: 600;
-  padding: 6px 16px;
-  border-radius: 20px;
-}
-.ds-status-badge.default {
-  background: #f1f5f9;
-  color: #64748b;
-}
-.ds-status-badge.custom {
-  background: #e0e7ff;
-  color: #3730a3;
-}
-.ds-card {
-  background: var(--bg-card);
-  border-radius: var(--radius);
-  padding: 24px 28px;
-  border: 1px solid var(--border-color);
-  margin-bottom: 20px;
-}
-.ds-card h4 {
-  font-size: 16px;
+  font-size: 24px;
   font-weight: 700;
-  color: var(--text-primary);
-  margin-bottom: 8px;
+  letter-spacing: -.025em;
 }
-.ds-desc {
-  font-size: 13px;
+.ds-heading p {
+  margin: 7px 0 0;
   color: var(--text-secondary);
-  margin-bottom: 20px;
+  font-size: 12px;
   line-height: 1.6;
 }
-.ds-form {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  margin-bottom: 20px;
-}
-.ds-field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.ds-field label {
-  font-size: 12px;
+.ds-status-badge {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 7px;
+  min-height: 30px;
+  padding: 5px 11px;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  font-size: 11px;
   font-weight: 600;
+  white-space: nowrap;
+}
+.ds-status-badge.default { background: #f4f7f7; color: var(--text-secondary); }
+.ds-status-badge.custom { background: var(--accent-soft); border-color: var(--accent-light); color: var(--accent-strong); }
+.ds-status-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.ds-card {
+  position: relative;
+  margin-bottom: 16px;
+  padding: 22px;
+  overflow: hidden;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm), inset 0 1px 0 rgba(255,255,255,.8);
+}
+.ds-card::before {
+  position: absolute;
+  top: 0;
+  left: 22px;
+  width: 42px;
+  height: 2px;
+  background: var(--accent);
+  content: "";
+}
+.ds-card-heading { display: flex; align-items: flex-start; gap: 13px; margin-bottom: 18px; }
+.ds-card-heading > div { min-width: 0; }
+.ds-section-index {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  margin-top: 1px;
+  color: var(--accent-strong);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-light);
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 700;
+}
+.ds-card h4 { margin: 0; color: var(--text-primary); font-size: 15px; font-weight: 700; }
+.ds-desc { margin: 6px 0 0; color: var(--text-secondary); font-size: 12px; line-height: 1.65; }
+.ds-connection-context {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+  padding: 10px 12px;
   color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  background: #f6f9f9;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  font-size: 11px;
+}
+.ds-connection-context strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  text-align: right;
+}
+.ds-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-bottom: 18px; }
+.ds-field { display: flex; min-width: 0; flex-direction: column; gap: 6px; }
+.ds-field-wide { grid-column: 1 / -1; }
+.ds-field label {
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .025em;
 }
 .ds-field input {
-  padding: 11px 14px;
-  font-size: 14px;
-  border: 2px solid var(--border-color);
-  border-radius: 10px;
+  width: 100%;
+  min-width: 0;
+  height: 40px;
+  padding: 0 12px;
+  color: var(--text-primary);
+  background: #fbfdfd;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
   outline: none;
-  transition: var(--transition);
-  font-family: inherit;
-  background: var(--bg-card);
-}
-.ds-field input:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-glow);
-}
-.ds-actions {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-.ds-btn {
-  padding: 10px 24px;
-  font-size: 14px;
-  font-weight: 600;
-  border: none;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: var(--transition);
-}
-.ds-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-.ds-btn-test {
-  background: linear-gradient(135deg, #3b82f6, #06b6d4);
-  color: #fff;
-}
-.ds-btn-test:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(59,130,246,0.35);
-}
-.ds-btn-save {
-  background: linear-gradient(135deg, #22c55e, #10b981);
-  color: #fff;
-}
-.ds-btn-save:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(34,197,94,0.35);
-}
-.ds-btn-delete {
-  background: linear-gradient(135deg, #ef4444, #dc2626);
-  color: #fff;
-}
-.ds-btn-delete:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(239,68,68,0.35);
-}
-.ds-result {
-  margin-top: 16px;
-  padding: 12px 16px;
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 600;
-}
-.ds-result.success {
-  background: #f0fdf4;
-  color: #166534;
-  border: 1px solid #bbf7d0;
-}
-.ds-result.fail {
-  background: #fef2f2;
-  color: #991b1b;
-  border: 1px solid #fecaca;
-}
-.ds-switch-card {
-  text-align: center;
-}
-.ds-switch-row {
-  display: flex;
-  gap: 16px;
-  justify-content: center;
-  margin-top: 16px;
-  margin-bottom: 8px;
-}
-.ds-btn-switch {
-  padding: 12px 32px;
-  font-size: 15px;
-  background: #f1f5f9;
-  color: var(--text-secondary);
-  border: 2px solid var(--border-color);
-}
-.ds-btn-switch.active {
-  background: linear-gradient(135deg, var(--accent), #a855f7);
-  color: #fff;
-  border-color: transparent;
-  box-shadow: 0 4px 16px rgba(99,102,241,0.3);
-}
-.ds-btn-switch:hover:not(:disabled):not(.active) {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-.ds-hint {
+  font-family: var(--font-sans);
   font-size: 12px;
-  color: var(--warning);
-  margin-top: 8px;
+  transition: border-color .16s ease, box-shadow .16s ease, background .16s ease;
+}
+.ds-field-wide input { font-family: var(--font-mono); font-size: 11px; }
+.ds-field input::placeholder { color: var(--text-tertiary); }
+.ds-field input:hover { border-color: var(--accent-light); }
+.ds-field input:focus { background: #fff; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.ds-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.ds-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 8px 15px;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  outline: none;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .16s ease, border-color .16s ease, color .16s ease, box-shadow .16s ease;
+}
+.ds-btn:focus-visible { box-shadow: 0 0 0 3px var(--accent-soft); }
+.ds-btn:disabled { opacity: .45; cursor: not-allowed; }
+.ds-btn-test { color: var(--text-primary); background: #fff; border-color: var(--border-color); }
+.ds-btn-test:hover:not(:disabled) { color: var(--accent-strong); border-color: var(--accent-light); background: var(--accent-soft); }
+.ds-btn-save { color: #fff; background: var(--accent); border-color: var(--accent); box-shadow: inset 0 1px 0 rgba(255,255,255,.2); }
+.ds-btn-save:hover:not(:disabled) { background: var(--accent-strong); border-color: var(--accent-strong); }
+.ds-btn-delete { margin-left: auto; color: var(--danger); background: transparent; border-color: transparent; }
+.ds-btn-delete:hover:not(:disabled) { background: #fff5f4; border-color: #f2cfcc; }
+.ds-result {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin-top: 16px;
+  padding: 11px 12px;
+  border: 1px solid;
+  border-radius: var(--radius);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.ds-result-mark { flex: 0 0 auto; width: 7px; height: 7px; margin-top: 6px; border-radius: 50%; background: currentColor; }
+.ds-result.success { color: #16715d; background: #f0faf6; border-color: #cce9df; }
+.ds-result.fail { color: var(--danger); background: #fff5f4; border-color: #f2cfcc; }
+.ds-switch-card { margin-bottom: 0; }
+.ds-switch-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.ds-btn-switch {
+  min-width: 0;
+  min-height: 66px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 12px 14px;
+  color: var(--text-secondary);
+  background: #f7f9f9;
+  border-color: var(--border-color);
+  text-align: left;
+}
+.ds-btn-switch:hover:not(:disabled):not(.active) { color: var(--accent-strong); background: var(--accent-soft); border-color: var(--accent-light); }
+.ds-btn-switch.active { color: var(--accent-strong); background: var(--accent-soft); border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
+.ds-switch-name { color: var(--text-primary); font-size: 13px; font-weight: 650; }
+.ds-btn-switch.active .ds-switch-name { color: var(--accent-strong); }
+.ds-switch-meta { color: var(--text-tertiary); font-size: 10px; font-weight: 500; }
+.ds-hint { margin: 11px 0 0; color: var(--warning); font-size: 11px; line-height: 1.6; }
+@media (max-width: 700px) {
+  .ds-header { align-items: flex-start; flex-direction: column; gap: 12px; }
+  .ds-card { padding: 18px; }
+  .ds-card::before { left: 18px; }
+  .ds-form { grid-template-columns: 1fr; }
+  .ds-field-wide { grid-column: auto; }
+  .ds-btn-delete { margin-left: 0; }
+}
+@media (max-width: 480px) {
+  .ds-header h3 { font-size: 21px; }
+  .ds-status-badge { white-space: normal; }
+  .ds-card { padding: 16px; border-radius: var(--radius); }
+  .ds-card::before { left: 16px; }
+  .ds-connection-context { align-items: flex-start; flex-direction: column; gap: 5px; }
+  .ds-connection-context strong { text-align: left; }
+  .ds-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ds-actions .ds-btn { width: 100%; padding-right: 10px; padding-left: 10px; }
+  .ds-btn-delete { grid-column: 1 / -1; }
+  .ds-switch-row { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ds-btn,
+  .ds-field input { transition: none; }
 }
 </style>

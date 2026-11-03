@@ -3,28 +3,50 @@
   <div class="guide-overlay" v-if="visible" @click.self="$emit('close')">
     <div class="guide-modal">
       <div class="guide-header">
-        <h2 class="guide-title">📖 开发者模式使用指南</h2>
-        <button class="guide-close-btn" @click="$emit('close')">✕</button>
+        <div class="guide-header-left">
+          <span class="guide-header-icon" aria-hidden="true">
+            <svg viewBox="0 0 28 28" fill="none"><path d="m10 7-6 7 6 7m8-14 6 7-6 7M16 3l-4 22" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+          <div>
+            <span class="guide-header-kicker">TECHNICAL DOCUMENTATION</span>
+            <h2 class="guide-title">开发者模式使用指南</h2>
+            <div class="guide-header-sub">操作风险、数据治理与归因接口参考</div>
+          </div>
+        </div>
+        <button class="guide-close-btn" @click="$emit('close')" aria-label="关闭开发者指南" title="关闭">
+          <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m6 6 8 8m0-8-8 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </button>
       </div>
 
-      <div class="guide-tabs">
+      <div class="guide-tabs" aria-label="指南分类">
         <button class="guide-tab" :class="{ active: activeSection === 'dev' }" @click="activeSection = 'dev'">
-          <span class="guide-tab-icon">🛠️</span><span>开发者操作指南</span>
+          <span class="guide-tab-icon" aria-hidden="true"><svg viewBox="0 0 22 22" fill="none"><path d="M4 4h14v10H4V4Zm5 14h4m-2-4v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="m8 7-2 2 2 2m6-4 2 2-2 2m-3-5-2 6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <span>开发者操作指南</span><small>01</small>
         </button>
         <button class="guide-tab" :class="{ active: activeSection === 'mmp' }" @click="activeSection = 'mmp'">
-          <span class="guide-tab-icon">📊</span><span>四大归因平台说明</span>
+          <span class="guide-tab-icon" aria-hidden="true"><svg viewBox="0 0 22 22" fill="none"><path d="M4 18V9m5 9V4m5 14v-6m4 6V7" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M2.5 18.5h17" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span>
+          <span>四大归因平台说明</span><small>02</small>
         </button>
       </div>
 
       <div class="guide-body">
         <!-- ==================== 开发者操作指南 ==================== -->
         <div v-if="activeSection === 'dev'" class="guide-content">
+          <nav class="guide-toc" aria-label="开发者操作指南目录">
+            <h3><span>CONTENTS</span>本节目录</h3>
+            <ol>
+              <li><a href="#dev-testing"><span>01</span>专业测试模块</a></li>
+              <li><a href="#dev-governance"><span>02</span>数据建表和治理</a></li>
+              <li><a href="#dev-safety"><span>03</span>通用安全规范</a></li>
+            </ol>
+            <p>点击章节可定位阅读位置。高危操作请先确认环境影响。</p>
+          </nav>
           <div class="guide-warning-banner">
-            <span class="warning-icon">⚠️</span>
+            <span class="warning-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 8v5m0 3.5v.1M10.3 3.9 2.8 17a2 2 0 0 0 1.7 3h15a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span>
             <span class="warning-text">以下操作均为高危操作，请仔细阅读后再执行。任何误操作可能导致数据丢失、服务中断或生产事故！</span>
           </div>
 
-          <section class="guide-section">
+          <section class="guide-section" id="dev-testing">
             <h3 class="guide-section-title">一、专业测试模块</h3>
 
             <div class="guide-item">
@@ -39,7 +61,7 @@
               <h4 class="guide-item-title">1.2 手动生成下载链接</h4>
               <p class="guide-item-desc">在输入框中输入 App ID（Apple ID），点击「生成」按钮可手动获取指定应用的下载链接。适用于需要测试特定应用的场景。</p>
               <div class="guide-risk risk-medium">
-                <strong>⚠️ 注意：</strong>手动生成同样会覆盖当前已有的下载任务，请确认当前数据已入库后再操作。
+                <strong>注意：</strong>手动生成同样会覆盖当前已有的下载任务，请确认当前数据已入库后再操作。
               </div>
             </div>
 
@@ -47,7 +69,7 @@
               <h4 class="guide-item-title">1.3 查询事件</h4>
               <p class="guide-item-desc">点击「查询事件」按钮，系统会调用归因平台接口查询当前 Bundle ID 的最新 currentTargetNum 值，并与原始值进行对比。同时会自动查询四大归因平台（AppsFlyer、Adjust、Singular、Tenjin）的归因数据。</p>
               <div class="guide-risk risk-low">
-                <strong>ℹ️ 提示：</strong>查询操作为只读操作，不会修改任何数据，可放心使用。
+                <strong>提示：</strong>查询操作为只读操作，不会修改任何数据，可放心使用。
               </div>
             </div>
 
@@ -55,7 +77,7 @@
               <h4 class="guide-item-title">1.4 冻结应用</h4>
               <p class="guide-item-desc">当查询结果显示「无事件」时，可点击「冻结应用」按钮对当前应用进行冻结操作。冻结后该应用的 remark 字段会被标记为「已冻结」。</p>
               <div class="guide-risk risk-high">
-                <strong>⛔ 高危警告：</strong>冻结操作会直接修改远程平台的应用状态，可能导致该应用在归因平台中被标记为异常。请确认确实需要冻结后再操作，冻结后可能无法撤销！
+                <strong>高危警告：</strong>冻结操作会直接修改远程平台的应用状态，可能导致该应用在归因平台中被标记为异常。请确认确实需要冻结后再操作，冻结后可能无法撤销！
               </div>
             </div>
 
@@ -63,7 +85,7 @@
               <h4 class="guide-item-title">1.5 定时查询</h4>
               <p class="guide-item-desc">设置倒计时秒数后点击「开始定时」，系统会在倒计时结束后自动执行事件查询。适用于需要等待一段时间后再检查归因结果的场景（如等待 SKAdNetwork 回传）。</p>
               <div class="guide-risk risk-low">
-                <strong>ℹ️ 提示：</strong>定时查询为只读操作，可设置 1~3600 秒，建议设置为 60 秒以上以等待归因平台处理。
+                <strong>提示：</strong>定时查询为只读操作，可设置 1~3600 秒，建议设置为 60 秒以上以等待归因平台处理。
               </div>
             </div>
 
@@ -71,7 +93,7 @@
               <h4 class="guide-item-title">1.6 数据入库</h4>
               <p class="guide-item-desc">查询事件后，填写异常类型、备注、记录人、记录日期等信息，点击「直接入库」将测试数据写入数据库。入库后数据会标记为未导出状态，等待后续导出流程。</p>
               <div class="guide-risk risk-medium">
-                <strong>️ 注意：</strong>入库操作会向数据库写入一条新记录。请确保填写的信息准确完整，特别是异常类型和备注字段。入库后的数据如需修改需通过管理员面板操作。
+                <strong>注意：</strong>入库操作会向数据库写入一条新记录。请确保填写的信息准确完整，特别是异常类型和备注字段。入库后的数据如需修改需通过管理员面板操作。
               </div>
             </div>
 
@@ -79,7 +101,7 @@
               <h4 class="guide-item-title">1.7 自动去重功能</h4>
               <p class="guide-item-desc">开启自动去重后，系统会在入库前自动检测是否存在重复的 URL + Bundle ID 组合，避免重复数据写入。去重状态通过 Redis 会话管理，有效期 8 小时。</p>
               <div class="guide-risk risk-medium">
-                <strong>⚠️ 注意：</strong>去重功能依赖 Redis 服务，如果 Redis 不可用，去重检查将自动降级失效，可能导致重复数据入库。
+                <strong>注意：</strong>去重功能依赖 Redis 服务，如果 Redis 不可用，去重检查将自动降级失效，可能导致重复数据入库。
               </div>
             </div>
 
@@ -87,19 +109,19 @@
               <h4 class="guide-item-title">1.8 轮询模式</h4>
               <p class="guide-item-desc">系统支持每 10 秒自动轮询获取新的下载任务。当当前任务入库完成后，轮询会自动获取下一个待测试任务，实现连续测试流程。</p>
               <div class="guide-risk risk-medium">
-                <strong>⚠️ 注意：</strong>轮询模式下每次获取新任务都会覆盖旧任务。如果旧任务尚未入库，数据将丢失。请确保在轮询获取新任务前完成入库操作。可随时点击「停止轮询」终止自动获取。
+                <strong>注意：</strong>轮询模式下每次获取新任务都会覆盖旧任务。如果旧任务尚未入库，数据将丢失。请确保在轮询获取新任务前完成入库操作。可随时点击「停止轮询」终止自动获取。
               </div>
             </div>
           </section>
 
-          <section class="guide-section">
+          <section class="guide-section" id="dev-governance">
             <h3 class="guide-section-title">二、数据建表和治理模块</h3>
 
             <div class="guide-item">
               <h4 class="guide-item-title">2.1 查看表列表</h4>
               <p class="guide-item-desc">进入数据建表和治理 Tab 后，系统会自动加载当前数据库中的所有表。点击表名可查看表结构详情（字段名、类型、注释等）。</p>
               <div class="guide-risk risk-low">
-                <strong>ℹ️ 提示：</strong>查看操作为只读，不会修改任何数据。
+                <strong>提示：</strong>查看操作为只读，不会修改任何数据。
               </div>
             </div>
 
@@ -107,7 +129,7 @@
               <h4 class="guide-item-title">2.2 创建数据表</h4>
               <p class="guide-item-desc">输入表名和字段定义（SQL 格式），点击「创建表」即可在当前数据库中创建新表。系统会自动添加 utf8mb4 字符集支持。</p>
               <div class="guide-risk risk-high">
-                <strong>⛔ 高危警告：</strong>建表操作会直接在数据库中创建新表。请确保表名不与现有表冲突，字段定义语法正确。一旦创建成功，如需删除需手动执行 DROP TABLE 操作。
+                <strong>高危警告：</strong>建表操作会直接在数据库中创建新表。请确保表名不与现有表冲突，字段定义语法正确。一旦创建成功，如需删除需手动执行 DROP TABLE 操作。
               </div>
             </div>
 
@@ -131,7 +153,7 @@
               <h4 class="guide-item-title">2.5 SQL 执行器</h4>
               <p class="guide-item-desc">输入任意 SQL 语句，可选择对指定表或全局执行。支持 SELECT 查询和 DML 操作（INSERT/UPDATE/DELETE）。</p>
               <div class="guide-risk risk-critical">
-                <strong>🚨 极度危险：</strong>SQL 执行器拥有完整的数据库操作权限！执行 DELETE 或 UPDATE 语句前请务必先用 SELECT 确认影响范围。错误的 SQL 可能导致大量数据被误删或误改。系统会过滤部分危险关键词（如 DROP DATABASE），但不能完全防止误操作。建议仅在测试环境使用此功能。
+                <strong>极度危险：</strong>SQL 执行器拥有完整的数据库操作权限！执行 DELETE 或 UPDATE 语句前请务必先用 SELECT 确认影响范围。错误的 SQL 可能导致大量数据被误删或误改。系统会过滤部分危险关键词（如 DROP DATABASE），但不能完全防止误操作。建议仅在测试环境使用此功能。
               </div>
             </div>
 
@@ -139,15 +161,15 @@
               <h4 class="guide-item-title">2.6 批量导入</h4>
               <p class="guide-item-desc">配置源数据库连接信息（地址、用户名、密码），选择要导入的表，可一键将其他数据库中的数据批量导入到当前数据库。支持导入前清空目标表选项。</p>
               <div class="guide-risk risk-high">
-                <strong>⛔ 高危警告：</strong>批量导入会向目标表写入大量数据。如果勾选了「导入前清空」，目标表的现有数据将被全部删除后再导入新数据。请确认源数据库连接信息正确，导入的表结构与目标表兼容。导入过程中如发生错误，可能导致部分数据丢失。
+                <strong>高危警告：</strong>批量导入会向目标表写入大量数据。如果勾选了「导入前清空」，目标表的现有数据将被全部删除后再导入新数据。请确认源数据库连接信息正确，导入的表结构与目标表兼容。导入过程中如发生错误，可能导致部分数据丢失。
               </div>
             </div>
           </section>
 
-          <section class="guide-section">
+          <section class="guide-section" id="dev-safety">
             <h3 class="guide-section-title">三、通用安全规范</h3>
             <div class="guide-risk risk-critical">
-              <strong>🚨 开发者模式安全守则：</strong>
+              <strong>开发者模式安全守则：</strong>
               <ul class="guide-risk-list">
                 <li>开发者模式仅限授权人员在测试环境中使用，严禁在生产环境开启。</li>
                 <li>所有 DDL 操作（建表、删表、改字段）执行前必须经过代码审查和审批流程。</li>
@@ -163,10 +185,22 @@
 
         <!-- ==================== 四大归因平台说明 ==================== -->
         <div v-if="activeSection === 'mmp'" class="guide-content">
+          <nav class="guide-toc" aria-label="归因平台说明目录">
+            <h3><span>CONTENTS</span>本节目录</h3>
+            <ol>
+              <li><a href="#mmp-intro"><span>01</span>概述</a></li>
+              <li><a href="#mmp-appsflyer"><span>02</span>AppsFlyer</a></li>
+              <li><a href="#mmp-adjust"><span>03</span>Adjust</a></li>
+              <li><a href="#mmp-singular"><span>04</span>Singular</a></li>
+              <li><a href="#mmp-tenjin"><span>05</span>Tenjin</a></li>
+              <li><a href="#mmp-compare"><span>06</span>横向对比</a></li>
+            </ol>
+            <p>字段说明与平台对比可独立阅读。</p>
+          </nav>
           <div class="mmp-overview">
             <h3 class="guide-section-title">四大广告归因平台（MMP）返回数据结构详解与横向对比</h3>
 
-            <section class="mmp-section">
+            <section class="mmp-section" id="mmp-intro">
               <h4 class="mmp-subtitle">一、概述</h4>
 
               <h5 class="mmp-h5">1.1 MMP 的概念与核心作用</h5>
@@ -190,7 +224,7 @@
               <p class="mmp-text">本文档旨在为数据处理平台的开发团队提供详尽的技术参考，深入解析 AppsFlyer、Adjust、Singular、Tenjin 四大主流 MMP 平台归因接口返回的数据结构。文档详细阐述了各字段的含义、数据类型、取值范围及其在归因链路中的业务意义，并对四大平台的设计差异进行了横向对比。最后，针对数据处理平台的统一模型设计、数据同步策略及异常处理提供了工程化建议。本文档适用于后端开发工程师、数据工程师、数据分析师及系统架构师。</p>
             </section>
 
-            <section class="mmp-section">
+            <section class="mmp-section" id="mmp-appsflyer">
               <h4 class="mmp-subtitle">二、AppsFlyer 平台字段详解</h4>
               <p class="mmp-text">AppsFlyer 作为全球市场份额领先的 MMP，其数据结构设计高度模块化，注重安全认证与生态集成。以下是基于实际归因接口返回对象的字段深度解析：</p>
 
@@ -275,7 +309,7 @@
               </div>
             </section>
 
-            <section class="mmp-section">
+            <section class="mmp-section" id="mmp-adjust">
               <h4 class="mmp-subtitle">三、Adjust 平台字段详解</h4>
               <p class="mmp-text">Adjust 以其强大的反作弊能力和设备级标识稳定性著称，其数据结构在签名验证和自有标识符方面具有鲜明特色。</p>
 
@@ -331,7 +365,7 @@
               </div>
             </section>
 
-            <section class="mmp-section">
+            <section class="mmp-section" id="mmp-singular">
               <h4 class="mmp-subtitle">四、Singular 平台字段详解</h4>
               <p class="mmp-text">Singular 定位为"营销数据与分析平台"，其数据结构设计更侧重于事件级别的深度追踪和跨渠道数据整合。</p>
 
@@ -367,7 +401,7 @@
               </div>
             </section>
 
-            <section class="mmp-section">
+            <section class="mmp-section" id="mmp-tenjin">
               <h4 class="mmp-subtitle">五、Tenjin 平台字段详解</h4>
               <p class="mmp-text">Tenjin 以"全栈归因"和"双源收入追踪"为核心卖点，其数据结构在收入归因和 SKAN 支持方面表现突出。</p>
 
@@ -406,7 +440,7 @@
               </div>
             </section>
 
-            <section class="mmp-section">
+            <section class="mmp-section" id="mmp-compare">
               <h4 class="mmp-subtitle">六、四大平台横向对比</h4>
 
               <h5 class="mmp-h5">6.1 设备标识机制对比</h5>
@@ -520,121 +554,176 @@ const activeSection = ref('dev')
 
 <style scoped>
 .guide-overlay {
-  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.55); backdrop-filter: blur(4px);
-  display: flex; align-items: center; justify-content: center;
-  z-index: 1000; padding: 20px;
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  box-sizing: border-box;
+  background: rgba(4, 18, 18, 0.5);
+  backdrop-filter: blur(14px) saturate(120%);
+  -webkit-backdrop-filter: blur(14px) saturate(120%);
+  animation: guide-fade-in 220ms ease both;
 }
 .guide-modal {
-  background: #fff; border-radius: 20px; width: 100%; max-width: 960px;
-  max-height: 90vh; display: flex; flex-direction: column;
-  box-shadow: 0 24px 80px rgba(0,0,0,0.25); overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  width: min(1120px, 100%);
+  height: min(900px, calc(100vh - 48px));
+  height: min(900px, calc(100dvh - 48px));
+  max-height: calc(100vh - 48px);
+  max-height: calc(100dvh - 48px);
+  overflow: hidden;
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  background: rgba(248, 252, 250, 0.94);
+  border: 1px solid rgba(255,255,255,0.72);
+  border-radius: 24px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.96), inset 0 -1px 0 rgba(15,143,131,0.05), var(--shadow-lg);
+  backdrop-filter: blur(28px) saturate(145%);
+  -webkit-backdrop-filter: blur(28px) saturate(145%);
+  animation: guide-slide-up 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
-.guide-header {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 20px 28px; border-bottom: 1px solid #f0f0f0; flex-shrink: 0;
-}
-.guide-title { font-size: 20px; font-weight: 700; color: #1a1a2e; margin: 0; }
-.guide-close-btn {
-  background: none; border: none; font-size: 22px; cursor: pointer;
-  color: #9ca3af; padding: 4px 10px; border-radius: 8px; transition: all 0.2s;
-}
-.guide-close-btn:hover { background: #f3f4f6; color: #374151; }
+.guide-header { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 18px; flex-shrink: 0; padding: 20px 26px; border-bottom: 1px solid rgba(203,220,215,0.85); background: linear-gradient(115deg, rgba(231,246,242,0.72), rgba(255,255,255,0.64) 58%, rgba(255,255,255,0.84)); box-shadow: inset 0 1px 0 rgba(255,255,255,0.9); }
+.guide-header::after { content: ''; position: absolute; left: 26px; right: 26px; bottom: -1px; height: 1px; background: linear-gradient(90deg, var(--accent-light), transparent 40%); opacity: 0.55; }
+.guide-header-left { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.guide-header-icon { display: grid; place-items: center; width: 46px; height: 46px; flex: 0 0 46px; color: var(--accent-strong); background: rgba(255,255,255,0.66); border: 1px solid #cee4dc; border-radius: 14px; box-shadow: inset 0 1px 0 #fff, 0 8px 20px rgba(15,45,42,0.05); }
+.guide-header-icon svg { width: 27px; height: 27px; }
+.guide-header-kicker { display: block; margin-bottom: 4px; color: var(--accent); font-size: 8px; line-height: 1.2; font-weight: 800; letter-spacing: 1.6px; }
+.guide-title { margin: 0; color: var(--text-primary); font-size: 21px; line-height: 1.25; font-weight: 750; letter-spacing: -0.5px; }
+.guide-header-sub { margin-top: 4px; color: var(--text-secondary); font-size: 10px; line-height: 1.5; }
+.guide-close-btn { display: grid; place-items: center; width: 36px; height: 36px; flex: 0 0 36px; padding: 8px; color: var(--text-secondary); background: rgba(255,255,255,0.48); border: 1px solid rgba(203,220,215,0.85); border-radius: 10px; cursor: pointer; box-shadow: inset 0 1px 0 rgba(255,255,255,0.8); transition: color var(--transition, 180ms ease), background var(--transition, 180ms ease), border-color var(--transition, 180ms ease); }
+.guide-close-btn svg { width: 18px; height: 18px; }
+.guide-close-btn:hover { color: var(--danger); background: var(--danger-soft); border-color: #edceca; }
 
-.guide-tabs {
-  display: flex; gap: 4px; background: #f4f5f7; padding: 4px;
-  margin: 16px 28px 0; border-radius: 12px; flex-shrink: 0;
-}
-.guide-tab {
-  flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
-  padding: 10px 0; font-size: 14px; border: none; border-radius: 10px;
-  cursor: pointer; background: transparent; color: #888; font-weight: 600; transition: all 0.25s;
-}
-.guide-tab.active { background: #fff; color: #1a1a2e; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
-.guide-tab:not(.active):hover { color: #555; background: rgba(255,255,255,0.5); }
-.guide-tab-icon { font-size: 16px; }
+.guide-tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; flex-shrink: 0; margin: 14px 26px 0; padding: 4px; background: rgba(228,238,234,0.76); border: 1px solid #d8e5e0; border-radius: 12px; }
+.guide-tab { display: flex; align-items: center; justify-content: center; gap: 8px; min-width: 0; min-height: 40px; padding: 9px 13px; color: var(--text-secondary); background: transparent; border: 1px solid transparent; border-radius: 9px; cursor: pointer; font-size: 12px; font-weight: 650; transition: color var(--transition, 180ms ease), background var(--transition, 180ms ease), box-shadow var(--transition, 180ms ease); }
+.guide-tab small { margin-left: auto; color: var(--text-tertiary, #91a2a1); font-family: var(--font-mono); font-size: 8px; }
+.guide-tab-icon { display: grid; place-items: center; width: 21px; height: 21px; flex: 0 0 21px; }
+.guide-tab-icon svg { width: 20px; height: 20px; }
+.guide-tab.active { color: var(--accent-strong); background: rgba(255,255,255,0.94); border-color: #d8e6e1; box-shadow: 0 3px 10px rgba(15,45,42,0.06), inset 0 1px 0 #fff; }
+.guide-tab.active small { color: #62978c; }
+.guide-tab:not(.active):hover { color: var(--accent-strong); background: rgba(255,255,255,0.45); }
 
-.guide-body {
-  overflow-y: auto; padding: 20px 28px 28px; flex: 1;
-}
-.guide-content { animation: guideFade 0.25s ease; }
-@keyframes guideFade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+.guide-body { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; padding: 20px 26px 28px; scroll-behavior: smooth; scrollbar-gutter: stable; }
+.guide-body::-webkit-scrollbar, .guide-toc::-webkit-scrollbar, .mmp-table-wrap::-webkit-scrollbar { width: 6px; height: 6px; }
+.guide-body::-webkit-scrollbar-thumb, .guide-toc::-webkit-scrollbar-thumb, .mmp-table-wrap::-webkit-scrollbar-thumb { background: #bfd2cc; border-radius: 6px; }
+.guide-content { display: grid; grid-template-columns: 190px minmax(0, 1fr); column-gap: 22px; align-items: start; animation: guide-content-in 220ms ease both; }
+.guide-toc { grid-column: 1; grid-row: 1 / span 12; position: sticky; top: 0; align-self: start; max-height: calc(100dvh - 290px); overflow-y: auto; padding: 16px 12px 13px; background: rgba(237,245,242,0.78); border: 1px solid #d9e6e1; border-radius: 12px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.75); }
+.guide-toc h3 { margin: 0 6px 12px; padding-bottom: 11px; color: var(--text-primary); border-bottom: 1px solid #d7e4df; font-size: 13px; font-weight: 750; }
+.guide-toc h3 span { display: block; margin-bottom: 4px; color: var(--accent); font-size: 7px; letter-spacing: 1.4px; }
+.guide-toc ol { display: flex; flex-direction: column; gap: 3px; list-style: none; padding: 0; margin: 0; }
+.guide-toc li { min-width: 0; }
+.guide-toc a { display: flex; align-items: center; gap: 8px; padding: 8px; color: #58716c; border-radius: 7px; font-size: 10px; line-height: 1.5; text-decoration: none; overflow-wrap: anywhere; transition: color var(--transition, 180ms ease), background var(--transition, 180ms ease); }
+.guide-toc a span { color: #87a69e; font-family: var(--font-mono); font-size: 8px; }
+.guide-toc a:hover { color: var(--accent-strong); background: rgba(255,255,255,0.78); }
+.guide-toc a:hover span { color: var(--accent); }
+.guide-toc > p { margin: 12px 6px 0; padding-top: 11px; color: var(--text-tertiary, #91a2a1); border-top: 1px solid #d8e5e0; font-size: 9px; line-height: 1.7; }
 
-.guide-warning-banner {
-  display: flex; align-items: flex-start; gap: 10px;
-  padding: 14px 18px; background: #fef2f2; border: 1px solid #fecaca;
-  border-radius: 12px; margin-bottom: 24px;
-}
-.warning-icon { font-size: 22px; flex-shrink: 0; }
-.warning-text { font-size: 14px; font-weight: 600; color: #991b1b; line-height: 1.5; }
+.guide-warning-banner, .guide-section, .mmp-overview { grid-column: 2; min-width: 0; }
+.guide-warning-banner { display: flex; align-items: flex-start; gap: 11px; margin-bottom: 14px; padding: 14px 16px; color: #a54343; background: rgba(255,240,239,0.9); border: 1px solid #edcfcc; border-left: 3px solid var(--danger); border-radius: 11px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.65); }
+.warning-icon { display: grid; place-items: center; width: 21px; height: 21px; flex: 0 0 21px; margin-top: 1px; }
+.warning-icon svg { width: 21px; height: 21px; }
+.warning-text { font-size: 11.5px; line-height: 1.75; font-weight: 650; overflow-wrap: anywhere; }
+.guide-section { margin-bottom: 14px; padding: 22px 24px; scroll-margin-top: 18px; background: rgba(255,255,255,0.86); border: 1px solid #dfe9e5; border-radius: var(--radius); box-shadow: 0 4px 18px rgba(15,45,42,0.025), inset 0 1px 0 rgba(255,255,255,0.9); }
+.guide-section-title { margin: 0 0 17px; padding-bottom: 13px; color: #143a35; border-bottom: 1px solid #e0ebe7; font-size: 17px; line-height: 1.55; font-weight: 750; letter-spacing: -0.25px; }
+.guide-item { padding: 15px 0; border-bottom: 1px solid #edf2ef; }
+.guide-item:first-of-type { padding-top: 2px; }
+.guide-item:last-child { padding-bottom: 0; border-bottom: 0; }
+.guide-item-title { margin: 0 0 7px; color: #234a44; font-size: 13px; line-height: 1.6; font-weight: 750; }
+.guide-item-desc { margin: 0 0 10px; color: #4a625d; font-size: 12px; line-height: 1.9; overflow-wrap: anywhere; }
+.guide-risk { position: relative; padding: 10px 12px; border: 1px solid transparent; border-left-width: 3px; border-radius: 8px; font-size: 11px; line-height: 1.8; overflow-wrap: anywhere; }
+.guide-risk strong { font-weight: 750; }
+.guide-risk ul { margin: 7px 0 0; padding-left: 19px; }
+.guide-risk li { margin-bottom: 5px; }
+.guide-risk li:last-child { margin-bottom: 0; }
+.risk-critical { color: #983f3f; background: var(--danger-soft); border-color: #ebc5c1; border-left-color: var(--danger); }
+.risk-high { color: #995526; background: #fff4eb; border-color: #edd2bd; border-left-color: #ce733d; }
+.risk-medium { color: #906018; background: var(--warning-soft); border-color: #eadabb; border-left-color: var(--warning); }
+.risk-low { color: #237562; background: var(--success-soft); border-color: #cee5dc; border-left-color: var(--success); }
+.guide-risk-list { margin-bottom: 0 !important; }
 
-.guide-section { margin-bottom: 28px; }
-.guide-section-title {
-  font-size: 18px; font-weight: 700; color: #1a1a2e;
-  margin: 0 0 16px; padding-bottom: 8px; border-bottom: 2px solid #6366f1;
-}
-.guide-item { margin-bottom: 18px; }
-.guide-item-title {
-  font-size: 15px; font-weight: 700; color: #374151; margin: 0 0 6px;
-}
-.guide-item-desc {
-  font-size: 13px; color: #4b5563; line-height: 1.7; margin: 0 0 8px;
-}
-.guide-risk {
-  padding: 10px 14px; border-radius: 10px; font-size: 13px; line-height: 1.6;
-}
-.guide-risk ul { margin: 6px 0 0; padding-left: 20px; }
-.guide-risk li { margin-bottom: 4px; }
-.risk-critical { background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; }
-.risk-high { background: #fff7ed; border: 1px solid #fdba74; color: #9a3412; }
-.risk-medium { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; }
-.risk-low { background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; }
+.mmp-overview > .guide-section-title { margin-bottom: 14px; padding: 0 2px 13px; }
+.mmp-section { min-width: 0; margin-bottom: 14px; padding: 22px 24px; scroll-margin-top: 18px; background: rgba(255,255,255,0.86); border: 1px solid #dfe9e5; border-radius: var(--radius); box-shadow: 0 4px 18px rgba(15,45,42,0.025), inset 0 1px 0 rgba(255,255,255,0.9); }
+.mmp-section:last-child { margin-bottom: 0; }
+.mmp-subtitle { position: relative; margin: 0 0 16px; padding-left: 12px; color: #143a35; font-size: 16px; line-height: 1.55; font-weight: 750; }
+.mmp-subtitle::before { content: ''; position: absolute; left: 0; top: 0.25em; bottom: 0.25em; width: 3px; border-radius: 2px; background: var(--accent); }
+.mmp-h5 { margin: 23px 0 10px; padding-bottom: 7px; color: var(--accent-strong); border-bottom: 1px dashed #e0eae6; font-size: 12.5px; line-height: 1.6; font-weight: 750; }
+.mmp-text { margin: 0 0 11px; color: #465f5a; font-size: 12px; line-height: 1.95; overflow-wrap: anywhere; }
+.mmp-list { margin: 7px 0 13px; padding-left: 21px; }
+.mmp-list li { margin-bottom: 6px; padding-left: 2px; color: #465f5a; font-size: 12px; line-height: 1.85; overflow-wrap: anywhere; }
+.mmp-list li::marker { color: var(--accent); }
+.mmp-list strong, .mmp-text strong { color: #173f39; }
+.mmp-field { display: grid; grid-template-columns: minmax(135px, 180px) minmax(0, 1fr); gap: 15px; margin-bottom: 7px; padding: 12px 13px; background: #f4f8f6; border: 1px solid #e2ebe7; border-radius: 9px; }
+.mmp-field-name { min-width: 0; color: var(--accent-strong); font-family: var(--font-mono); font-size: 11px; line-height: 1.7; font-weight: 700; overflow-wrap: anywhere; }
+.mmp-field-desc { min-width: 0; color: #4b635e; font-size: 11.5px; line-height: 1.85; overflow-wrap: anywhere; }
+.mmp-field-desc strong { color: #2b4d47; }
+.mmp-table-wrap { width: 100%; max-width: 100%; margin: 12px 0 18px; overflow-x: auto; overscroll-behavior-x: contain; border: 1px solid #dce8e3; border-radius: 10px; }
+.mmp-table { width: 100%; min-width: 700px; border-collapse: collapse; text-align: left; font-size: 10.5px; }
+.mmp-table th { padding: 11px 12px; color: #42635c; background: #edf5f2; border-bottom: 1px solid #dce8e3; white-space: nowrap; font-size: 9.5px; font-weight: 750; }
+.mmp-table td { padding: 10px 12px; color: #465f5a; border-bottom: 1px solid #e9f0ed; line-height: 1.7; vertical-align: top; overflow-wrap: anywhere; }
+.mmp-table tr:last-child td { border-bottom: 0; }
+.mmp-table tbody tr:hover td { background: #f6faf8; }
+.mmp-table td strong { color: var(--accent-strong); }
 
-/* MMP 内容样式 */
-.mmp-overview { }
-.mmp-section { margin-bottom: 32px; padding-bottom: 24px; border-bottom: 1px solid #f0f0f0; }
-.mmp-section:last-child { border-bottom: none; }
-.mmp-subtitle {
-  font-size: 17px; font-weight: 700; color: #1a1a2e; margin: 0 0 14px;
-  padding-left: 12px; border-left: 4px solid #6366f1;
-}
-.mmp-h5 {
-  font-size: 14px; font-weight: 700; color: #374151; margin: 18px 0 8px;
-}
-.mmp-text { font-size: 13px; color: #4b5563; line-height: 1.8; margin: 0 0 10px; }
-.mmp-list { margin: 0 0 12px; padding-left: 20px; }
-.mmp-list li { font-size: 13px; color: #4b5563; line-height: 1.7; margin-bottom: 6px; }
+@keyframes guide-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes guide-slide-up { from { opacity: 0; transform: translateY(18px) scale(0.99); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes guide-content-in { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
-.mmp-field {
-  display: flex; gap: 12px; padding: 10px 14px; margin-bottom: 8px;
-  background: #f9fafb; border-radius: 10px; border: 1px solid #f0f0f0;
+@media (max-width: 900px) {
+  .guide-content { grid-template-columns: 165px minmax(0, 1fr); column-gap: 16px; }
+  .guide-section, .mmp-section { padding: 20px; }
+  .guide-tab small { display: none; }
+  .mmp-field { grid-template-columns: minmax(120px, 150px) minmax(0, 1fr); gap: 12px; }
 }
-.mmp-field-name {
-  font-size: 13px; font-weight: 700; color: #6366f1; white-space: nowrap;
-  min-width: 160px; flex-shrink: 0; font-family: 'Courier New', monospace;
-}
-.mmp-field-desc { font-size: 13px; color: #4b5563; line-height: 1.7; }
-
-.mmp-table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid #e5e7eb; margin-bottom: 16px; }
-.mmp-table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: left; min-width: 600px; }
-.mmp-table th {
-  background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff;
-  padding: 10px 12px; white-space: nowrap; font-size: 11px; font-weight: 700;
-  text-transform: uppercase; letter-spacing: 0.3px;
-}
-.mmp-table td {
-  padding: 9px 12px; border-bottom: 1px solid #f0f0f5; color: #374151; line-height: 1.5;
-}
-.mmp-table tr:hover td { background: #f9fafb; }
-.mmp-table tr:last-child td { border-bottom: none; }
-.mmp-table td strong { color: #6366f1; }
 
 @media (max-width: 700px) {
-  .guide-modal { max-height: 95vh; border-radius: 14px; }
+  .guide-overlay { padding: 12px; }
+  .guide-modal { height: calc(100vh - 24px); height: calc(100dvh - 24px); max-height: calc(100vh - 24px); max-height: calc(100dvh - 24px); border-radius: 19px; }
   .guide-header { padding: 16px 18px; }
+  .guide-header-icon { width: 40px; height: 40px; flex-basis: 40px; border-radius: 12px; }
+  .guide-header-icon svg { width: 23px; height: 23px; }
+  .guide-title { font-size: 19px; }
   .guide-tabs { margin: 12px 18px 0; }
-  .guide-body { padding: 16px 18px 20px; }
-  .mmp-field { flex-direction: column; gap: 4px; }
-  .mmp-field-name { min-width: auto; }
+  .guide-body { padding: 16px 18px 22px; scrollbar-gutter: auto; }
+  .guide-content { display: block; }
+  .guide-toc { position: static; max-height: none; margin-bottom: 14px; padding: 15px 14px; overflow: visible; }
+  .guide-toc ol { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px 8px; }
+  .guide-toc > p { display: none; }
+  .guide-section, .mmp-section { padding: 20px; }
+  .mmp-field { grid-template-columns: 1fr; gap: 5px; }
+  .mmp-field-name { padding-bottom: 5px; border-bottom: 1px dashed #dce7e3; }
+}
+
+@media (max-width: 390px) {
+  .guide-overlay { padding: 8px; }
+  .guide-modal { height: calc(100vh - 16px); height: calc(100dvh - 16px); max-height: calc(100vh - 16px); max-height: calc(100dvh - 16px); border-radius: 16px; }
+  .guide-header { gap: 10px; padding: 13px 12px; }
+  .guide-header-left { gap: 9px; }
+  .guide-header-icon { width: 36px; height: 36px; flex-basis: 36px; }
+  .guide-header-kicker { display: none; }
+  .guide-title { font-size: 16px; }
+  .guide-header-sub { font-size: 9px; }
+  .guide-close-btn { width: 32px; height: 32px; flex-basis: 32px; }
+  .guide-tabs { margin: 10px 11px 0; }
+  .guide-tab { gap: 5px; padding-inline: 6px; font-size: 10px; }
+  .guide-tab-icon, .guide-tab-icon svg { width: 17px; height: 17px; }
+  .guide-body { padding: 12px 11px 18px; }
+  .guide-toc ol { grid-template-columns: 1fr; }
+  .guide-section, .mmp-section { padding: 17px 15px; border-radius: 12px; }
+  .guide-section-title { font-size: 15px; }
+  .guide-warning-banner { padding: 12px; }
+  .warning-text, .guide-item-desc, .mmp-text, .mmp-list li { font-size: 11px; }
+  .guide-risk { font-size: 10.5px; }
+  .mmp-subtitle { font-size: 14px; }
+  .mmp-field { padding: 11px; }
+  .mmp-table { min-width: 640px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .guide-overlay, .guide-modal, .guide-content { animation: none; }
+  .guide-body { scroll-behavior: auto; }
 }
 </style>

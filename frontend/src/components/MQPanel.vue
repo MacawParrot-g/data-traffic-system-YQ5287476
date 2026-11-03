@@ -119,36 +119,53 @@ onUnmounted(() => {
 
 <template>
   <div class="mq-panel">
-    <div class="mq-tabs">
-      <button :class="{ active: activeTab === 'overview' }" @click="activeTab = 'overview'">
-        📊 队列总览
-      </button>
-      <button :class="{ active: activeTab === 'dlq' }" @click="activeTab = 'dlq'">
-        🚨 死信队列
-        <span class="dlq-badge" v-if="dlqSummary.totalDlqCount > 0">{{ dlqSummary.totalDlqCount }}</span>
-      </button>
+    <div class="page-header">
+      <div class="page-heading">
+        <span class="page-kicker">MESSAGE FABRIC / RABBITMQ</span>
+        <h2>MQ 健康中心</h2>
+        <div class="page-header-sub">监测队列积压、连接状态与死信消息处置</div>
+      </div>
+      <span class="header-signal"><i></i>BROKER WATCH</span>
     </div>
 
-    <div class="mq-toolbar">
-      <label class="auto-refresh-toggle">
-        <input type="checkbox" v-model="autoRefresh" />
-        自动刷新 (5s)
-      </label>
-      <button class="btn-mq-refresh" @click="loadOverview(); loadDlqSummary()">🔄 刷新</button>
+    <div class="mq-command-bar">
+      <div class="mq-tabs">
+        <button :class="{ active: activeTab === 'overview' }" @click="activeTab = 'overview'">
+          <span class="tab-code">QV</span>队列总览
+        </button>
+        <button :class="{ active: activeTab === 'dlq' }" @click="activeTab = 'dlq'">
+          <span class="tab-code">DL</span>死信队列
+          <span class="dlq-badge" v-if="dlqSummary.totalDlqCount > 0">{{ dlqSummary.totalDlqCount }}</span>
+        </button>
+      </div>
+      <div class="mq-toolbar">
+        <label class="auto-refresh-toggle">
+          <input type="checkbox" v-model="autoRefresh" />
+          <span class="toggle-track"><i></i></span>
+          自动刷新 <span class="refresh-interval">5s</span>
+        </label>
+        <button class="btn-mq-refresh" @click="loadOverview(); loadDlqSummary()">刷新状态</button>
+      </div>
     </div>
 
-    <!-- 队列总览 -->
     <div v-if="activeTab === 'overview'" class="overview-section">
-      <div v-if="overviewLoading && !overview" class="loading">加载中...</div>
+      <div class="section-heading">
+        <div><span class="section-kicker">QUEUE TOPOLOGY</span><h3>队列实时状态</h3></div>
+        <span class="section-note">每 5 秒同步 broker 指标</span>
+      </div>
+      <div v-if="overviewLoading && !overview" class="loading"><span class="loading-spinner"></span>加载中...</div>
       <div v-else-if="overview" class="queue-grid">
         <div v-for="q in overview.queues" :key="q.queueName" class="queue-card" :class="getQueueStatusClass(q.status)">
           <div class="queue-header">
-            <span class="queue-label">{{ q.label }}</span>
-            <span class="queue-status-dot" :class="getQueueStatusClass(q.status)"></span>
+            <div class="queue-title">
+              <span class="queue-label">{{ q.label }}</span>
+              <span class="queue-name-top">{{ q.queueName }}</span>
+            </div>
+            <span class="queue-health"><i class="queue-status-dot" :class="getQueueStatusClass(q.status)"></i>{{ q.status === 'healthy' ? 'HEALTHY' : q.status === 'error' ? 'ERROR' : 'UNKNOWN' }}</span>
           </div>
           <div class="queue-body">
-            <div class="queue-stat">
-              <span class="queue-stat-label">消息数</span>
+            <div class="queue-stat queue-stat-metric">
+              <span class="queue-stat-label">待处理消息</span>
               <span class="queue-stat-value" :class="{ 'text-danger': q.messageCount > 100 }">
                 {{ q.messageCount >= 0 ? q.messageCount : 'N/A' }}
               </span>
@@ -159,9 +176,9 @@ onUnmounted(() => {
             </div>
             <div class="queue-stat" v-if="q.dlqRecordCount !== undefined">
               <span class="queue-stat-label">死信记录</span>
-              <span class="queue-stat-value" :class="{ 'text-danger': q.dlqRecordCount > 0 }">{{ q.dlqRecordCount }}</span>
+              <span class="queue-stat-dlq" :class="{ 'text-danger': q.dlqRecordCount > 0 }">{{ q.dlqRecordCount }}</span>
             </div>
-            <div class="queue-stat" v-if="q.status === 'error'">
+            <div class="queue-stat queue-stat-error-row" v-if="q.status === 'error'">
               <span class="queue-stat-label">错误</span>
               <span class="queue-stat-error">{{ q.error }}</span>
             </div>
@@ -169,57 +186,66 @@ onUnmounted(() => {
         </div>
       </div>
 
+      <div class="section-heading summary-heading">
+        <div><span class="section-kicker">DEAD LETTER SIGNAL</span><h3>死信记录分布</h3></div>
+      </div>
       <div class="dlq-summary-cards">
         <div class="summary-card summary-insert">
-          <div class="summary-icon">📥</div>
+          <div class="summary-top"><span class="summary-icon">IN</span><span class="summary-code">INSERT</span></div>
           <div class="summary-label">Insert DLQ</div>
           <div class="summary-count">{{ dlqSummary.insertDlqCount || 0 }}</div>
+          <div class="summary-unit">RECORDS</div>
         </div>
         <div class="summary-card summary-update">
-          <div class="summary-icon">📝</div>
+          <div class="summary-top"><span class="summary-icon">UP</span><span class="summary-code">UPDATE</span></div>
           <div class="summary-label">Update DLQ</div>
           <div class="summary-count">{{ dlqSummary.updateDlqCount || 0 }}</div>
+          <div class="summary-unit">RECORDS</div>
         </div>
         <div class="summary-card summary-delete">
-          <div class="summary-icon">🗑️</div>
+          <div class="summary-top"><span class="summary-icon">DE</span><span class="summary-code">DELETE</span></div>
           <div class="summary-label">Delete DLQ</div>
           <div class="summary-count">{{ dlqSummary.deleteDlqCount || 0 }}</div>
+          <div class="summary-unit">RECORDS</div>
         </div>
         <div class="summary-card summary-total">
-          <div class="summary-icon">📊</div>
-          <div class="summary-label">总计</div>
+          <div class="summary-top"><span class="summary-icon">ALL</span><span class="summary-code">TOTAL</span></div>
+          <div class="summary-label">死信总计</div>
           <div class="summary-count">{{ dlqSummary.totalDlqCount || 0 }}</div>
+          <div class="summary-unit">RECORDS</div>
         </div>
       </div>
     </div>
 
-    <!-- 死信队列详情 -->
     <div v-if="activeTab === 'dlq'" class="dlq-section">
       <div class="dlq-type-tabs">
-        <button :class="{ active: dlqType === 'insert' }" @click="switchDlqType('insert')">
-          Insert
-          <span class="type-badge" v-if="dlqSummary.insertDlqCount > 0">{{ dlqSummary.insertDlqCount }}</span>
-        </button>
-        <button :class="{ active: dlqType === 'update' }" @click="switchDlqType('update')">
-          Update
-          <span class="type-badge" v-if="dlqSummary.updateDlqCount > 0">{{ dlqSummary.updateDlqCount }}</span>
-        </button>
-        <button :class="{ active: dlqType === 'delete' }" @click="switchDlqType('delete')">
-          Delete
-          <span class="type-badge" v-if="dlqSummary.deleteDlqCount > 0">{{ dlqSummary.deleteDlqCount }}</span>
-        </button>
-        <button class="btn-clear-dlq" @click="handleClear">🗑️ 清空</button>
+        <div class="dlq-type-group">
+          <button :class="{ active: dlqType === 'insert' }" @click="switchDlqType('insert')">
+            Insert
+            <span class="type-badge" v-if="dlqSummary.insertDlqCount > 0">{{ dlqSummary.insertDlqCount }}</span>
+          </button>
+          <button :class="{ active: dlqType === 'update' }" @click="switchDlqType('update')">
+            Update
+            <span class="type-badge" v-if="dlqSummary.updateDlqCount > 0">{{ dlqSummary.updateDlqCount }}</span>
+          </button>
+          <button :class="{ active: dlqType === 'delete' }" @click="switchDlqType('delete')">
+            Delete
+            <span class="type-badge" v-if="dlqSummary.deleteDlqCount > 0">{{ dlqSummary.deleteDlqCount }}</span>
+          </button>
+        </div>
+        <button class="btn-clear-dlq" @click="handleClear">清空当前队列</button>
       </div>
 
-      <div v-if="dlqLoading" class="loading">加载中...</div>
+      <div v-if="dlqLoading" class="loading"><span class="loading-spinner"></span>加载中...</div>
       <div v-else-if="dlqRecords.length === 0" class="dlq-empty">
-        <div class="empty-icon">✅</div>
-        <div class="empty-text">暂无死信消息，一切正常！</div>
+        <div class="empty-icon"><span></span></div>
+        <div class="empty-text">暂无死信消息，队列状态正常</div>
+        <div class="empty-hint">当前类型没有需要处置的异常消息</div>
       </div>
       <div v-else class="dlq-list">
         <div v-for="(record, index) in dlqRecords" :key="index" class="dlq-item">
           <div class="dlq-item-header">
-            <span class="dlq-item-index">#{{ index + 1 }}</span>
+            <div class="dlq-record-id"><span class="dlq-item-index">MESSAGE #{{ index + 1 }}</span><span class="dlq-record-tag">DEAD LETTER</span></div>
             <span class="dlq-item-time">{{ record.timestamp }}</span>
           </div>
           <div class="dlq-item-body">
@@ -235,14 +261,15 @@ onUnmounted(() => {
               <span class="dlq-field-label">RoutingKey</span>
               <span class="dlq-field-value">{{ record.routingKey || 'N/A' }}</span>
             </div>
-            <div class="dlq-field">
+            <div class="dlq-field dlq-field-message">
               <span class="dlq-field-label">消息内容</span>
               <pre class="dlq-field-body">{{ record.body }}</pre>
             </div>
           </div>
           <div class="dlq-item-actions">
+            <span class="dlq-action-hint">重新投递前请确认异常已处理</span>
             <button class="btn-retry" @click="handleRetry(index)" :disabled="retryingIndex === index">
-              {{ retryingIndex === index ? '重试中...' : '🔄 重试' }}
+              {{ retryingIndex === index ? '重试中...' : '重试投递' }}
             </button>
           </div>
         </div>
@@ -252,366 +279,142 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-.mq-panel {
-  max-width: 1200px;
-  margin: 0 auto;
+.mq-panel { width: 100%; max-width: 1400px; min-width: 0; margin: 0 auto; padding: 0 20px 40px; color: var(--text-primary); font-family: var(--font-sans); }
+.page-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; margin-bottom: 22px; padding: 4px 0 18px; border-bottom: 1px solid var(--border-color); }
+.page-heading { min-width: 0; }
+.page-kicker, .section-kicker { display: block; margin-bottom: 7px; color: var(--accent); font-size: 10px; font-weight: 800; letter-spacing: 1.7px; }
+.page-header h2 { margin: 0; font-size: 24px; line-height: 1.25; letter-spacing: -0.6px; font-weight: 800; }
+.page-header-sub { margin-top: 7px; color: var(--text-secondary); font-size: 13px; }
+.header-signal { display: inline-flex; align-items: center; gap: 7px; flex: 0 0 auto; padding: 7px 11px; border: 1px solid rgba(15,143,131,0.15); border-radius: 999px; background: rgba(255,255,255,0.62); color: var(--accent-strong); box-shadow: inset 0 1px 0 rgba(255,255,255,0.85); font-size: 9px; font-weight: 800; letter-spacing: 1px; }
+.header-signal i { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 4px var(--accent-glow); }
+.mq-command-bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 24px; padding: 8px; border: 1px solid rgba(203,220,215,0.85); border-radius: var(--radius); background: rgba(255,255,255,0.66); box-shadow: var(--glass-shadow, var(--shadow-sm)); backdrop-filter: blur(18px); }
+.mq-tabs { display: flex; min-width: 0; gap: 5px; }
+.mq-tabs button { display: flex; min-height: 40px; align-items: center; gap: 8px; padding: 8px 13px; border: 1px solid transparent; border-radius: var(--radius-sm); background: transparent; color: var(--text-secondary); cursor: pointer; font-size: 12px; font-weight: 700; transition: var(--transition); }
+.mq-tabs button:hover { background: rgba(231,246,242,0.6); color: var(--text-primary); }
+.mq-tabs button.active { border-color: rgba(15,143,131,0.13); background: var(--accent-soft); color: var(--accent-strong); box-shadow: inset 0 1px 0 rgba(255,255,255,0.72); }
+.tab-code { display: grid; width: 25px; height: 25px; place-items: center; border: 1px solid var(--border-color); border-radius: 7px; background: rgba(255,255,255,0.65); font-family: var(--font-mono); font-size: 9px; }
+.mq-tabs button.active .tab-code { border-color: rgba(15,143,131,0.15); color: var(--accent); }
+.dlq-badge, .type-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 19px; min-height: 19px; padding: 2px 6px; border-radius: 999px; background: var(--danger); color: #fff; font-family: var(--font-mono); font-size: 9px; font-weight: 800; }
+.mq-toolbar { display: flex; align-items: center; gap: 13px; padding-right: 4px; }
+.auto-refresh-toggle { display: flex; align-items: center; gap: 7px; color: var(--text-secondary); cursor: pointer; font-size: 11px; white-space: nowrap; }
+.auto-refresh-toggle input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.toggle-track { position: relative; width: 30px; height: 17px; border-radius: 999px; background: #c8d5d1; transition: background var(--transition); }
+.toggle-track i { position: absolute; top: 3px; left: 3px; width: 11px; height: 11px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(15,45,42,0.18); transition: transform var(--transition); }
+.auto-refresh-toggle input:checked + .toggle-track { background: var(--accent); }
+.auto-refresh-toggle input:checked + .toggle-track i { transform: translateX(13px); }
+.auto-refresh-toggle input:focus-visible + .toggle-track { outline: 2px solid var(--accent-light); outline-offset: 3px; }
+.refresh-interval { font-family: var(--font-mono); color: var(--accent); }
+.btn-mq-refresh, .btn-clear-dlq, .btn-retry { min-height: 36px; padding: 7px 14px; border: 1px solid transparent; border-radius: var(--radius-sm); cursor: pointer; font-size: 11px; font-weight: 750; transition: var(--transition); }
+.btn-mq-refresh { background: linear-gradient(135deg, var(--accent), var(--accent-strong)); color: #fff; box-shadow: 0 6px 16px rgba(15,143,131,0.17), inset 0 1px 0 rgba(255,255,255,0.22); }
+.btn-mq-refresh:hover { transform: translateY(-1px); box-shadow: 0 9px 20px rgba(15,143,131,0.23); }
+.section-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 14px; margin: 0 2px 13px; }
+.section-heading h3 { margin: 0; font-size: 15px; letter-spacing: -0.2px; }
+.section-kicker { margin-bottom: 4px; font-size: 8px; letter-spacing: 1.3px; }
+.section-note { color: var(--text-secondary); font-size: 10px; }
+.summary-heading { margin-top: 28px; }
+.loading { display: flex; min-height: 180px; align-items: center; justify-content: center; gap: 10px; border: 1px dashed var(--border-color); border-radius: var(--radius-lg); background: rgba(255,255,255,0.45); color: var(--text-secondary); font-size: 13px; }
+.loading-spinner { width: 22px; height: 22px; border: 2px solid var(--accent-soft); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.queue-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 15px; }
+.queue-card { position: relative; min-width: 0; padding: 18px; overflow: hidden; border: 1px solid var(--border-color); border-radius: var(--radius-lg); background: rgba(255,255,255,0.88); box-shadow: var(--shadow-sm); transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition); }
+.queue-card::before { content: ''; position: absolute; inset: 0 0 auto; height: 3px; background: linear-gradient(90deg, var(--accent), var(--accent-light)); }
+.queue-card:hover { border-color: var(--border-strong); box-shadow: var(--shadow-md); transform: translateY(-2px); }
+.queue-card.queue-error::before { background: var(--danger); }
+.queue-card.queue-unknown::before { background: #9bafaa; }
+.queue-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 17px; }
+.queue-title { display: flex; min-width: 0; flex-direction: column; gap: 5px; }
+.queue-label { font-size: 14px; font-weight: 800; }
+.queue-name-top { overflow: hidden; color: var(--text-tertiary); font-family: var(--font-mono); font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.queue-health { display: inline-flex; align-items: center; gap: 6px; flex: 0 0 auto; padding: 4px 7px; border-radius: 999px; background: var(--success-soft); color: var(--success); font-family: var(--font-mono); font-size: 8px; font-weight: 800; }
+.queue-error .queue-health { background: var(--danger-soft); color: var(--danger); }
+.queue-unknown .queue-health { background: #eff3f2; color: var(--text-secondary); }
+.queue-status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); box-shadow: 0 0 0 3px rgba(23,140,104,0.1); }
+.queue-status-dot.queue-error { background: var(--danger); box-shadow: none; }
+.queue-status-dot.queue-unknown { background: var(--text-secondary); box-shadow: none; }
+.queue-body { display: flex; flex-direction: column; gap: 10px; }
+.queue-stat { display: flex; min-width: 0; align-items: center; justify-content: space-between; gap: 12px; }
+.queue-stat-metric { margin: -2px -2px 2px; padding: 12px; border: 1px solid rgba(15,143,131,0.08); border-radius: var(--radius-sm); background: linear-gradient(115deg, var(--accent-soft), rgba(255,255,255,0.45)); }
+.queue-stat-label { color: var(--text-secondary); font-size: 11px; }
+.queue-stat-value { font-family: var(--font-mono); font-size: 26px; line-height: 1; font-weight: 700; letter-spacing: -1px; }
+.queue-stat-value.text-danger, .queue-stat-dlq.text-danger { color: var(--danger); }
+.queue-stat-name { max-width: 68%; overflow: hidden; color: var(--text-secondary); font-family: var(--font-mono); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.queue-stat-dlq { font-family: var(--font-mono); font-size: 13px; font-weight: 750; }
+.queue-stat-error-row { align-items: flex-start; }
+.queue-stat-error { color: var(--danger); font-size: 11px; overflow-wrap: anywhere; text-align: right; }
+.dlq-summary-cards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+.summary-card { position: relative; min-width: 0; padding: 17px; overflow: hidden; border: 1px solid var(--border-color); border-radius: var(--radius); background: rgba(255,255,255,0.82); box-shadow: var(--shadow-sm); transition: var(--transition); }
+.summary-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+.summary-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 18px; }
+.summary-icon { display: grid; min-width: 30px; height: 30px; padding: 0 7px; place-items: center; border: 1px solid rgba(15,143,131,0.13); border-radius: 9px; background: var(--accent-soft); color: var(--accent-strong); font-family: var(--font-mono); font-size: 9px; font-weight: 800; }
+.summary-code, .summary-unit { color: var(--text-tertiary); font-family: var(--font-mono); font-size: 8px; letter-spacing: 1px; }
+.summary-label { color: var(--text-secondary); font-size: 11px; font-weight: 650; }
+.summary-count { margin: 5px 0 4px; font-family: var(--font-mono); font-size: 29px; line-height: 1.1; font-weight: 700; letter-spacing: -1px; }
+.summary-total { border-color: rgba(15,143,131,0.24); background: linear-gradient(135deg, rgba(231,246,242,0.9), rgba(255,255,255,0.85)); }
+.summary-total .summary-count { color: var(--accent-strong); }
+.dlq-type-tabs { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 16px; padding: 10px; border: 1px solid var(--border-color); border-radius: var(--radius); background: rgba(255,255,255,0.64); box-shadow: inset 0 1px 0 rgba(255,255,255,0.8); }
+.dlq-type-group { display: flex; gap: 6px; }
+.dlq-type-group button { display: flex; min-height: 36px; align-items: center; gap: 7px; padding: 7px 13px; border: 1px solid transparent; border-radius: var(--radius-sm); background: transparent; color: var(--text-secondary); cursor: pointer; font-family: var(--font-mono); font-size: 11px; font-weight: 700; transition: var(--transition); }
+.dlq-type-group button.active { border-color: rgba(15,143,131,0.14); background: var(--accent-soft); color: var(--accent-strong); }
+.btn-clear-dlq { border-color: rgba(213,82,82,0.16); background: var(--danger-soft); color: var(--danger); }
+.btn-clear-dlq:hover { background: #ffe4e1; }
+.dlq-empty { padding: 64px 20px; border: 1px dashed var(--border-color); border-radius: var(--radius-lg); background: rgba(255,255,255,0.5); text-align: center; }
+.empty-icon { display: grid; width: 48px; height: 48px; margin: 0 auto 15px; place-items: center; border: 1px solid rgba(23,140,104,0.15); border-radius: 15px; background: var(--success-soft); }
+.empty-icon span { width: 17px; height: 9px; border-bottom: 2px solid var(--success); border-left: 2px solid var(--success); transform: translateY(-2px) rotate(-45deg); }
+.empty-text { color: var(--text-primary); font-size: 14px; font-weight: 700; }
+.empty-hint { margin-top: 7px; color: var(--text-secondary); font-size: 12px; }
+.dlq-list { display: flex; flex-direction: column; gap: 13px; }
+.dlq-item { min-width: 0; overflow: hidden; border: 1px solid var(--border-color); border-radius: var(--radius-lg); background: rgba(255,255,255,0.9); box-shadow: var(--shadow-sm); }
+.dlq-item-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 18px; border-bottom: 1px solid #edf3f1; background: #fafcfb; }
+.dlq-record-id { display: flex; align-items: center; gap: 9px; }
+.dlq-item-index { color: var(--accent-strong); font-family: var(--font-mono); font-size: 11px; font-weight: 800; }
+.dlq-record-tag { padding: 3px 7px; border-radius: 5px; background: var(--danger-soft); color: var(--danger); font-family: var(--font-mono); font-size: 8px; font-weight: 800; letter-spacing: 0.7px; }
+.dlq-item-time { color: var(--text-secondary); font-family: var(--font-mono); font-size: 10px; }
+.dlq-item-body { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px 20px; padding: 18px; }
+.dlq-field { display: flex; min-width: 0; flex-direction: column; gap: 6px; }
+.dlq-field-label { color: var(--text-secondary); font-size: 10px; font-weight: 650; }
+.dlq-field-value { color: var(--text-primary); font-family: var(--font-mono); font-size: 11px; overflow-wrap: anywhere; }
+.dlq-field-message { grid-column: 1 / -1; }
+.dlq-field-body { width: 100%; max-height: 220px; margin: 0; padding: 14px; overflow: auto; border: 1px solid #e2ece8; border-radius: var(--radius-sm); background: #f3f8f6; color: #29413e; font-family: var(--font-mono); font-size: 11px; line-height: 1.65; white-space: pre-wrap; overflow-wrap: anywhere; }
+.dlq-item-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 18px; border-top: 1px solid #edf3f1; background: #fafcfb; }
+.dlq-action-hint { color: var(--text-secondary); font-size: 10px; }
+.btn-retry { border-color: rgba(197,122,22,0.18); background: var(--warning-soft); color: var(--warning); }
+.btn-retry:hover:not(:disabled) { background: #ffefcf; transform: translateY(-1px); }
+.btn-retry:disabled { opacity: 0.45; cursor: not-allowed; }
+@media (max-width: 1000px) {
+  .mq-command-bar { align-items: stretch; flex-direction: column; }
+  .mq-toolbar { justify-content: space-between; padding: 4px; }
+  .dlq-summary-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
-
-.mq-tabs {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 20px;
+@media (max-width: 700px) {
+  .mq-panel { padding: 0 14px 28px; }
+  .page-header { align-items: flex-start; gap: 14px; }
+  .page-header h2 { font-size: 21px; }
+  .header-signal { margin-top: 3px; }
+  .queue-grid { grid-template-columns: 1fr; }
+  .dlq-type-tabs { align-items: stretch; flex-direction: column; }
+  .dlq-type-group { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .dlq-type-group button { justify-content: center; padding-inline: 7px; }
+  .dlq-item-body { grid-template-columns: 1fr; }
+  .dlq-field-message { grid-column: auto; }
 }
-.mq-tabs button {
-  padding: 10px 24px;
-  border: 2px solid var(--border-color);
-  border-radius: 10px;
-  background: var(--bg-card);
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: var(--transition);
-  color: var(--text-secondary);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.mq-tabs button.active {
-  border-color: var(--accent);
-  color: var(--accent);
-  background: var(--accent-glow);
-}
-
-.dlq-badge {
-  background: var(--danger);
-  color: #fff;
-  font-size: 11px;
-  padding: 2px 7px;
-  border-radius: 10px;
-  font-weight: 700;
-}
-
-.mq-toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-.auto-refresh-toggle {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  color: var(--text-secondary);
-  cursor: pointer;
-}
-.auto-refresh-toggle input {
-  accent-color: var(--accent);
-}
-.btn-mq-refresh {
-  background: linear-gradient(135deg, var(--accent), #a855f7);
-  color: #fff;
-  border: none;
-  padding: 9px 20px;
-  font-size: 13px;
-  border-radius: 10px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: var(--transition);
-}
-.btn-mq-refresh:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(99,102,241,0.35);
-}
-
-.queue-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 16px;
-  margin-bottom: 28px;
-}
-.queue-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  padding: 18px 20px;
-  transition: var(--transition);
-  border-left: 4px solid var(--success);
-}
-.queue-card:hover {
-  box-shadow: var(--shadow-md);
-  transform: translateY(-2px);
-}
-.queue-card.queue-error {
-  border-left-color: var(--danger);
-}
-.queue-card.queue-unknown {
-  border-left-color: var(--text-secondary);
-}
-
-.queue-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 14px;
-}
-.queue-label {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-.queue-status-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--success);
-}
-.queue-status-dot.queue-error {
-  background: var(--danger);
-}
-.queue-status-dot.queue-unknown {
-  background: var(--text-secondary);
-}
-
-.queue-body {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.queue-stat {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.queue-stat-label {
-  font-size: 12px;
-  color: var(--text-secondary);
-  font-weight: 500;
-}
-.queue-stat-value {
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-.queue-stat-value.text-danger {
-  color: var(--danger);
-}
-.queue-stat-name {
-  font-size: 11px;
-  color: var(--text-secondary);
-  font-family: monospace;
-}
-.queue-stat-error {
-  font-size: 11px;
-  color: var(--danger);
-  word-break: break-all;
-}
-
-.dlq-summary-cards {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-}
-.summary-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  padding: 20px;
-  text-align: center;
-  transition: var(--transition);
-}
-.summary-card:hover {
-  box-shadow: var(--shadow-md);
-  transform: translateY(-2px);
-}
-.summary-icon {
-  font-size: 28px;
-  margin-bottom: 8px;
-}
-.summary-label {
-  font-size: 12px;
-  color: var(--text-secondary);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 6px;
-}
-.summary-count {
-  font-size: 28px;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-.summary-total .summary-count {
-  color: var(--accent);
-}
-
-.dlq-type-tabs {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 16px;
-  align-items: center;
-}
-.dlq-type-tabs button {
-  padding: 8px 18px;
-  border: 2px solid var(--border-color);
-  border-radius: 8px;
-  background: var(--bg-card);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: var(--transition);
-  color: var(--text-secondary);
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.dlq-type-tabs button.active {
-  border-color: var(--accent);
-  color: var(--accent);
-  background: var(--accent-glow);
-}
-.type-badge {
-  background: var(--danger);
-  color: #fff;
-  font-size: 10px;
-  padding: 1px 6px;
-  border-radius: 8px;
-  font-weight: 700;
-}
-.btn-clear-dlq {
-  margin-left: auto;
-  background: linear-gradient(135deg, #ef4444, #dc2626);
-  color: #fff;
-  border: none;
-  padding: 8px 16px;
-  font-size: 13px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: var(--transition);
-}
-.btn-clear-dlq:hover {
-  transform: translateY(-1px);
-}
-
-.dlq-empty {
-  text-align: center;
-  padding: 60px 20px;
-  background: var(--bg-card);
-  border-radius: 12px;
-  border: 1px solid var(--border-color);
-}
-.empty-icon {
-  font-size: 48px;
-  margin-bottom: 12px;
-}
-.empty-text {
-  font-size: 15px;
-  color: var(--text-secondary);
-  font-weight: 600;
-}
-
-.dlq-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.dlq-item {
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  padding: 16px 20px;
-  border-left: 4px solid var(--danger);
-  transition: var(--transition);
-}
-.dlq-item:hover {
-  box-shadow: var(--shadow-sm);
-}
-.dlq-item-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-}
-.dlq-item-index {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--accent);
-}
-.dlq-item-time {
-  font-size: 12px;
-  color: var(--text-secondary);
-}
-.dlq-item-body {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-.dlq-field {
-  display: flex;
-  gap: 10px;
-  align-items: flex-start;
-}
-.dlq-field-label {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  min-width: 80px;
-  flex-shrink: 0;
-  padding-top: 2px;
-}
-.dlq-field-value {
-  font-size: 13px;
-  color: var(--text-primary);
-  word-break: break-all;
-}
-.dlq-field-body {
-  font-size: 12px;
-  color: var(--text-primary);
-  background: #f1f5f9;
-  padding: 10px 12px;
-  border-radius: 8px;
-  white-space: pre-wrap;
-  word-break: break-all;
-  max-height: 120px;
-  overflow-y: auto;
-  font-family: 'Consolas', 'Monaco', monospace;
-  margin: 0;
-  flex: 1;
-}
-.dlq-item-actions {
-  display: flex;
-  gap: 8px;
-}
-.btn-retry {
-  background: linear-gradient(135deg, #f59e0b, #f97316);
-  color: #fff;
-  border: none;
-  padding: 7px 18px;
-  font-size: 12px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: var(--transition);
-}
-.btn-retry:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(245,158,11,0.35);
-}
-.btn-retry:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-@media (max-width: 768px) {
-  .queue-grid {
-    grid-template-columns: 1fr;
-  }
-  .dlq-summary-cards {
-    grid-template-columns: repeat(2, 1fr);
-  }
+@media (max-width: 480px) {
+  .mq-panel { padding-inline: 10px; }
+  .page-header { display: block; }
+  .header-signal { margin-top: 13px; }
+  .page-kicker { font-size: 9px; letter-spacing: 1.3px; }
+  .mq-command-bar { padding: 7px; }
+  .mq-tabs { display: grid; grid-template-columns: 1fr 1fr; }
+  .mq-tabs button { justify-content: center; padding-inline: 7px; }
+  .tab-code { display: none; }
+  .mq-toolbar { gap: 8px; }
+  .btn-mq-refresh { padding-inline: 11px; }
+  .section-note { display: none; }
+  .dlq-summary-cards { gap: 9px; }
+  .summary-card { padding: 13px; }
+  .summary-code { display: none; }
+  .summary-count { font-size: 25px; }
+  .dlq-item-header { align-items: flex-start; flex-direction: column; }
+  .dlq-item-actions { align-items: stretch; flex-direction: column; }
+  .btn-retry { width: 100%; }
 }
 </style>
