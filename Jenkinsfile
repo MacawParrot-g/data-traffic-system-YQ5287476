@@ -81,11 +81,12 @@ pipeline {
                             """
 
                             echo '>>> 构建前端...'
-                            sh 'npm run build'
-                            sh '''
-                                mkdir -p ../nginx/html/dist
-                                cp -rf dist/* ../nginx/html/dist/
-                            '''
+                              sh 'npm run build'
+                              sh '''
+                                 rm -rf ../nginx/html/dist
+                                 mkdir -p ../nginx/html/dist
+                                 cp -rf dist/* ../nginx/html/dist/
+                                 '''
                         }
                     }
                 }
@@ -95,16 +96,17 @@ pipeline {
         stage('3. 部署') {
             steps {
                 echo '>>> 准备部署目录...'
-                sh """
-                    mkdir -p ${DEPLOY_DIR}/persistent-data/{mysql,redis,rabbitmq,export,nginx-logs}
-                    mkdir -p ${DEPLOY_DIR}/mysql/initsql
-                    cp -f docker-compose.cicd.yml ${DEPLOY_DIR}/
-                    mkdir -p ${DEPLOY_DIR}/frontend/deploy
-                    cp -rf frontend/deploy ${DEPLOY_DIR}/frontend/
-                    cp -rf frontend/dist ${DEPLOY_DIR}/frontend/
-                    cp -rf mysql ${DEPLOY_DIR}/ 2>/dev/null || true
-                    cp -rf redis ${DEPLOY_DIR}/ 2>/dev/null || true
-                """
+                    sh """
+                        mkdir -p ${DEPLOY_DIR}/persistent-data/{mysql,redis,rabbitmq,export,nginx-logs}
+                        mkdir -p ${DEPLOY_DIR}/mysql/initsql
+                        cp -f docker-compose.cicd.yml ${DEPLOY_DIR}/
+                        mkdir -p ${DEPLOY_DIR}/frontend/deploy
+                        cp -rf frontend/deploy ${DEPLOY_DIR}/frontend/
+                        rm -rf ${DEPLOY_DIR}/frontend/dist
+                        cp -rf frontend/dist ${DEPLOY_DIR}/frontend/
+                        cp -rf mysql ${DEPLOY_DIR}/ 2>/dev/null || true
+                        cp -rf redis ${DEPLOY_DIR}/ 2>/dev/null || true
+                          """
 
                 echo '>>> 生成 .env...'
                                                 withCredentials([
