@@ -674,17 +674,19 @@
 .timer-right { min-width: 0; }
 .event-result { padding: 12px 13px; background: var(--success-soft); border: 1px solid #d9e4d0; border-radius: 11px; font-size: 11px; line-height: 1.7; }
 .event-result.no-event { text-align: left; background: #fffdf6; border-color: var(--border-color); }
+.event-result.no-event .event-label { font-size: 11px; }
+.event-result.no-event .event-value { font-size: 18px; font-weight: 700; }
 .event-label, .frozen-label { margin-bottom: 3px; color: var(--text-tertiary); font-family: var(--font-mono); font-size: 8px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; }
 .event-value { color: var(--text-primary); font-size: 12px; font-weight: 650; }
 .event-value.highlight { color: var(--accent-strong); font-family: var(--font-mono); font-size: 22px; line-height: 1.3; }
 .event-compare { margin-top: 8px; padding: 7px 9px; color: var(--text-secondary); background: rgba(255,255,255,0.72); border: 1px solid #e6ddcb; border-radius: 8px; font-size: 10px; }
 .event-compare .diff { color: var(--accent-strong); font-family: var(--font-mono); font-weight: 700; }
 .attribution-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-.attr-tag { display: inline-flex; align-items: center; min-height: 22px; padding: 3px 8px; color: #2f6b46; background: #e8f1e6; border: 1px solid #cfe2c8; border-radius: 6px; font-family: var(--font-mono); font-size: 9px; font-weight: 700; }
-.attr-tag.appflyer { color: #2f6b46; background: #e8f1e6; border-color: #cfe2c8; }
-.attr-tag.adjust { color: #b5651d; background: #fbe6cf; border-color: #f0cfa8; }
-.attr-tag.singular { color: #3a6ea5; background: #dbeafe; border-color: #bcd4f0; }
-.attr-tag.tenjin { color: #6b4fa6; background: #ece0f7; border-color: #d7c4ee; }
+.attr-tag { display: inline-flex; align-items: center; min-height: 22px; padding: 3px 8px; color: #ffffff; background: #2f6b46; border: 1px solid #2f6b46; border-radius: 6px; font-family: var(--font-mono); font-size: 9px; font-weight: 700; }
+.attr-tag.appflyer { color: #ffffff; background: #2f6b46; border-color: #2f6b46; }
+.attr-tag.adjust { color: #ffffff; background: #b5651d; border-color: #b5651d; }
+.attr-tag.singular { color: #ffffff; background: #3a6ea5; border-color: #3a6ea5; }
+.attr-tag.tenjin { color: #ffffff; background: #6b4fa6; border-color: #6b4fa6; }
 .no-attribution { display: inline-block; margin-top: 8px; padding: 5px 8px; color: #8c5c17; background: var(--warning-soft); border: 1px solid #eddbb7; border-radius: 7px; font-size: 10px; font-weight: 650; }
 .event-placeholder { display: flex; align-items: center; justify-content: center; gap: 9px; min-height: 70px; padding: 12px; color: var(--text-tertiary); background: var(--panel-muted); border: 1px dashed #ddd0bb; border-radius: 10px; font-size: 10px; }
 .event-placeholder-icon { position: relative; width: 15px; height: 15px; border: 1.5px solid #a99f8c; border-radius: 50%; }
