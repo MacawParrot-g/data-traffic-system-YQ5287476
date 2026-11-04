@@ -36,7 +36,24 @@ public class UserDataSourceManager {
         if (username == null || username.isEmpty()) {
             return defaultDataSource;
         }
-        return userDataSourceCache.computeIfAbsent(username, this::createUserDataSource);
+        DataSource cached = userDataSourceCache.get(username);
+        if (cached != null) {
+            return cached;
+        }
+        DataSource created = createUserDataSource(username);
+        if (created == null) {
+            // 创建失败不缓存：本次请求使用默认数据源，下次请求仍会重试建池，
+            // 避免数据库临时抖动后用户被永久钉死在默认数据源上
+            return defaultDataSource;
+        }
+        DataSource existing = userDataSourceCache.putIfAbsent(username, created);
+        if (existing != null) {
+            if (created instanceof HikariDataSource hikari && !hikari.isClosed()) {
+                hikari.close();
+            }
+            return existing;
+        }
+        return created;
     }
 
     public DataSource getDefaultDataSource() {
@@ -44,13 +61,14 @@ public class UserDataSourceManager {
     }
 
     private DataSource createUserDataSource(String username) {
+        String url = "";
         try {
             Map<Object, Object> entries = redisTemplate.opsForHash().entries(DS_CONFIG_KEY + username);
             if (entries.isEmpty()) {
                 log.info("用户 {} 无自定义数据源配置，使用默认数据源", username);
                 return defaultDataSource;
             }
-            String url = String.valueOf(entries.getOrDefault("url", ""));
+            url = String.valueOf(entries.getOrDefault("url", ""));
             String dsUsername = String.valueOf(entries.getOrDefault("username", ""));
             Object pwdObj = entries.get("password");
             String password = pwdObj != null ? pwdObj.toString() : "";
@@ -65,6 +83,10 @@ public class UserDataSourceManager {
             config.setUsername(dsUsername);
             config.setPassword(password);
             config.setDriverClassName("com.mysql.cj.jdbc.Driver");
+            if (url.contains("mysql") && !url.contains("allowPublicKeyRetrieval")) {
+                // MySQL 8 默认 caching_sha2_password，缺少该参数会报 Public Key Retrieval is not allowed
+                config.addDataSourceProperty("allowPublicKeyRetrieval", "true");
+            }
             config.setPoolName("UserPool-" + username);
             config.setMaximumPoolSize(5);
             config.setMinimumIdle(1);
@@ -77,8 +99,11 @@ public class UserDataSourceManager {
             log.info("为用户 {} 创建自定义数据源连接池: {}", username, url);
             return ds;
         } catch (Exception e) {
-            log.error("为用户 {} 创建数据源失败，回退默认: {}", username, e.getMessage());
-            return defaultDataSource;
+            log.error("为用户 {} 创建数据源失败(pool=UserPool-{}), url=[{}], 本次回退默认数据源, 下次请求将重试. 原因: {}",
+                    username, username, url, e.getMessage());
+            log.warn("请检查用户 {} 的JDBC URL：后端运行在容器内，localhost/127.0.0.1 指向容器自身而非数据库宿主机，" +
+                    "应使用docker服务名(如 mysql)或宿主机IP；同时确认端口、库名及账号密码", username);
+            return null;
         }
     }
 
