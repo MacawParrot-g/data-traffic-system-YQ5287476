@@ -29,10 +29,6 @@ import {
   addRetestBundle,
   updateRetestBundle,
   deleteRetestBundle,
-  clearRetestCache,
-  fetchMySQLMonitorStatus,
-  executeMySQLBackup,
-  fetchMySQLBackupList
 } from '../api/index.js'
 
 import { Chart, registerables } from 'chart.js'
@@ -66,12 +62,6 @@ const appIdResult = ref(null)
 const appIdOnlineResult = ref(null)
 const appIdSaving = ref(false)
 const appIdSaveMsg = ref('')
-const dbMonitor = ref(null)
-const dbBackupList = ref([])
-const dbMonitorLoading = ref(false)
-const dbBackupRunning = ref(false)
-const dbMsg = ref('')
-const dbMsgOk = ref(false)
 let attrPieChart = null
 let recorderBarChart = null
 const advExpanded = ref(true)
@@ -250,50 +240,6 @@ function formatRetestTtl(sec) {
   const h = Math.floor(sec / 3600)
   const m = Math.floor((sec % 3600) / 60)
   return h + ' 小时 ' + m + ' 分'
-}
-
-async function loadDbMonitor() {
-  dbMonitorLoading.value = true
-  try {
-    const [statusJson, listJson] = await Promise.all([fetchMySQLMonitorStatus(), fetchMySQLBackupList()])
-    if (statusJson.success) {
-      dbMonitor.value = statusJson.data
-    } else {
-      emit('error', statusJson.message || '获取数据库监控信息失败')
-    }
-    if (listJson.success && listJson.data) {
-      dbBackupList.value = listJson.data.backups || []
-    }
-  } catch (e) {
-    emit('error', '获取数据库监控信息失败：' + e.message)
-  } finally {
-    dbMonitorLoading.value = false
-  }
-}
-
-async function doManualBackup() {
-  if (dbBackupRunning.value) return
-  if (!confirm('确认立即对生产库执行一次全量备份？备份完成后将自动清理最旧版本，仅保留最近 ' + (dbMonitor.value?.retainCount || 3) + ' 个')) return
-  dbBackupRunning.value = true
-  dbMsg.value = ''
-  try {
-    const json = await executeMySQLBackup()
-    dbMsgOk.value = !!json.success
-    dbMsg.value = json.message || (json.success ? '备份成功' : '备份失败')
-    if (json.success) await loadDbMonitor()
-  } catch (e) {
-    dbMsgOk.value = false
-    dbMsg.value = '备份请求失败：' + e.message
-  } finally {
-    dbBackupRunning.value = false
-  }
-}
-
-function usageLevel(percent) {
-  if (percent == null) return 'level-normal'
-  if (percent >= 80) return 'level-danger'
-  if (percent >= 50) return 'level-warn'
-  return 'level-normal'
 }
 
 function toggleDateSort() {
@@ -1130,9 +1076,6 @@ watch(chartFilter, async () => {
   if (newTab === 'retest') {
     loadRetestCache()
   }
-  if (newTab === 'dbbackup') {
-    loadDbMonitor()
-  }
 })
 
 onUnmounted(() => {
@@ -1183,9 +1126,6 @@ watch(activeTab, async (newTab) => {
       </button>
       <button class="admin-tab" :class="{ active: activeTab === 'retest' }" @click="activeTab = 'retest'">
         <span class="tab-icon">04</span><span class="tab-text">查看复测数据</span>
-      </button>
-      <button class="admin-tab" :class="{ active: activeTab === 'dbbackup' }" @click="activeTab = 'dbbackup'">
-        <span class="tab-icon">05</span><span class="tab-text">数据库监控备份</span>
       </button>
       <button class="admin-tab" :class="{ active: activeTab === 'users' }" @click="activeTab = 'users'">
         <span class="tab-icon">06</span><span class="tab-text">用户管理</span>
@@ -1277,36 +1217,36 @@ watch(activeTab, async (newTab) => {
       </section>
 
       <!-- 顶部统计卡片 -->
-<!--      <div class="stats-row" v-if="statsData">-->
-<!--        <div class="stat-card">-->
-<!--          <div class="stat-card-icon">T</div>-->
-<!--          <div class="stat-card-body">-->
-<!--            <div class="stat-card-value">{{ statsData.totalCount }}</div>-->
-<!--            <div class="stat-card-label">总记录数</div>-->
-<!--          </div>-->
-<!--        </div>-->
-<!--        <div class="stat-card stat-card-exported">-->
-<!--          <div class="stat-card-icon">HE</div>-->
-<!--          <div class="stat-card-body">-->
-<!--            <div class="stat-card-value">{{ statsData.exportedCount }}</div>-->
-<!--            <div class="stat-card-label">已导出</div>-->
-<!--          </div>-->
-<!--        </div>-->
-<!--        <div class="stat-card stat-card-pending">-->
-<!--          <div class="stat-card-icon">UE</div>-->
-<!--          <div class="stat-card-body">-->
-<!--            <div class="stat-card-value">{{ statsData.unexportedCount }}</div>-->
-<!--            <div class="stat-card-label">未导出</div>-->
-<!--          </div>-->
-<!--        </div>-->
-<!--        <div class="stat-card stat-card-frozen">-->
-<!--          <div class="stat-card-icon">FR</div>-->
-<!--          <div class="stat-card-body">-->
-<!--            <div class="stat-card-value">{{ statsData.frozenCount }}</div>-->
-<!--            <div class="stat-card-label">已冻结</div>-->
-<!--          </div>-->
-<!--        </div>-->
-<!--      </div>-->
+      <!--      <div class="stats-row" v-if="statsData">-->
+      <!--        <div class="stat-card">-->
+      <!--          <div class="stat-card-icon">T</div>-->
+      <!--          <div class="stat-card-body">-->
+      <!--            <div class="stat-card-value">{{ statsData.totalCount }}</div>-->
+      <!--            <div class="stat-card-label">总记录数</div>-->
+      <!--          </div>-->
+      <!--        </div>-->
+      <!--        <div class="stat-card stat-card-exported">-->
+      <!--          <div class="stat-card-icon">HE</div>-->
+      <!--          <div class="stat-card-body">-->
+      <!--            <div class="stat-card-value">{{ statsData.exportedCount }}</div>-->
+      <!--            <div class="stat-card-label">已导出</div>-->
+      <!--          </div>-->
+      <!--        </div>-->
+      <!--        <div class="stat-card stat-card-pending">-->
+      <!--          <div class="stat-card-icon">UE</div>-->
+      <!--          <div class="stat-card-body">-->
+      <!--            <div class="stat-card-value">{{ statsData.unexportedCount }}</div>-->
+      <!--            <div class="stat-card-label">未导出</div>-->
+      <!--          </div>-->
+      <!--        </div>-->
+      <!--        <div class="stat-card stat-card-frozen">-->
+      <!--          <div class="stat-card-icon">FR</div>-->
+      <!--          <div class="stat-card-body">-->
+      <!--            <div class="stat-card-value">{{ statsData.frozenCount }}</div>-->
+      <!--            <div class="stat-card-label">已冻结</div>-->
+      <!--          </div>-->
+      <!--        </div>-->
+      <!--      </div>-->
 
       <!-- ==================== 数据报表 Tab 内容 ==================== -->
       <template v-if="activeTab === 'report'">
@@ -1364,9 +1304,9 @@ watch(activeTab, async (newTab) => {
           <div class="chart-card">
             <div class="chart-canvas-wrap"><canvas id="attrPieChart"></canvas></div>
           </div>
-<!--          <div class="chart-card">-->
-<!--            <div class="chart-canvas-wrap"><canvas id="exportPieChart"></canvas></div>-->
-<!--          </div>-->
+          <!--          <div class="chart-card">-->
+          <!--            <div class="chart-canvas-wrap"><canvas id="exportPieChart"></canvas></div>-->
+          <!--          </div>-->
         </div>
 
         <div v-if="recorderSummary.length > 0 && (chartFilter === 'recorderBar' || chartFilter === 'all')" :class="['charts-row', { 'charts-row-single': chartFilter === 'recorderBar' }]">
@@ -1384,15 +1324,15 @@ watch(activeTab, async (newTab) => {
           </div>
         </div>
 
-<!--        <div v-if="recorderSummary.length >= 3 && (chartFilter === 'radar' || chartFilter === 'all')" class="charts-row charts-row-single">-->
-<!--          <div class="chart-card">-->
-<!--            <div class="chart-canvas-wrap chart-canvas-tall"><canvas id="radarChart"></canvas></div>-->
-<!--          </div>-->
-<!--        </div>-->
+        <!--        <div v-if="recorderSummary.length >= 3 && (chartFilter === 'radar' || chartFilter === 'all')" class="charts-row charts-row-single">-->
+        <!--          <div class="chart-card">-->
+        <!--            <div class="chart-canvas-wrap chart-canvas-tall"><canvas id="radarChart"></canvas></div>-->
+        <!--          </div>-->
+        <!--        </div>-->
 
         <div v-if="recorderSummary.length > 0 && (chartFilter === 'recorderPies' || chartFilter === 'all')" class="recorder-pies-section">
 
-<!--        <div v-if="recorderSummary.length > 0" class="recorder-pies-section">-->
+          <!--        <div v-if="recorderSummary.length > 0" class="recorder-pies-section">-->
           <div class="recorder-pies-header">
             <span class="recorder-pies-title">各记录人归因明细</span>
             <span class="recorder-pies-sub">共 {{ recorderSummary.length }} 位记录人</span>
@@ -1531,12 +1471,12 @@ watch(activeTab, async (newTab) => {
                 </span></th>
               <th>记录人</th>
               <th>备注</th>
-<!--              <th>导出</th>-->
+              <!--              <th>导出</th>-->
               <th>操作</th>
             </tr>
             </thead>
             <tbody>
-<!--            <template v-for="(item, index) in list" :key="item.hash">-->
+            <!--            <template v-for="(item, index) in list" :key="item.hash">-->
             <template v-for="(item, index) in sortedList" :key="item.hash">
               <tr :class="{ 'row-selected': selectedHashes.includes(item.hash), 'row-editing': editingRow === index }">
                 <td class="td-check"><input type="checkbox" :value="item.hash" v-model="selectedHashes" /></td>
@@ -1583,7 +1523,7 @@ watch(activeTab, async (newTab) => {
                   <template v-if="editingRow === index"><input v-model="editBuffer.remark" class="cell-edit-input" /></template>
                   <template v-else>{{ item.remark || '-' }}</template>
                 </td>
-<!--                <td v-if="currentUserRole==='DEVELOPER'"><span :class="item.isOutput === 1 ? 'tag-exported' : 'tag-unexported'">{{ item.isOutput === 1 ? '已导出' : '未导出' }}</span></td>-->
+                <!--                <td v-if="currentUserRole==='DEVELOPER'"><span :class="item.isOutput === 1 ? 'tag-exported' : 'tag-unexported'">{{ item.isOutput === 1 ? '已导出' : '未导出' }}</span></td>-->
                 <td class="action-cell">
                   <template v-if="editingRow === index">
                     <button class="btn-sm btn-save" @click="saveEditRow(index)" :disabled="savingEdit">{{ savingEdit ? '...' : '保存' }}</button>
@@ -1665,154 +1605,154 @@ watch(activeTab, async (newTab) => {
 
     <!-- ==================== App信息 Tab ==================== -->
     <template v-if="activeTab === 'appid'">
-    <div class="admin-section">
-      <div class="appid-lookup-card">
-        <div class="appid-lookup-header">
-          <span class="appid-lookup-icon">APP</span>
-          <div>
-            <h3 class="appid-lookup-title">App 信息查询</h3>
-            <p class="appid-lookup-desc">通过 Bundle ID 查询 App 信息，支持本地库和联网两种模式</p>
-          </div>
-        </div>
-
-        <div class="appid-mode-switch">
-          <button class="appid-mode-btn" :class="{ active: appIdMode === 'local' }" @click="appIdMode = 'local'">
-            <span class="appid-mode-icon">D</span>
-            <div class="appid-mode-text">
-              <span class="appid-mode-name">本地库获取</span>
-              <span class="appid-mode-desc">仅返回 AppId · 优先 Redis → MySQL</span>
-            </div>
-          </button>
-          <button class="appid-mode-btn" :class="{ active: appIdMode === 'online' }" @click="appIdMode = 'online'">
-            <span class="appid-mode-icon">I</span>
-            <div class="appid-mode-text">
-              <span class="appid-mode-name">联网搜索</span>
-              <span class="appid-mode-desc">返回完整信息 · 自动同步到本地库</span>
-            </div>
-          </button>
-        </div>
-
-        <div class="appid-search-row">
-          <input v-model="appIdBundleId" class="appid-search-input" placeholder="输入 Bundle ID，例如 com.game.hero.survival" @keyup.enter="doAppIdLookup" />
-          <button class="appid-search-btn" @click="doAppIdLookup" :disabled="appIdLoading">
-            {{ appIdLoading ? '查询中...' : '查询' }}
-          </button>
-        </div>
-
-        <div v-if="appIdLoading" class="state-block">
-          <div class="state-spinner"></div>
-          <div class="state-text">正在查询...</div>
-        </div>
-
-        <div v-if="appIdMode === 'local' && appIdResult" class="appid-result-card">
-          <div v-if="appIdResult.found" class="appid-result-found">
-            <div class="appid-result-badge" :class="appIdResult.source === 'Redis' ? 'badge-redis' : 'badge-mysql'">
-              {{ appIdResult.source === 'Redis' ? 'Redis 命中' : 'MySQL 查询' }}
-            </div>
-            <div class="appid-result-grid">
-              <div class="appid-result-field">
-                <span class="appid-field-label">Bundle ID</span>
-                <span class="appid-field-value appid-field-mono">{{ appIdResult.bundleId }}</span>
-              </div>
-              <div class="appid-result-field">
-                <span class="appid-field-label">App ID</span>
-                <span class="appid-field-value appid-field-highlight">{{ appIdResult.appId }}</span>
-              </div>
-              <div class="appid-result-field">
-                <span class="appid-field-label">数据来源</span>
-                <span class="appid-field-value">{{ appIdResult.source }}</span>
-              </div>
-            </div>
-            <div v-if="appIdResult.source === 'MySQL'" class="appid-cache-hint">
-              已将此条 AppId 缓存到 Redis，下次查询将直接命中 Redis
+      <div class="admin-section">
+        <div class="appid-lookup-card">
+          <div class="appid-lookup-header">
+            <span class="appid-lookup-icon">APP</span>
+            <div>
+              <h3 class="appid-lookup-title">App 信息查询</h3>
+              <p class="appid-lookup-desc">通过 Bundle ID 查询 App 信息，支持本地库和联网两种模式</p>
             </div>
           </div>
-          <div v-else class="appid-result-notfound">
-            <div class="appid-notfound-icon">Q</div>
-            <div class="appid-notfound-text">本地库中未找到该 Bundle ID 对应的 AppId</div>
-            <div class="appid-notfound-hint">请切换到「联网搜索」模式从远端获取</div>
-          </div>
-        </div>
 
-        <div v-if="appIdMode === 'online' && appIdOnlineResult" class="appid-online-card">
-          <div class="appid-online-header">
+          <div class="appid-mode-switch">
+            <button class="appid-mode-btn" :class="{ active: appIdMode === 'local' }" @click="appIdMode = 'local'">
+              <span class="appid-mode-icon">D</span>
+              <div class="appid-mode-text">
+                <span class="appid-mode-name">本地库获取</span>
+                <span class="appid-mode-desc">仅返回 AppId · 优先 Redis → MySQL</span>
+              </div>
+            </button>
+            <button class="appid-mode-btn" :class="{ active: appIdMode === 'online' }" @click="appIdMode = 'online'">
+              <span class="appid-mode-icon">I</span>
+              <div class="appid-mode-text">
+                <span class="appid-mode-name">联网搜索</span>
+                <span class="appid-mode-desc">返回完整信息 · 自动同步到本地库</span>
+              </div>
+            </button>
+          </div>
+
+          <div class="appid-search-row">
+            <input v-model="appIdBundleId" class="appid-search-input" placeholder="输入 Bundle ID，例如 com.game.hero.survival" @keyup.enter="doAppIdLookup" />
+            <button class="appid-search-btn" @click="doAppIdLookup" :disabled="appIdLoading">
+              {{ appIdLoading ? '查询中...' : '查询' }}
+            </button>
+          </div>
+
+          <div v-if="appIdLoading" class="state-block">
+            <div class="state-spinner"></div>
+            <div class="state-text">正在查询...</div>
+          </div>
+
+          <div v-if="appIdMode === 'local' && appIdResult" class="appid-result-card">
+            <div v-if="appIdResult.found" class="appid-result-found">
+              <div class="appid-result-badge" :class="appIdResult.source === 'Redis' ? 'badge-redis' : 'badge-mysql'">
+                {{ appIdResult.source === 'Redis' ? 'Redis 命中' : 'MySQL 查询' }}
+              </div>
+              <div class="appid-result-grid">
+                <div class="appid-result-field">
+                  <span class="appid-field-label">Bundle ID</span>
+                  <span class="appid-field-value appid-field-mono">{{ appIdResult.bundleId }}</span>
+                </div>
+                <div class="appid-result-field">
+                  <span class="appid-field-label">App ID</span>
+                  <span class="appid-field-value appid-field-highlight">{{ appIdResult.appId }}</span>
+                </div>
+                <div class="appid-result-field">
+                  <span class="appid-field-label">数据来源</span>
+                  <span class="appid-field-value">{{ appIdResult.source }}</span>
+                </div>
+              </div>
+              <div v-if="appIdResult.source === 'MySQL'" class="appid-cache-hint">
+                已将此条 AppId 缓存到 Redis，下次查询将直接命中 Redis
+              </div>
+            </div>
+            <div v-else class="appid-result-notfound">
+              <div class="appid-notfound-icon">Q</div>
+              <div class="appid-notfound-text">本地库中未找到该 Bundle ID 对应的 AppId</div>
+              <div class="appid-notfound-hint">请切换到「联网搜索」模式从远端获取</div>
+            </div>
+          </div>
+
+          <div v-if="appIdMode === 'online' && appIdOnlineResult" class="appid-online-card">
+            <div class="appid-online-header">
             <span class="appid-online-status" :class="appIdOnlineResult.status === 0 ? 'status-active' : 'status-inactive'">
               {{ appIdOnlineResult.status === 0 ? '活跃' : '非活跃' }}
             </span>
-            <span class="appid-online-id">ID: {{ appIdOnlineResult.id }}</span>
-          </div>
-          <div class="appid-online-grid">
-            <div class="appid-online-field">
-              <span class="appid-online-label">Bundle ID</span>
-              <span class="appid-online-value appid-field-mono">{{ appIdOnlineResult.bundleId }}</span>
+              <span class="appid-online-id">ID: {{ appIdOnlineResult.id }}</span>
             </div>
-            <div class="appid-online-field">
-              <span class="appid-online-label">App ID</span>
-              <span class="appid-online-value appid-field-highlight">{{ appIdOnlineResult.appId }}</span>
-            </div>
-            <div class="appid-online-field">
-              <span class="appid-online-label">平台</span>
-              <span class="appid-online-value">{{ appIdOnlineResult.platform || '未指定' }}</span>
-            </div>
-            <div class="appid-online-field">
-              <span class="appid-online-label">类型</span>
-              <span class="appid-online-value">{{ appIdOnlineResult.type === 1 ? 'iOS' : appIdOnlineResult.type === 2 ? 'Android' : '未知' }}</span>
-            </div>
-            <div class="appid-online-field">
-              <span class="appid-online-label">事件目标数</span>
-              <span class="appid-online-value">{{ appIdOnlineResult.eventTokenTargetNum }}</span>
-            </div>
-            <div class="appid-online-field">
-              <span class="appid-online-label">当前事件数</span>
-              <span class="appid-online-value">{{ appIdOnlineResult.currentTargetNum }}</span>
-            </div>
-            <div class="appid-online-field">
-              <span class="appid-online-label">添加次数</span>
-              <span class="appid-online-value">{{ appIdOnlineResult.addTimes }}</span>
-            </div>
-            <div class="appid-online-field">
-              <span class="appid-online-label">事件类型</span>
-              <span class="appid-online-value">{{ appIdOnlineResult.playEventType }}</span>
-            </div>
-            <div class="appid-online-field appid-online-field-wide">
-              <span class="appid-online-label">下载链接</span>
-              <span class="appid-online-value appid-field-mono appid-field-link">
+            <div class="appid-online-grid">
+              <div class="appid-online-field">
+                <span class="appid-online-label">Bundle ID</span>
+                <span class="appid-online-value appid-field-mono">{{ appIdOnlineResult.bundleId }}</span>
+              </div>
+              <div class="appid-online-field">
+                <span class="appid-online-label">App ID</span>
+                <span class="appid-online-value appid-field-highlight">{{ appIdOnlineResult.appId }}</span>
+              </div>
+              <div class="appid-online-field">
+                <span class="appid-online-label">平台</span>
+                <span class="appid-online-value">{{ appIdOnlineResult.platform || '未指定' }}</span>
+              </div>
+              <div class="appid-online-field">
+                <span class="appid-online-label">类型</span>
+                <span class="appid-online-value">{{ appIdOnlineResult.type === 1 ? 'iOS' : appIdOnlineResult.type === 2 ? 'Android' : '未知' }}</span>
+              </div>
+              <div class="appid-online-field">
+                <span class="appid-online-label">事件目标数</span>
+                <span class="appid-online-value">{{ appIdOnlineResult.eventTokenTargetNum }}</span>
+              </div>
+              <div class="appid-online-field">
+                <span class="appid-online-label">当前事件数</span>
+                <span class="appid-online-value">{{ appIdOnlineResult.currentTargetNum }}</span>
+              </div>
+              <div class="appid-online-field">
+                <span class="appid-online-label">添加次数</span>
+                <span class="appid-online-value">{{ appIdOnlineResult.addTimes }}</span>
+              </div>
+              <div class="appid-online-field">
+                <span class="appid-online-label">事件类型</span>
+                <span class="appid-online-value">{{ appIdOnlineResult.playEventType }}</span>
+              </div>
+              <div class="appid-online-field appid-online-field-wide">
+                <span class="appid-online-label">下载链接</span>
+                <span class="appid-online-value appid-field-mono appid-field-link">
                 <a v-if="appIdOnlineResult.downloadUrl" :href="appIdOnlineResult.downloadUrl" target="_blank" rel="noopener">{{ appIdOnlineResult.downloadUrl }}</a>
                 <span v-else>-</span>
               </span>
+              </div>
+              <div class="appid-online-field">
+                <span class="appid-online-label">创建时间</span>
+                <span class="appid-online-value">{{ formatAppIdTime(appIdOnlineResult.createTime) }}</span>
+              </div>
+              <div class="appid-online-field">
+                <span class="appid-online-label">更新时间</span>
+                <span class="appid-online-value">{{ formatAppIdTime(appIdOnlineResult.updateTime) }}</span>
+              </div>
+              <div class="appid-online-field">
+                <span class="appid-online-label">申请时间</span>
+                <span class="appid-online-value">{{ formatAppIdTime(appIdOnlineResult.applyTime) }}</span>
+              </div>
+              <div class="appid-online-field">
+                <span class="appid-online-label">过期时间</span>
+                <span class="appid-online-value">{{ formatAppIdTime(appIdOnlineResult.expireTime) }}</span>
+              </div>
+              <div class="appid-online-field">
+                <span class="appid-online-label">冻结时间</span>
+                <span class="appid-online-value">{{ formatAppIdTime(appIdOnlineResult.frozenTime) }}</span>
+              </div>
+              <div class="appid-online-field appid-online-field-wide">
+                <span class="appid-online-label">冻结原因</span>
+                <span class="appid-online-value">{{ appIdOnlineResult.remark || '无' }}</span>
+              </div>
             </div>
-            <div class="appid-online-field">
-              <span class="appid-online-label">创建时间</span>
-              <span class="appid-online-value">{{ formatAppIdTime(appIdOnlineResult.createTime) }}</span>
+            <div v-if="appIdSaveMsg" class="appid-sync-msg" :class="{ 'appid-sync-ok': appIdSaveMsg.startsWith('') || appIdSaveMsg.includes('已存在'), 'appid-sync-err': appIdSaveMsg.startsWith('') }">
+              {{ appIdSaveMsg }}
             </div>
-            <div class="appid-online-field">
-              <span class="appid-online-label">更新时间</span>
-              <span class="appid-online-value">{{ formatAppIdTime(appIdOnlineResult.updateTime) }}</span>
-            </div>
-            <div class="appid-online-field">
-              <span class="appid-online-label">申请时间</span>
-              <span class="appid-online-value">{{ formatAppIdTime(appIdOnlineResult.applyTime) }}</span>
-            </div>
-            <div class="appid-online-field">
-              <span class="appid-online-label">过期时间</span>
-              <span class="appid-online-value">{{ formatAppIdTime(appIdOnlineResult.expireTime) }}</span>
-            </div>
-            <div class="appid-online-field">
-              <span class="appid-online-label">冻结时间</span>
-              <span class="appid-online-value">{{ formatAppIdTime(appIdOnlineResult.frozenTime) }}</span>
-            </div>
-            <div class="appid-online-field appid-online-field-wide">
-              <span class="appid-online-label">冻结原因</span>
-              <span class="appid-online-value">{{ appIdOnlineResult.remark || '无' }}</span>
-            </div>
-          </div>
-          <div v-if="appIdSaveMsg" class="appid-sync-msg" :class="{ 'appid-sync-ok': appIdSaveMsg.startsWith('') || appIdSaveMsg.includes('已存在'), 'appid-sync-err': appIdSaveMsg.startsWith('') }">
-            {{ appIdSaveMsg }}
           </div>
         </div>
       </div>
-    </div>
-  </template>
+    </template>
 
     <template v-if="activeTab === 'retest'">
       <div class="admin-section">
@@ -1911,115 +1851,6 @@ watch(activeTab, async (newTab) => {
         </div>
       </div>
     </template>
-    <!-- ==================== 数据库监控 Tab ==================== -->
-
-    <div v-if="activeTab === 'dbbackup'" class="admin-section">
-      <div class="card">
-        <div class="card-header card-header-between">
-          <div class="card-header-left">
-            <span class="card-icon">M</span>
-            <h3>MySQL 运行状态监控</h3>
-          </div>
-          <div class="card-header-right">
-            <button class="btn-sm btn-refresh" @click="loadDbMonitor" :disabled="dbMonitorLoading">
-              {{ dbMonitorLoading ? '刷新中...' : '刷新状态' }}
-            </button>
-          </div>
-        </div>
-        <div class="card-body">
-          <div v-if="dbMonitorLoading && !dbMonitor" class="state-block">
-            <div class="state-spinner"></div>
-            <div class="state-text">采集中...</div>
-          </div>
-          <template v-if="dbMonitor">
-            <div class="db-metric-grid">
-              <div class="db-metric-card">
-                <div class="db-metric-label">当前连接数</div>
-                <div class="db-metric-value">{{ dbMonitor.threadsConnected }}</div>
-                <div class="db-metric-sub">Threads_connected</div>
-              </div>
-              <div class="db-metric-card">
-                <div class="db-metric-label">活跃线程</div>
-                <div class="db-metric-value">{{ dbMonitor.threadsRunning }}</div>
-                <div class="db-metric-sub">Threads_running</div>
-              </div>
-              <div class="db-metric-card">
-                <div class="db-metric-label">最大连接数</div>
-                <div class="db-metric-value">{{ dbMonitor.maxConnections }}</div>
-                <div class="db-metric-sub">max_connections</div>
-              </div>
-              <div class="db-metric-card" :class="usageLevel(dbMonitor.usagePercent)">
-                <div class="db-metric-label">连接使用率</div>
-                <div class="db-metric-value">{{ dbMonitor.usagePercent }}%</div>
-                <div class="db-metric-sub">已用 / 上限</div>
-              </div>
-            </div>
-
-            <div class="db-var-grid">
-              <div class="db-var-item">
-                <span class="db-var-label">慢查询日志</span>
-                <span class="db-var-value" :class="String(dbMonitor.slowQueryLog).toUpperCase() === 'ON' ? 'var-on' : 'var-off'">{{ dbMonitor.slowQueryLog }}</span>
-              </div>
-              <div class="db-var-item">
-                <span class="db-var-label">慢查询日志文件</span>
-                <span class="db-var-value db-var-mono">{{ dbMonitor.slowQueryLogFile || '-' }}</span>
-              </div>
-              <div class="db-var-item">
-                <span class="db-var-label">长查询阈值(秒)</span>
-                <span class="db-var-value">{{ dbMonitor.longQueryTime }}</span>
-              </div>
-              <div class="db-var-item">
-                <span class="db-var-label">目标库</span>
-                <span class="db-var-value db-var-mono">{{ dbMonitor.host }}:{{ dbMonitor.port }} / {{ dbMonitor.db }}</span>
-              </div>
-            </div>
-          </template>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-header card-header-between">
-          <div class="card-header-left">
-            <span class="card-icon">B</span>
-            <h3>数据库全量备份</h3>
-          </div>
-          <div class="card-header-right">
-            <button class="btn-action btn-backup" @click="doManualBackup" :disabled="dbBackupRunning">
-              {{ dbBackupRunning ? '备份执行中...' : '立即备份' }}
-            </button>
-          </div>
-        </div>
-        <div class="card-body">
-          <div v-if="dbMsg" class="feedback" :class="dbMsgOk ? 'feedback-ok' : 'feedback-err'">{{ dbMsg }}</div>
-          <div class="db-backup-meta">
-            <span>备份目录：{{ dbMonitor?.backupDir || '-' }}</span>
-            <span>保留策略：最近 {{ dbMonitor?.retainCount || 3 }} 个版本（每三天自动备份一次）</span>
-          </div>
-          <div v-if="dbBackupList.length === 0" class="state-block">
-            <div class="state-icon" aria-hidden="true">EMPTY</div>
-            <div class="state-text">暂无备份文件</div>
-          </div>
-          <div v-else class="table-wrapper">
-            <table class="data-table">
-              <thead>
-              <tr>
-                <th>备份文件</th>
-                <th>生成时间</th>
-                <th>大小</th>
-              </tr>
-              </thead>
-              <tbody>
-              <tr v-for="b in dbBackupList" :key="b.fileName">
-                <td class="db-backup-file">{{ b.fileName }}</td>
-                <td>{{ b.time }}</td>
-                <td>{{ b.sizeText }}</td>
-              </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
 
     <!-- ==================== 用户管理 Tab ==================== -->
     <div v-if="activeTab === 'users'" class="admin-section">
