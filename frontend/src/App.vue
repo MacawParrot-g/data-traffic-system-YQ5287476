@@ -444,11 +444,11 @@ async function fetchTodayCount() {
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 :root {
-  --sidebar-bg: #ede9dd;
-  --sidebar-hover: rgba(90, 75, 55, 0.06);
-  --sidebar-active: rgba(191, 91, 61, 0.10);
-  --sidebar-text: #6e6a5e;
-  --sidebar-text-active: #2d2a24;
+  --sidebar-bg: #c15b34;
+  --sidebar-hover: rgba(255, 255, 255, 0.12);
+  --sidebar-active: rgba(255, 255, 255, 0.18);
+  --sidebar-text: rgba(255, 247, 240, 0.90);
+  --sidebar-text-active: #ffffff;
   --sidebar-width: 248px;
   --sidebar-collapsed-width: 76px;
   --accent: #c96a45;
