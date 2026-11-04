@@ -307,7 +307,7 @@ onMounted(() => {
   font-weight: 600;
   white-space: nowrap;
 }
-.ds-status-badge.default { background: #f4f7f7; color: var(--text-secondary); }
+.ds-status-badge.default { background: #f6f6f5; color: var(--text-secondary); }
 .ds-status-badge.custom { background: var(--accent-soft); border-color: var(--accent-light); color: var(--accent-strong); }
 .ds-status-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 .ds-card {
@@ -356,7 +356,7 @@ onMounted(() => {
   margin-bottom: 16px;
   padding: 10px 12px;
   color: var(--text-secondary);
-  background: #f6f9f9;
+  background: #faf6ee;
   border: 1px solid var(--border-color);
   border-radius: var(--radius);
   font-size: 11px;
@@ -385,7 +385,7 @@ onMounted(() => {
   height: 40px;
   padding: 0 12px;
   color: var(--text-primary);
-  background: #fbfdfd;
+  background: #fffdf6;
   border: 1px solid var(--border-color);
   border-radius: var(--radius);
   outline: none;
@@ -420,7 +420,7 @@ onMounted(() => {
 .ds-btn-save { color: #fff; background: var(--accent); border-color: var(--accent); box-shadow: inset 0 1px 0 rgba(255,255,255,.2); }
 .ds-btn-save:hover:not(:disabled) { background: var(--accent-strong); border-color: var(--accent-strong); }
 .ds-btn-delete { margin-left: auto; color: var(--danger); background: transparent; border-color: transparent; }
-.ds-btn-delete:hover:not(:disabled) { background: #fff5f4; border-color: #f2cfcc; }
+.ds-btn-delete:hover:not(:disabled) { background: #fbeee7; border-color: #f2cfcc; }
 .ds-result {
   display: flex;
   align-items: flex-start;
@@ -435,8 +435,8 @@ onMounted(() => {
   overflow-wrap: anywhere;
 }
 .ds-result-mark { flex: 0 0 auto; width: 7px; height: 7px; margin-top: 6px; border-radius: 50%; background: currentColor; }
-.ds-result.success { color: #16715d; background: #f0faf6; border-color: #cce9df; }
-.ds-result.fail { color: var(--danger); background: #fff5f4; border-color: #f2cfcc; }
+.ds-result.success { color: #4a7c59; background: #f8f1e4; border-color: #d9e4d0; }
+.ds-result.fail { color: var(--danger); background: #fbeee7; border-color: #f2cfcc; }
 .ds-switch-card { margin-bottom: 0; }
 .ds-switch-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .ds-btn-switch {
@@ -447,7 +447,7 @@ onMounted(() => {
   gap: 4px;
   padding: 12px 14px;
   color: var(--text-secondary);
-  background: #f7f9f9;
+  background: #faf6ee;
   border-color: var(--border-color);
   text-align: left;
 }

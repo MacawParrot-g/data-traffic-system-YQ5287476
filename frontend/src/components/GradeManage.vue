@@ -318,20 +318,20 @@ select.filter-input { cursor: pointer; }
 .state-text { margin-top: 7px; color: var(--text-tertiary); font-size: 12px; }
 .grade-table-wrap { max-width: 100%; overflow-x: auto; overscroll-behavior-x: contain; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); }
 .grade-table { width: 100%; min-width: 860px; border-collapse: separate; border-spacing: 0; color: var(--text-primary); font-size: 12px; text-align: left; }
-.grade-table th { height: 38px; padding: 9px 13px; color: var(--text-secondary); background: #f3f7f7; border-bottom: 1px solid var(--border-color); font-size: 10px; font-weight: 650; letter-spacing: .035em; white-space: nowrap; }
-.grade-table td { height: 46px; padding: 9px 13px; color: var(--text-primary); background: var(--bg-card); border-bottom: 1px solid #edf1f1; vertical-align: middle; transition: background .14s ease; }
+.grade-table th { height: 38px; padding: 9px 13px; color: var(--text-secondary); background: #efe9de; border-bottom: 1px solid var(--border-color); font-size: 10px; font-weight: 650; letter-spacing: .035em; white-space: nowrap; }
+.grade-table td { height: 46px; padding: 9px 13px; color: var(--text-primary); background: var(--bg-card); border-bottom: 1px solid #efe9de; vertical-align: middle; transition: background .14s ease; }
 .grade-table tbody tr:last-child td { border-bottom: 0; }
-.grade-table tbody tr:hover td { background: #f7fbfb; }
+.grade-table tbody tr:hover td { background: #faf6ee; }
 .grade-table tbody tr.row-editing td { background: var(--accent-soft); }
 .cell-index { width: 48px; color: var(--text-tertiary) !important; font-family: var(--font-mono); font-size: 10px; text-align: center; }
 .cell-url { max-width: 280px; overflow: hidden; color: var(--text-secondary) !important; font-family: var(--font-mono); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
 .cell-remark { max-width: 300px; overflow: hidden; color: var(--text-secondary) !important; text-overflow: ellipsis; white-space: nowrap; }
 .cell-actions { min-width: 138px; white-space: nowrap; }
 .grade-badge { display: inline-flex; min-width: 43px; align-items: center; justify-content: center; padding: 3px 9px; border: 1px solid; border-radius: 6px; font-family: var(--font-mono); font-size: 11px; font-weight: 700; }
-.grade-a { color: #16715d; background: #eef9f5; border-color: #c9e9dd; }
-.grade-b { color: #27677d; background: #eff7fa; border-color: #cfe3ea; }
-.grade-c { color: #946214; background: #fff8e9; border-color: #eeddb8; }
-.grade-d { color: #a34842; background: #fff3f2; border-color: #efceca; }
+.grade-a { color: #4a7c59; background: #f8f1e4; border-color: #d9e4d0; }
+.grade-b { color: #276b83; background: #f6f1e7; border-color: #dbe4ea; }
+.grade-c { color: #8c5c17; background: #fbf3e2; border-color: #eeddb8; }
+.grade-d { color: #b04b45; background: #fbeee7; border-color: #f0d6cc; }
 .edit-select,
 .edit-input { height: 30px; padding: 4px 8px; color: var(--text-primary); background: #fff; border: 1px solid var(--accent); border-radius: 7px; outline: none; font-size: 11px; }
 .edit-select:focus,
@@ -342,7 +342,7 @@ select.filter-input { cursor: pointer; }
 .btn-edit { color: var(--accent-strong); background: var(--accent-soft); border-color: var(--accent-light); }
 .btn-edit:hover { background: var(--accent-light); }
 .btn-del { color: var(--danger); background: transparent; border-color: transparent; }
-.btn-del:hover:not(:disabled) { background: #fff0ee; border-color: #f2cfcc; }
+.btn-del:hover:not(:disabled) { background: #fbeee7; border-color: #f2cfcc; }
 .btn-save { color: #fff; background: var(--accent); border-color: var(--accent); }
 .btn-cancel { color: var(--text-secondary); background: #fff; border-color: var(--border-color); }
 .pagination { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 10px; margin-top: 16px; }

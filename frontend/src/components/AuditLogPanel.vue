@@ -290,15 +290,15 @@ onMounted(() => { fetchData() })
   transition: transform var(--transition), box-shadow var(--transition), background var(--transition);
 }
 .btn-action:disabled, .page-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
-.btn-search { background: linear-gradient(135deg, var(--accent), var(--accent-strong)); color: #fff; box-shadow: 0 7px 18px rgba(15,143,131,0.17), inset 0 1px 0 rgba(255,255,255,0.22); }
-.btn-search:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 10px 24px rgba(15,143,131,0.24); }
+.btn-search { background: linear-gradient(135deg, var(--accent), var(--accent-strong)); color: #fff; box-shadow: 0 7px 18px rgba(201,106,69,0.17), inset 0 1px 0 rgba(255,255,255,0.22); }
+.btn-search:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 10px 24px rgba(201,106,69,0.24); }
 .btn-reset { border-color: var(--border-color); background: rgba(255,255,255,0.72); color: var(--text-secondary); }
 .btn-reset:hover { background: #fff; color: var(--text-primary); }
 .clean-section { display: flex; align-items: center; gap: 7px; margin-left: auto; padding-left: 16px; border-left: 1px solid var(--border-color); }
 .clean-label { color: var(--text-secondary); font-size: 12px; white-space: nowrap; }
 .clean-input { width: 64px; min-height: 36px; text-align: center; }
 .btn-clean { min-height: 36px; border-color: rgba(213,82,82,0.17); background: var(--danger-soft); color: var(--danger); }
-.btn-clean:hover:not(:disabled) { background: #ffe5e2; }
+.btn-clean:hover:not(:disabled) { background: #fbe4dd; }
 .result-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; padding: 11px 15px; border: 1px solid var(--border-color); border-radius: var(--radius); background: rgba(255,255,255,0.56); }
 .result-count { color: var(--text-secondary); font-size: 12px; }
 .result-count strong { margin-left: 5px; color: var(--accent-strong); font-family: var(--font-mono); font-size: 16px; }
@@ -311,10 +311,10 @@ onMounted(() => { fetchData() })
 @keyframes spin { to { transform: rotate(360deg); } }
 .table-wrapper { max-width: 100%; margin-bottom: 16px; overflow-x: auto; overscroll-behavior-inline: contain; border: 1px solid var(--border-color); border-radius: var(--radius-lg); background: #fff; box-shadow: var(--shadow-sm); }
 .data-table { width: 100%; min-width: 1060px; border-collapse: separate; border-spacing: 0; font-size: 12px; text-align: left; }
-.data-table th { padding: 13px 14px; border-bottom: 1px solid var(--border-color); background: #f2f8f6; color: var(--text-secondary); white-space: nowrap; font-size: 10px; font-weight: 800; letter-spacing: 0.55px; }
-.data-table td { padding: 13px 14px; border-bottom: 1px solid #edf3f1; color: var(--text-primary); vertical-align: middle; }
+.data-table th { padding: 13px 14px; border-bottom: 1px solid var(--border-color); background: #f6f1e7; color: var(--text-secondary); white-space: nowrap; font-size: 10px; font-weight: 800; letter-spacing: 0.55px; }
+.data-table td { padding: 13px 14px; border-bottom: 1px solid #f6f1e7; color: var(--text-primary); vertical-align: middle; }
 .data-table tbody tr:last-child td { border-bottom: 0; }
-.data-table tbody tr:hover td { background: #f7fbfa; }
+.data-table tbody tr:hover td { background: #faf6ee; }
 .cell-index { width: 46px; color: var(--text-tertiary); font-family: var(--font-mono); text-align: center; }
 .cell-action { max-width: 180px; font-weight: 650; }
 .cell-uri { max-width: 230px; overflow: hidden; color: var(--text-secondary); font-family: var(--font-mono); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
@@ -325,7 +325,7 @@ onMounted(() => { fetchData() })
 .role-user { background: var(--success-soft); color: var(--success); }
 .role-admin { background: var(--warning-soft); color: var(--warning); }
 .role-developer { background: var(--info-soft); color: var(--info); }
-.role-unknown { background: #f0f4f3; color: var(--text-secondary); }
+.role-unknown { background: #f6f1e7; color: var(--text-secondary); }
 .tag-ok { background: var(--success-soft); color: var(--success); }
 .tag-fail { background: var(--danger-soft); color: var(--danger); }
 .pagination { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; padding: 12px 0; }
