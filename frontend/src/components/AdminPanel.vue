@@ -2101,7 +2101,8 @@ select.form-input { cursor: pointer; }
 .btn-create:hover:not(:disabled),
 .btn-backup:hover:not(:disabled),
 .appid-search-btn:hover:not(:disabled) { background: var(--accent-strong); border-color: var(--accent-strong); }
-.btn-reset { width: auto; color: var(--text-secondary); background: #fff; border-color: var(--border-color); }
+.btn-query { width: 70px; }
+.btn-reset { width: 70px; color: var(--text-secondary); background: #fff; border-color: var(--border-color); }
 .btn-reset:hover:not(:disabled) { color: var(--accent-strong); background: var(--accent-soft); border-color: var(--accent-light); }
 .btn-danger-solid { color: #fff; background: var(--danger); border-color: var(--danger); }
 .btn-danger-solid:hover:not(:disabled) { background: #b94039; }
