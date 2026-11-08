@@ -20,7 +20,8 @@ public class DeepSeekController {
     @LogExecutionTime("DeepSeek-对话")
     @SuppressWarnings("unchecked")
     public Result chat(@RequestBody Map<String, Object> body) {
-        List<Map<String, String>> messages = (List<Map<String, String>>) body.get("messages");
+        // Deleted:List<Map<String, String>> messages = (List<Map<String, String>>) body.get("messages");
+        List<Map<String, Object>> messages = (List<Map<String, Object>>) body.get("messages");
         String model = (String) body.get("model");
         Double temperature = body.get("temperature") != null
                 ? ((Number) body.get("temperature")).doubleValue() : null;

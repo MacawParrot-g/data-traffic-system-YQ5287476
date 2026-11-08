@@ -13,7 +13,10 @@ const emit = defineEmits(['error'])
 const ACTIVE_KEY = 'deepseek.activeSession'
 
 const BALANCE_REFRESH_INTERVAL = 60000
-
+const pendingImages = ref([])
+const fileInput = ref(null)
+const MAX_IMAGE_COUNT = 5
+const MAX_IMAGE_SIZE = 8 * 1024 * 1024
 const configured = ref(false)
 const defaultModel = ref('deepseek-chat')
 const model = ref('deepseek-chat')
@@ -32,7 +35,8 @@ const balanceLoading = ref(false)
 const balanceError = ref('')
 const modelOptions = [
   { value: 'deepseek-chat', label: 'DeepSeek Chat (通用对话)' },
-  { value: 'deepseek-reasoner', label: 'DeepSeek Reasoner (逻辑推理)' }
+  { value: 'deepseek-reasoner', label: 'DeepSeek Reasoner (逻辑推理)' },
+  { value: 'deepseek-v4-flash', label: 'DeepSeek V4 Flash (支持图片识别)' }
 ]
 
 // 当前会话累计 token：累加每条 assistant 消息 usage.total_tokens
@@ -158,7 +162,8 @@ async function persist() {
         reasoning: m.reasoning || undefined,
         usage: m.usage || undefined,
         error: m.error || undefined,
-        expiresAt: m.expiresAt || undefined
+        expiresAt: m.expiresAt || undefined,
+        images: (m.images && m.images.length) ? m.images : undefined
       }))
   try {
     const json = await deepSeekSaveSession(activeId.value, snapshot, sessionTotalTokens.value)
@@ -167,6 +172,74 @@ async function persist() {
       if (idx >= 0) sessions.value[idx] = { ...sessions.value[idx], ...json.data }
     }
   } catch (e) { /* 持久化失败不阻断聊天 */ }
+}
+
+function supportsVision() {
+  return model.value.startsWith('deepseek-v4')
+}
+
+function triggerImagePick() {
+  fileInput.value && fileInput.value.click()
+}
+
+function validateImageFile(file) {
+  if (!file.type || !file.type.startsWith('image/')) {
+    emit('error', '仅支持图片文件：' + file.name)
+    return false
+  }
+  if (file.size > MAX_IMAGE_SIZE) {
+    emit('error', `图片 ${file.name} 超过 8MB，请压缩后再上传`)
+    return false
+  }
+  return true
+}
+
+function readAsDataURL(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result)
+    reader.onerror = () => reject(new Error('图片读取失败：' + file.name))
+    reader.readAsDataURL(file)
+  })
+}
+
+async function addImageFiles(files) {
+  const list = Array.from(files || [])
+  if (!list.length) return
+  for (const file of list) {
+    if (pendingImages.value.length >= MAX_IMAGE_COUNT) {
+      emit('error', `最多同时上传 ${MAX_IMAGE_COUNT} 张图片`)
+      break
+    }
+    if (!validateImageFile(file)) continue
+    try {
+      pendingImages.value.push(await readAsDataURL(file))
+    } catch (e) {
+      emit('error', e.message)
+    }
+  }
+}
+
+async function onFileChange(e) {
+  await addImageFiles(e.target.files)
+  e.target.value = ''
+}
+
+async function onPaste(e) {
+  const items = Array.from((e.clipboardData && e.clipboardData.items) || [])
+      .filter(it => it.kind === 'file' && it.type.startsWith('image/'))
+  if (!items.length) return
+  e.preventDefault()
+  if (!supportsVision()) {
+    emit('error', '当前模型不支持图片识别，请先切换到 DeepSeek V4 Flash')
+    return
+  }
+  const files = items.map(it => it.getAsFile()).filter(Boolean)
+  await addImageFiles(files)
+}
+
+function removeImage(i) {
+  pendingImages.value.splice(i, 1)
 }
 
 async function onTtlChange(index, e) {
@@ -195,22 +268,32 @@ function formatExpire(ts) {
 
 async function send() {
   const text = input.value.trim()
-  if (!text || sending.value) return
+  if ((!text && pendingImages.value.length === 0) || sending.value) return
   if (!configured.value) {
     emit('error', 'DeepSeek 未配置，请先在服务器 .env 设置 DEEPSEEK_API_KEY')
+    return
+  }
+  if (pendingImages.value.length > 0 && !supportsVision()) {
+    emit('error', '当前模型不支持图片识别，请切换到 DeepSeek V4 Flash 后再发送')
     return
   }
   if (!activeId.value) {
     await newSession()
   }
 
-  messages.value.push({ role: 'user', content: text, pending: false })
+  const images = [...pendingImages.value]
+  messages.value.push({ role: 'user', content: text, images, pending: false })
   input.value = ''
+  pendingImages.value = []
   await scrollToBottom()
 
   const history = messages.value
       .filter(m => !m.pending && !m.error)
-      .map(m => ({ role: m.role, content: m.content }))
+      .map(m => {
+        const item = { role: m.role, content: m.content }
+        if (m.images && m.images.length) item.images = m.images
+        return item
+      })
 
   sending.value = true
   const aiMsg = { role: 'assistant', content: '', reasoning: '', pending: true, usage: null }
@@ -367,9 +450,13 @@ onUnmounted(() => {
             <div v-if="m.pending" class="ds-thinking">
               <span class="ds-spinner"></span> 正在生成回复...
             </div>
-            <div v-else-if="m.error" class="ds-error-text">{{ m.error }}</div>
             <div v-else-if="m.role === 'assistant'" class="ds-msg-content ds-md" v-html="renderMarkdown(m.content)"></div>
-            <div v-else class="ds-msg-content">{{ m.content }}</div>
+            <div v-else class="ds-msg-content">
+              <div v-if="m.images && m.images.length" class="ds-msg-images">
+                <img v-for="(img, j) in m.images" :key="j" :src="img" class="ds-msg-image" alt="上传图片" />
+              </div>
+              <template v-if="m.content">{{ m.content }}</template>
+            </div>
 
             <div v-if="m.usage" class="ds-usage">
               <span class="ds-usage-name">TOKEN USAGE</span>
@@ -392,21 +479,39 @@ onUnmounted(() => {
         </div>
 
         <div class="ds-composer">
+          <div v-if="pendingImages.length" class="ds-image-preview-bar">
+            <div v-for="(img, i) in pendingImages" :key="i" class="ds-image-preview">
+              <img :src="img" alt="待发送图片" />
+              <button class="ds-image-remove" @click="removeImage(i)" aria-label="移除图片">
+                <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m6 6 8 8m0-8-8 8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+              </button>
+            </div>
+          </div>
           <div class="ds-input-bar">
             <textarea
                 v-model="input"
                 class="ds-textarea"
                 rows="3"
-                placeholder="请输入内容..."
+                placeholder="请输入内容，可直接粘贴图片（需选择 Flash 模型）..."
                 :disabled="sending"
                 @keydown.enter="onEnter"
+                @paste="onPaste"
             ></textarea>
-            <button class="ds-btn ds-btn-primary ds-send-btn" @click="send" :disabled="sending || !input.trim() || !activeId">
-              <span>{{ sending ? '发送中...' : '发送' }}</span>
-              <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m3 3 14 7-14 7 2.5-7L3 3Zm2.5 7H17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            </button>
+            <div class="ds-composer-actions">
+              <input ref="fileInput" type="file" accept="image/*" multiple hidden @change="onFileChange" />
+              <button class="ds-btn ds-attach-btn" @click="triggerImagePick"
+                      :disabled="sending || !supportsVision() || pendingImages.length >= MAX_IMAGE_COUNT"
+                      :title="supportsVision() ? '上传图片（最多 5 张，单张 ≤ 8MB）' : '请先切换到 DeepSeek V4 Flash 模型'">
+                <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M17.5 9.3 10 3 2.5 9.3M5 11.8v4.7h10v-4.7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <span>图片</span>
+              </button>
+              <button class="ds-btn ds-btn-primary ds-send-btn" @click="send" :disabled="sending || (!input.trim() && !pendingImages.length) || !activeId">
+                <span>{{ sending ? '发送中...' : '发送' }}</span>
+                <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m3 3 14 7-14 7 2.5-7L3 3Zm2.5 7H17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+            </div>
           </div>
-          <div class="ds-input-meta"><span>Enter 发送</span><span>Shift + Enter 换行</span><span class="ds-input-secure"><i></i>后端安全代理</span></div>
+          <div class="ds-input-meta"><span>Enter 发送</span><span>Shift + Enter 换行</span><span>粘贴/上传图片需 Flash 模型</span><span class="ds-input-secure"><i></i>后端安全代理</span></div>
         </div>
       </section>
 
@@ -566,6 +671,23 @@ onUnmounted(() => {
   flex-direction: column;
   overflow: hidden;
 }
+
+.ds-msg-user .ds-msg-content { color: #faf6ee; }
+.ds-msg-images { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+.ds-msg-images + * { display: block; }
+.ds-msg-image { max-width: 180px; max-height: 180px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.25); object-fit: cover; display: block; }
+.ds-image-preview-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+.ds-image-preview { position: relative; width: 64px; height: 64px; border-radius: 8px; overflow: hidden; border: 1px solid #e0d5c2; background: #f6f1e7; }
+.ds-image-preview img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ds-image-remove { position: absolute; top: 2px; right: 2px; width: 18px; height: 18px; display: grid; place-items: center; border: none; border-radius: 50%; background: rgba(0,0,0,0.55); color: #fff; cursor: pointer; padding: 0; }
+.ds-image-remove svg { width: 10px; height: 10px; }
+.ds-image-remove:hover { background: var(--danger); }
+.ds-composer-actions { display: flex; align-items: flex-end; gap: 8px; }
+.ds-attach-btn { height: 42px; margin-bottom: 2px; padding: 0 12px; background: rgba(255,255,255,0.88); border: 1px solid #e0ddd9; color: var(--accent-strong); }
+.ds-attach-btn svg { width: 16px; height: 16px; }
+.ds-attach-btn:hover:not(:disabled) { background: var(--accent-soft); border-color: #dcd7cd; }
+.ds-attach-btn:disabled { opacity: 0.42; cursor: not-allowed; }
+
 .ds-sider-head { padding: 0 4px; }
 .ds-panel-label { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
 .ds-panel-label > span { font-size: 12px; font-weight: 700; }

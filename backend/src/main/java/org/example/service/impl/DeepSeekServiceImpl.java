@@ -32,7 +32,8 @@ public class DeepSeekServiceImpl implements DeepSeekService {
 
     private static final String IDX_PREFIX = "deepseek:idx:";
     private static final String CONV_PREFIX = "deepseek:conv:";
-    private static final Duration SESSION_TTL = Duration.ofDays(30);
+    private static final int MAX_IMAGES_PER_MSG = 5;
+    private static final int MAX_IMAGE_BASE64_CHARS = 10 * 1024 * 1024;
     private static final int MAX_SESSIONS = 50;
     private volatile Map<String, Object> cachedBalance;
     private volatile long cachedBalanceAt;
@@ -60,7 +61,7 @@ public class DeepSeekServiceImpl implements DeepSeekService {
 
     @Override
     @SuppressWarnings("unchecked")
-    public Result chat(List<Map<String, String>> messages, String model, Double temperature, Integer maxTokens) {
+    public Result chat(List<Map<String, Object>> messages, String model, Double temperature, Integer maxTokens) {
         if (apiKey == null || apiKey.isBlank()) {
             return Result.fail("DeepSeek API Key 未配置，请在服务器 .env 文件中设置 DEEPSEEK_API_KEY");
         }
@@ -68,11 +69,62 @@ public class DeepSeekServiceImpl implements DeepSeekService {
             return Result.fail("对话内容不能为空");
         }
 
+        String realModel = (model == null || model.isBlank()) ? defaultModel : model;
+
+        // 仅 flash 模型（deepseek-v4-flash）支持图像输入
+        boolean hasImages = messages.stream().anyMatch(m -> m.get("images") instanceof List && !((List<?>) m.get("images")).isEmpty());
+        if (hasImages && !realModel.startsWith("deepseek-v4")) {
+            return Result.fail("当前模型不支持图片识别，请切换到 deepseek-v4-flash 后重试");
+        }
+
+        List<Map<String, Object>> apiMessages = new ArrayList<>();
+        for (Map<String, Object> m : messages) {
+            Object role = m.get("role");
+            if (role == null) return Result.fail("消息缺少 role 字段");
+            Object text = m.get("content");
+            List<String> images = (List<String>) m.get("images");
+
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("role", role);
+            if (images == null || images.isEmpty()) {
+                item.put("content", text == null ? "" : String.valueOf(text));
+            } else {
+                if (images.size() > MAX_IMAGES_PER_MSG) {
+                    return Result.fail("单条消息最多上传 " + MAX_IMAGES_PER_MSG + " 张图片");
+                }
+                List<Map<String, Object>> parts = new ArrayList<>();
+                String txt = text == null ? "" : String.valueOf(text);
+                if (!txt.isBlank()) {
+                    Map<String, Object> tp = new LinkedHashMap<>();
+                    tp.put("type", "text");
+                    tp.put("text", txt);
+                    parts.add(tp);
+                }
+                for (String img : images) {
+                    if (img == null || !img.startsWith("data:image/") || !img.contains(";base64,")) {
+                        return Result.fail("图片格式无效，仅支持 base64 编码的 image 数据");
+                    }
+                    if (img.length() > MAX_IMAGE_BASE64_CHARS) {
+                        return Result.fail("单张图片过大，请压缩后重试（base64 不超过 10MB）");
+                    }
+                    Map<String, Object> ip = new LinkedHashMap<>();
+                    ip.put("type", "image_url");
+                    Map<String, Object> urlObj = new LinkedHashMap<>();
+                    urlObj.put("url", img);
+                    urlObj.put("detail", "auto");
+                    ip.put("image_url", urlObj);
+                    parts.add(ip);
+                }
+                item.put("content", parts);
+            }
+            apiMessages.add(item);
+        }
+
         String url = baseUrl + "/chat/completions";
 
         Map<String, Object> body = new LinkedHashMap<>();
-        body.put("model", (model == null || model.isBlank()) ? defaultModel : model);
-        body.put("messages", messages);
+        body.put("model", realModel);
+        body.put("messages", apiMessages);
         body.put("stream", false);
         if (temperature != null) body.put("temperature", temperature);
         if (maxTokens != null) body.put("max_tokens", maxTokens);
@@ -243,7 +295,9 @@ public class DeepSeekServiceImpl implements DeepSeekService {
 
         try {
             String ck = convKey(username, sessionId);
-            deepSeekRedisTemplate.opsForValue().set(ck, objectMapper.writeValueAsString(clean));
+            List<Map<String, Object>> cleaned = filterExpired(username, sessionId, clean);
+            deepSeekRedisTemplate.opsForValue().set(ck, objectMapper.writeValueAsString(cleaned));
+            clean = cleaned;
         } catch (Exception e) {
             return Result.fail("保存会话失败：" + e.getMessage());
         }
@@ -359,7 +413,6 @@ public class DeepSeekServiceImpl implements DeepSeekService {
                     ? new ArrayList<>(metas.subList(0, MAX_SESSIONS)) : metas;
             String key = IDX_PREFIX + username;
             deepSeekRedisTemplate.opsForValue().set(key, objectMapper.writeValueAsString(capped));
-            deepSeekRedisTemplate.expire(key, SESSION_TTL);
         } catch (Exception e) {
             log.warn("写入会话索引失败: {}", e.getMessage());
         }

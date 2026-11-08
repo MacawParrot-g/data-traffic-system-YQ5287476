@@ -16,7 +16,7 @@ public interface DeepSeekService {
      * @param temperature 采样温度，可为空
      * @param maxTokens   最大生成 token 数，可为空
      */
-    Result chat(List<Map<String, String>> messages, String model, Double temperature, Integer maxTokens);
+    Result chat(List<Map<String, Object>> messages, String model, Double temperature, Integer maxTokens);
 
     Result status();
 
