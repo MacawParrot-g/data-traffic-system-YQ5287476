@@ -102,6 +102,10 @@ export function deleteRecord(hash) {
     }, 30000).then(safeJson)
 }
 
+export function fetchUrlContent(url) {
+    return fetchWithTimeout('/api/deepseek/url-fetch?url=' + encodeURIComponent(url), {}, 60000).then(safeJson)
+}
+
 export function fetchUnexportedByUser(recorder) {
     return fetchWithTimeout('/api/export/unexported?recorder=' + encodeURIComponent(recorder), {}, 30000).then(safeJson)
 }

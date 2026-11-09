@@ -183,6 +183,9 @@ import DataSource from "./components/DataSource.vue";
 import PyScriptPanel from "./components/PyScriptPanel.vue";
 import TemplateManage from "./components/TemplateManage.vue";
 import DeepSeekChat from "./components/DeepSeekChat.vue";
+import UrlPreviewPanel from "./components/UrlPreviewPanel.vue";
+
+
 const notifCount = ref(0)
 let bellPollTimer = null
 const mode = ref('auto')
@@ -214,6 +217,7 @@ const tabIcons = {
   remark: 'R',
   audit: 'U',
   task: 'T',
+  URLProc: 'I',
   ncenter: 'H',
   notify: 'N',
   mq: 'L',
@@ -228,6 +232,7 @@ const componentMap = computed(() => {
     qrcode: QRCodeBuilderByMan,
     ncenter: NotificationCenter,
     source: DataSource,
+    URLProc: UrlPreviewPanel,
   }
   if (accType.value === 'ADMIN' || accType.value === 'DEVELOPER') {
     map.data = AdminPanel
@@ -245,6 +250,7 @@ const componentMap = computed(() => {
   if (accType.value === 'USER' || accType.value === 'ADMIN' || accType.value === 'DEVELOPER') {
     map.grade = GradeManage
     map.remark = TemplateManage
+    map.URLProc = UrlPreviewPanel
   }
   if (accType.value === 'USER') {
     map.data = DataVisitable
@@ -272,6 +278,7 @@ const tabs = [
   { key: 'remark', label: '备注管理' },
   { key: 'audit', label: '审计日志' },
   { key: 'task', label: '定时任务' },
+  { key: 'URLProc', label: 'URL执行器' },
   { key: 'ncenter', label: '通知中心' },
   { key: 'notify', label: '通知管理' },
   { key: 'mq', label: 'MQ监控' },

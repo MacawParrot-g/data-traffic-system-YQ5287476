@@ -38,4 +38,6 @@ public interface DeepSeekService {
     Result setMessageTtl(String sessionId, Integer messageIndex, Long ttlSeconds);
 
     Result balance(boolean forceRefresh);
+
+    Result fetchUrl(String url);
 }

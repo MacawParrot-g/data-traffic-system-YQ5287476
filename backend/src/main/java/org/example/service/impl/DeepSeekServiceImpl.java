@@ -18,6 +18,8 @@ import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.net.InetAddress;
+import java.net.URI;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -38,6 +40,7 @@ public class DeepSeekServiceImpl implements DeepSeekService {
     private volatile Map<String, Object> cachedBalance;
     private volatile long cachedBalanceAt;
     private static final long BALANCE_CACHE_MILLIS = 30_000L;
+    private static final int URL_FETCH_MAX_CHARS = 2 * 1024 * 1024;
 
     @Qualifier("deepSeekRestTemplate")
     @Autowired
@@ -46,6 +49,10 @@ public class DeepSeekServiceImpl implements DeepSeekService {
     @Qualifier("deepSeekRedisTemplate")
     @Autowired
     private RedisTemplate<String, Object> deepSeekRedisTemplate;
+
+    @Qualifier("restTemplate")
+    @Autowired
+    private RestTemplate restTemplate;
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -58,6 +65,8 @@ public class DeepSeekServiceImpl implements DeepSeekService {
 
     @Value("${deepseek.model:deepseek-chat}")
     private String defaultModel;
+
+
 
     @Override
     @SuppressWarnings("unchecked")
@@ -216,6 +225,88 @@ public class DeepSeekServiceImpl implements DeepSeekService {
             log.error("DeepSeek 余额查询异常: {}", e.getMessage());
             return Result.fail("余额查询异常：" + e.getMessage());
         }
+    }
+
+    @Override
+    public Result fetchUrl(String url) {
+        if (url == null || url.isBlank()) return Result.fail("URL 不能为空");
+        URI uri;
+        try {
+            uri = new URI(url.trim());
+        } catch (Exception e) {
+            return Result.fail("URL 格式非法：" + e.getMessage());
+        }
+        String scheme = uri.getScheme() == null ? "" : uri.getScheme().toLowerCase();
+        if (!"http".equals(scheme) && !"https".equals(scheme)) {
+            return Result.fail("仅支持 http/https 协议");
+        }
+        if (uri.getHost() == null || uri.getHost().isBlank()) return Result.fail("URL 缺少主机名");
+        if (isInternalHost(uri.getHost())) return Result.fail("出于安全考虑，禁止访问内网地址");
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.set(HttpHeaders.USER_AGENT, "Mozilla/5.0 (Windows NT 10.0; Win64; x64) UrlPreviewProxy/1.0");
+        headers.setAccept(List.of(MediaType.TEXT_HTML, MediaType.APPLICATION_JSON, MediaType.ALL));
+
+        try {
+            ResponseEntity<String> resp = restTemplate.exchange(
+                    uri.toString(), HttpMethod.GET, new HttpEntity<>(headers), String.class);
+            String body = resp.getBody() == null ? "" : resp.getBody();
+            MediaType ct = resp.getHeaders().getContentType();
+            String ctValue = ct == null ? "" : ct.toString();
+
+            boolean truncated = body.length() > URL_FETCH_MAX_CHARS;
+            if (truncated) body = body.substring(0, URL_FETCH_MAX_CHARS);
+
+            String head = body.substring(0, Math.min(body.length(), 64)).trim().toLowerCase();
+            Object parsedJson = null;
+            if (ctValue.contains("json") || head.startsWith("{") || head.startsWith("[")) {
+                try { parsedJson = objectMapper.readValue(body, Object.class); } catch (Exception ignore) { }
+            }
+
+            String mode;
+            if (parsedJson != null) mode = "json";
+            else if (ctValue.contains("html") || head.startsWith("<!doctype") || head.startsWith("<html")) mode = "html";
+            else mode = "text";
+
+            Map<String, Object> data = new LinkedHashMap<>();
+            data.put("url", uri.toString());
+            data.put("httpStatus", resp.getStatusCode().value());
+            data.put("contentType", ctValue);
+            data.put("mode", mode);
+            data.put("truncated", truncated);
+            if (parsedJson != null) data.put("json", parsedJson);
+            else data.put("text", body);
+            return Result.success("抓取成功", data);
+        } catch (HttpStatusCodeException e) {
+            return Result.fail("目标地址返回异常：" + e.getStatusCode().value() + " " + previewOf(e.getResponseBodyAsString()));
+        } catch (Exception e) {
+            log.error("URL 抓取失败: {}", e.getMessage());
+            return Result.fail("URL 抓取失败：" + e.getMessage());
+        }
+    }
+
+    // ==================== 私有辅助 ====================
+
+    /** 解析目标主机并拦截环回/内网/链路本地地址，防止 SSRF。 */
+    private boolean isInternalHost(String host) {
+        try {
+            InetAddress[] addresses = InetAddress.getAllByName(host);
+            for (InetAddress addr : addresses) {
+                if (addr.isLoopbackAddress() || addr.isSiteLocalAddress()
+                        || addr.isLinkLocalAddress() || addr.isAnyLocalAddress()) {
+                    return true;
+                }
+            }
+        } catch (Exception e) {
+            // 域名解析失败按拒绝处理，避免绕过
+            return true;
+        }
+        return false;
+    }
+
+    private String previewOf(String body) {
+        if (body == null || body.isBlank()) return "(空响应体)";
+        return body.length() > 200 ? body.substring(0, 200) + "..." : body;
     }
 
     // ==================== 会话持久化 ====================

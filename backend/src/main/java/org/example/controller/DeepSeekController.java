@@ -54,6 +54,12 @@ public class DeepSeekController {
         return deepSeekService.getSession(sessionId);
     }
 
+    @GetMapping("/url-fetch")
+    @LogExecutionTime("DeepSeek-URL抓取")
+    public Result fetchUrl(@RequestParam String url) {
+        return deepSeekService.fetchUrl(url);
+    }
+
     @PostMapping("/session/save")
     @LogExecutionTime("DeepSeek-保存会话")
     @SuppressWarnings("unchecked")
