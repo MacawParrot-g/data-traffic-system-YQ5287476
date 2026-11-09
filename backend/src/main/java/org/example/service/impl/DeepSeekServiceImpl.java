@@ -33,7 +33,7 @@ public class DeepSeekServiceImpl implements DeepSeekService {
     private static final String IDX_PREFIX = "deepseek:idx:";
     private static final String CONV_PREFIX = "deepseek:conv:";
     private static final int MAX_IMAGES_PER_MSG = 5;
-    private static final int MAX_IMAGE_BASE64_CHARS = 10 * 1024 * 1024;
+    private static final int MAX_IMAGE_BASE64_CHARS = 12 * 1024 * 1024;
     private static final int MAX_SESSIONS = 50;
     private volatile Map<String, Object> cachedBalance;
     private volatile long cachedBalanceAt;

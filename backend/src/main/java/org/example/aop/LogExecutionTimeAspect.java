@@ -18,6 +18,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Aspect
@@ -25,6 +27,10 @@ import java.util.stream.Collectors;
 public class LogExecutionTimeAspect {
 
     private static final Logger log = LoggerFactory.getLogger(LogExecutionTimeAspect.class);
+
+    private static final int PARAM_TOTAL_LIMIT = 500;
+    private static final int PARAM_FIELD_LIMIT = 120;
+    private static final int PARAM_DEPTH_LIMIT = 4;
 
     @Autowired
     private AuditLogService auditLogService;
@@ -87,10 +93,7 @@ public class LogExecutionTimeAspect {
 
                 String params = Arrays.stream(args)
                         .filter(a -> a != null && !(a instanceof HttpServletRequest) && !(a instanceof HttpServletResponse))
-                        .map(a -> {
-                            try { return a.toString().substring(0, Math.min(a.toString().length(), 200)); }
-                            catch (Exception e) { return a.getClass().getSimpleName(); }
-                        })
+                        .map(this::safeSummarize)
                         .map(LogMasker::mask)
                         .collect(Collectors.joining(", "));
 
@@ -112,4 +115,79 @@ public class LogExecutionTimeAspect {
         }
         return result;
     }
+
+    private String safeSummarize(Object arg) {
+        StringBuilder sb = new StringBuilder();
+        appendSummarized(arg, sb, 0);
+        return sb.length() > PARAM_TOTAL_LIMIT ? sb.substring(0, PARAM_TOTAL_LIMIT) : sb.toString();
+    }
+
+    private void appendSummarized(Object arg, StringBuilder sb, int depth) {
+        if (sb.length() >= PARAM_TOTAL_LIMIT) return;
+        if (arg == null) {
+            sb.append("null");
+            return;
+        }
+        if (arg instanceof HttpServletRequest || arg instanceof HttpServletResponse) {
+            sb.append("<servlet>");
+            return;
+        }
+        if (arg instanceof String) {
+            appendText((String) arg, sb);
+            return;
+        }
+        if (arg instanceof Map) {
+            if (depth >= PARAM_DEPTH_LIMIT) {
+                sb.append("{...}");
+                return;
+            }
+            sb.append('{');
+            boolean first = true;
+            for (Map.Entry<?, ?> e : ((Map<?, ?>) arg).entrySet()) {
+                if (sb.length() >= PARAM_TOTAL_LIMIT) break;
+                if (!first) sb.append(", ");
+                first = false;
+                appendText(String.valueOf(e.getKey()), sb);
+                sb.append('=');
+                appendSummarized(e.getValue(), sb, depth + 1);
+            }
+            sb.append('}');
+            return;
+        }
+        if (arg instanceof Collection) {
+            if (depth >= PARAM_DEPTH_LIMIT) {
+                sb.append("[...]");
+                return;
+            }
+            sb.append('[');
+            boolean first = true;
+            for (Object item : (Collection<?>) arg) {
+                if (sb.length() >= PARAM_TOTAL_LIMIT) break;
+                if (!first) sb.append(", ");
+                first = false;
+                appendSummarized(item, sb, depth + 1);
+            }
+            sb.append(']');
+            return;
+        }
+        appendText(String.valueOf(arg), sb);
+    }
+
+    private void appendText(String s, StringBuilder sb) {
+        if (s == null) {
+            sb.append("null");
+            return;
+        }
+        // base64 图片等数据：仅记录占位与长度，绝不整体展开，避免构造超大字符串
+        if (s.startsWith("data:") && s.contains(";base64,")) {
+            sb.append("<base64 ").append(s.length()).append("B>");
+            return;
+        }
+        if (s.length() > PARAM_FIELD_LIMIT) {
+            sb.append(s, 0, PARAM_FIELD_LIMIT).append("...");
+            return;
+        }
+        sb.append(s);
+    }
+
 }
