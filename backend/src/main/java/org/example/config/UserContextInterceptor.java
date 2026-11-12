@@ -5,6 +5,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.example.common.UserContext;
 import org.example.service.DedupSessionService;
 import org.example.util.SysUserService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.web.servlet.HandlerInterceptor;
 
@@ -13,6 +15,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 public class UserContextInterceptor implements HandlerInterceptor {
+
+    private static final Logger log = LoggerFactory.getLogger(UserContextInterceptor.class);
 
     private final DedupSessionService dedupSessionService;
     private final RedisTemplate<String, Object> kickRedisTemplate;
@@ -48,8 +52,15 @@ public class UserContextInterceptor implements HandlerInterceptor {
         }
 
         if (!"无用户参数".equals(username)) {
-            dedupSessionService.checkAndRegenerateSession(username);
-            resolveUserDataSource(username);
+            try {
+                dedupSessionService.checkAndRegenerateSession(username);
+                resolveUserDataSource(username);
+            } catch (Exception e) {
+                // Redis/会话异常不应让请求 500。这里只记录并降级为默认上下文：
+                // preHandle 仍返回 true，Spring 会在 afterCompletion 中统一清理，
+                // 因此线程池复用时不会把身份泄漏到下一个请求。
+                log.warn("用户上下文初始化失败，已降级为默认上下文: user={}, err={}", username, e.getMessage());
+            }
         }
 
         String ip = request.getHeader("X-Forwarded-For");

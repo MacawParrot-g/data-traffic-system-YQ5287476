@@ -175,7 +175,7 @@ public class RedisConfig implements DisposableBean {
 
     @Bean
     public RedisTemplate<String, Object> deepSeekRedisTemplate() {
-        LettuceConnectionFactory factory = createManagedFactory(12);
+        LettuceConnectionFactory factory = createManagedFactory(13);
         RedisTemplate<String, Object> template = new RedisTemplate<>();
         template.setConnectionFactory(factory);
         template.setKeySerializer(new StringRedisSerializer());

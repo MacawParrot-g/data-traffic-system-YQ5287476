@@ -1,14 +1,9 @@
 <!-- 文件路径: C:\Users\EDY\data-traffic-system-YQ5287476\frontend\src\components\UrlPreviewPanel.vue -->
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed } from 'vue'
 import { fetchUrlContent } from '../api/index.js'
 
-const emit = defineEmits(['close'])
-
-const SIZE_KEY = 'urlpreview.panel.size'
-const MIN_W = 460
-const MIN_H = 340
-const EDGE_GAP = 24
+const MIN_VIEW_H = 360
 
 const viewMode = ref('live')          // live=代理直连可操作，snapshot=静态快照兜底
 const urlInput = ref('')
@@ -27,10 +22,11 @@ const opMsg = ref('')
 const picking = ref(false)
 let pickDoc = null
 
-const size = ref({ w: 760, h: 540 })
+// 预览区高度：跟随视口自适应，可在下限/上限之间由用户拖动微调
+const viewH = ref('')
+const bodyStyle = computed(() => (viewH.value ? { height: viewH.value } : {}))
 
 const isLive = computed(() => viewMode.value === 'live')
-const panelStyle = computed(() => ({ width: size.value.w + 'px', height: size.value.h + 'px' }))
 const proxySrc = computed(() => '/api/url-proxy/' + targetUrl.value)
 const noteText = computed(() => errText.value || opMsg.value)
 const modeBadge = computed(() => {
@@ -188,73 +184,54 @@ function stopPick() {
   pickDoc = null
 }
 
-// ==================== 独立缩放 ====================
+// ==================== 预览区高度微调（可选） ====================
 
-let resizeDir = ''
-let startX = 0, startY = 0, startW = 0, startH = 0
+let resizing = false
+let startY = 0, startH = 0, startPx = 0
 
-function clamp(w, h) {
-  const maxW = Math.max(MIN_W, window.innerWidth - EDGE_GAP * 2)
-  const maxH = Math.max(MIN_H, window.innerHeight - EDGE_GAP * 2)
-  return {
-    w: Math.max(MIN_W, Math.min(Math.round(w), maxW)),
-    h: Math.max(MIN_H, Math.min(Math.round(h), maxH))
-  }
-}
-
-function startResize(e, dir) {
-  resizeDir = dir
-  startX = e.clientX
+function startResize(e) {
+  const body = e.currentTarget.parentElement?.querySelector('.up-body')
+  if (!body) return
+  resizing = true
   startY = e.clientY
-  startW = size.value.w
-  startH = size.value.h
+  startH = body.getBoundingClientRect().height
+  startPx = Math.round(startH)
   window.addEventListener('pointermove', onResizeMove)
   window.addEventListener('pointerup', stopResize)
   e.preventDefault()
 }
 
 function onResizeMove(e) {
-  if (!resizeDir) return
-  const w = resizeDir.includes('e') ? startW + (e.clientX - startX) : startW
-  const h = resizeDir.includes('s') ? startH + (e.clientY - startY) : startH
-  size.value = clamp(w, h)
+  if (!resizing) return
+  const maxPx = Math.round(window.innerHeight * 0.78)
+  const next = Math.max(MIN_VIEW_H, Math.min(Math.round(startPx + (e.clientY - startY)), maxPx))
+  viewH.value = next + 'px'
 }
 
 function stopResize() {
-  if (!resizeDir) return
-  resizeDir = ''
+  if (!resizing) return
+  resizing = false
   window.removeEventListener('pointermove', onResizeMove)
   window.removeEventListener('pointerup', stopResize)
-  try { localStorage.setItem(SIZE_KEY, JSON.stringify(size.value)) } catch (e) { /* 忽略 */ }
 }
-
-onMounted(() => {
-  try {
-    const saved = JSON.parse(localStorage.getItem(SIZE_KEY) || '')
-    if (saved && Number.isFinite(saved.w) && Number.isFinite(saved.h)) size.value = clamp(saved.w, saved.h)
-  } catch (e) { /* 默认尺寸 */ }
-})
-
-onBeforeUnmount(() => {
-  stopPick()
-  window.removeEventListener('pointermove', onResizeMove)
-  window.removeEventListener('pointerup', stopResize)
-})
 </script>
 
 <template>
-  <div class="up-panel" :style="panelStyle">
-    <div class="up-header">
-      <span class="up-title">URL 执行器</span>
-      <span class="up-badge" :class="{ 'is-live': isLive && frameReady }">{{ modeBadge }}</span>
-      <div class="up-seg">
-        <button :class="{ active: isLive }" @click="switchMode('live')">可操作</button>
-        <button :class="{ active: !isLive }" @click="switchMode('snapshot')">快照</button>
+  <div class="up-wrap">
+    <header class="up-head">
+      <div class="up-head-text">
+        <span class="up-kicker">URL SANDBOX / DOM OPERATOR</span>
+        <h2 class="up-title">URL 执行器</h2>
+        <p class="up-desc">在代理沙箱中打开任意网页，直接点击、输入、拾取 DOM 元素并执行操作；无法嵌入时可切换静态快照兜底。</p>
       </div>
-      <button class="up-close" @click="emit('close')" aria-label="关闭预览窗口">
-        <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m6 6 8 8m0-8-8 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-      </button>
-    </div>
+      <div class="up-head-side">
+        <span class="up-badge" :class="{ 'is-live': isLive && frameReady }">{{ modeBadge }}</span>
+        <div class="up-seg">
+          <button :class="{ active: isLive }" @click="switchMode('live')">可操作</button>
+          <button :class="{ active: !isLive }" @click="switchMode('snapshot')">快照</button>
+        </div>
+      </div>
+    </header>
 
     <div class="up-bar">
       <input v-model="urlInput" class="up-input" placeholder="输入 http/https 页面地址，回车加载" :disabled="loading" @keyup.enter="go" />
@@ -278,13 +255,13 @@ onBeforeUnmount(() => {
 
     <div v-if="noteText" class="up-note" :class="{ 'is-err': errText }">{{ noteText }}</div>
 
-    <div class="up-body">
+    <div class="up-body" :style="bodyStyle">
       <template v-if="isLive">
         <iframe v-if="targetUrl" ref="frameEl" class="up-frame" :src="proxySrc"
                 title="URL 执行器页面" @load="onFrameLoad"></iframe>
         <div v-else class="up-empty">
           <div class="up-empty-title">可操作模式</div>
-          <div class="up-empty-hint">输入地址并点击"访问"后，页面即可直接点击、输入；<br>也可用下方"拾取元素 + 执行"对任意 DOM 进行操作</div>
+          <div class="up-empty-hint">输入地址并点击"访问"后，页面即可直接点击、输入；<br>也可用上方"拾取元素 + 执行"对任意 DOM 进行操作</div>
         </div>
       </template>
       <template v-else>
@@ -296,63 +273,55 @@ onBeforeUnmount(() => {
       </template>
     </div>
 
-    <div class="up-handle up-handle-e" @pointerdown="startResize($event, 'e')"></div>
-    <div class="up-handle up-handle-s" @pointerdown="startResize($event, 's')"></div>
-    <div class="up-handle up-handle-se" @pointerdown="startResize($event, 'se')"></div>
+    <div class="up-resize" title="拖动调整预览区高度" @pointerdown="startResize"></div>
   </div>
 </template>
 
 <style scoped>
-.up-panel {
-  position: fixed;
-  right: 24px;
-  bottom: 24px;
-  z-index: 1000;
+/* 该组件作为普通标签页嵌入 App.vue 的 .content-area，随内容流铺满，不再使用 position:fixed 浮窗 */
+.up-wrap {
   display: flex;
   flex-direction: column;
-  border: 1px solid rgba(201, 106, 69, 0.22);
-  border-radius: 16px;
-  background: #fffdf9;
-  box-shadow: var(--shadow-lg, 0 28px 80px rgba(45, 35, 22, 0.16));
-  overflow: hidden;
+  gap: 14px;
+  min-height: calc(100vh - 172px);
 }
-.up-header { display: flex; align-items: center; gap: 10px; padding: 11px 14px; border-bottom: 1px solid #f0e8db; flex-shrink: 0; }
-.up-title { font-size: 13px; font-weight: 750; color: var(--accent-strong); letter-spacing: -0.2px; }
-.up-badge { font-family: var(--font-mono); font-size: 9px; color: var(--text-secondary); background: #f6f1e7; border: 1px solid #eaddca; border-radius: 999px; padding: 2px 8px; white-space: nowrap; }
-.up-badge.is-live { color: var(--success); border-color: #cde7df; background: var(--success-soft); }
-.up-seg { margin-left: auto; display: inline-flex; padding: 2px; gap: 2px; background: #f3ede1; border-radius: 9px; }
-.up-seg button { border: none; background: transparent; font-size: 10px; font-weight: 600; color: var(--text-secondary); padding: 4px 10px; border-radius: 7px; cursor: pointer; transition: var(--transition, 180ms ease); }
-.up-seg button.active { background: #fff; color: var(--accent-strong); box-shadow: 0 1px 4px rgba(70, 55, 35, 0.12); }
-.up-close { width: 24px; height: 24px; border: none; background: transparent; color: #b1aea9; cursor: pointer; display: grid; place-items: center; border-radius: 7px; padding: 0; flex: 0 0 24px; }
-.up-close svg { width: 13px; height: 13px; }
-.up-close:hover { color: var(--danger); background: var(--danger-soft); }
 
-.up-bar { display: flex; align-items: center; gap: 8px; padding: 9px 14px; border-bottom: 1px solid #f0e8db; flex-shrink: 0; }
-.up-bar-ops { background: #fbf7ef; }
-.up-input { flex: 1; min-width: 0; height: 32px; border: 1px solid #e0ddd9; border-radius: 8px; padding: 0 10px; font-size: 12px; outline: none; background: #fff; color: var(--text-primary); }
-.up-input-sel { max-width: 240px; font-family: var(--font-mono); font-size: 11px; }
-.up-input-val { max-width: 160px; font-size: 11px; }
+.up-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.up-head-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.up-kicker { font-family: var(--font-mono); font-size: 9px; font-weight: 800; letter-spacing: 1.7px; color: #9a9388; }
+.up-title { font-size: 19px; line-height: 1.3; font-weight: 700; color: var(--text-primary); letter-spacing: -0.35px; }
+.up-desc { margin: 0; font-size: 12px; line-height: 1.6; color: var(--text-secondary); max-width: 640px; }
+.up-head-side { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+
+.up-badge { font-family: var(--font-mono); font-size: 9px; color: var(--text-secondary); background: #f6f1e7; border: 1px solid #eaddca; border-radius: 999px; padding: 3px 9px; white-space: nowrap; }
+.up-badge.is-live { color: var(--success); border-color: #cde7df; background: var(--success-soft); }
+.up-seg { display: inline-flex; padding: 2px; gap: 2px; background: #f3ede1; border-radius: 9px; }
+.up-seg button { border: none; background: transparent; font-size: 11px; font-weight: 600; color: var(--text-secondary); padding: 5px 12px; border-radius: 7px; cursor: pointer; transition: var(--transition, 180ms ease); }
+.up-seg button.active { background: #fff; color: var(--accent-strong); box-shadow: 0 1px 4px rgba(70, 55, 35, 0.12); }
+
+.up-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.up-bar-ops { padding: 10px 12px; background: #fbf7ef; border: 1px solid #f0e8db; border-radius: 12px; }
+.up-input { flex: 1; min-width: 180px; height: 34px; border: 1px solid #e0ddd9; border-radius: 8px; padding: 0 11px; font-size: 12px; outline: none; background: #fff; color: var(--text-primary); }
+.up-input-sel { max-width: 260px; flex: 0 1 260px; font-family: var(--font-mono); font-size: 11px; }
+.up-input-val { max-width: 180px; flex: 0 1 180px; font-size: 11px; }
 .up-input:focus { border-color: var(--accent-light); box-shadow: 0 0 0 3px var(--accent-glow, rgba(201, 106, 69, 0.13)); }
-.up-select { height: 32px; border: 1px solid #e0ddd9; border-radius: 8px; padding: 0 6px; font-size: 11px; background: #fff; color: var(--text-primary); outline: none; cursor: pointer; flex-shrink: 0; }
-.up-btn { height: 32px; padding: 0 13px; border-radius: 8px; border: 1px solid rgba(201, 106, 69, 0.35); background: linear-gradient(135deg, var(--accent), var(--accent-strong)); color: #fff; font-size: 11px; font-weight: 600; cursor: pointer; flex-shrink: 0; transition: var(--transition, 180ms ease); }
+.up-select { height: 34px; border: 1px solid #e0ddd9; border-radius: 8px; padding: 0 6px; font-size: 11px; background: #fff; color: var(--text-primary); outline: none; cursor: pointer; flex-shrink: 0; }
+.up-btn { height: 34px; padding: 0 14px; border-radius: 8px; border: 1px solid rgba(201, 106, 69, 0.35); background: linear-gradient(135deg, var(--accent), var(--accent-strong)); color: #fff; font-size: 12px; font-weight: 600; cursor: pointer; flex-shrink: 0; transition: var(--transition, 180ms ease); }
 .up-btn:hover:not(:disabled) { transform: translateY(-1px); }
 .up-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 .up-btn-ghost { background: #fff; color: var(--accent-strong); border-color: #e0ddd9; }
 .up-btn-ghost:hover:not(:disabled) { background: var(--accent-soft); }
 .up-btn-ghost.is-picking { border-color: var(--accent); background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent-light); }
 
-.up-note { padding: 7px 14px; font-size: 10px; line-height: 1.6; color: #8c5c17; background: var(--warning-soft); border-bottom: 1px solid #eed9b7; flex-shrink: 0; overflow-wrap: anywhere; }
+.up-note { padding: 8px 12px; font-size: 11px; line-height: 1.6; border-radius: 9px; color: #8c5c17; background: var(--warning-soft); border: 1px solid #eed9b7; overflow-wrap: anywhere; }
 .up-note.is-err { color: #a84545; background: var(--danger-soft); border-color: #f1d5d2; }
 
-.up-body { position: relative; flex: 1; min-height: 0; overflow: auto; background: #fff; overscroll-behavior: contain; }
-.up-empty { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; color: var(--text-secondary); font-size: 12px; line-height: 1.8; padding: 24px; }
-.up-empty-title { font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px; }
+.up-body { position: relative; flex: 1; min-height: 360px; overflow: auto; background: #fff; border: 1px solid #ece3d5; border-radius: 14px; overscroll-behavior: contain; box-shadow: var(--shadow-sm, 0 8px 24px rgba(45, 35, 22, 0.06)); }
+.up-empty { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; color: var(--text-secondary); font-size: 13px; line-height: 1.8; padding: 24px; }
+.up-empty-title { font-size: 15px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px; }
 .up-frame { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: #fff; }
-.up-pre { margin: 0; padding: 14px; font-family: var(--font-mono); font-size: 11px; line-height: 1.65; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--text-primary); user-select: text; }
+.up-pre { margin: 0; padding: 16px; font-family: var(--font-mono); font-size: 12px; line-height: 1.65; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--text-primary); user-select: text; }
 
-.up-handle { position: absolute; z-index: 3; user-select: none; touch-action: none; }
-.up-handle-e { top: 0; right: 0; width: 6px; height: 100%; cursor: ew-resize; }
-.up-handle-s { left: 0; right: 0; bottom: 0; height: 6px; cursor: ns-resize; }
-.up-handle-se { right: 0; bottom: 0; width: 18px; height: 18px; cursor: nwse-resize; }
-.up-handle-se::after { content: ''; position: absolute; right: 4px; bottom: 4px; width: 8px; height: 8px; border-right: 2px solid #cbb896; border-bottom: 2px solid #cbb896; border-radius: 0 0 3px 0; }
+.up-resize { height: 10px; margin-top: -6px; cursor: ns-resize; border-radius: 6px; touch-action: none; user-select: none; }
+.up-resize:hover { background: rgba(201, 106, 69, 0.10); }
 </style>

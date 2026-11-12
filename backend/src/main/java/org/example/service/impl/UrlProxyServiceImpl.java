@@ -17,6 +17,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 
+import java.net.Inet4Address;
+import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
@@ -34,7 +36,7 @@ public class UrlProxyServiceImpl implements UrlProxyService {
     private static final Pattern HEAD_TAG = Pattern.compile("(?i)<head[^>]*>");
     private static final Pattern ROOT_RELATIVE = Pattern.compile("(?i)\\b(src|href|action)\\s*=\\s*\"/");
 
-    @Qualifier("restTemplate")
+    @Qualifier("urlProxyRestTemplate")
     @Autowired
     private RestTemplate restTemplate;
 
@@ -138,8 +140,22 @@ public class UrlProxyServiceImpl implements UrlProxyService {
             InetAddress[] addresses = InetAddress.getAllByName(host);
             for (InetAddress addr : addresses) {
                 if (addr.isLoopbackAddress() || addr.isSiteLocalAddress()
-                        || addr.isLinkLocalAddress() || addr.isAnyLocalAddress()) {
+                        || addr.isLinkLocalAddress() || addr.isAnyLocalAddress()
+                        || addr.isMulticastAddress()) {
                     return true;
+                }
+                if (addr instanceof Inet4Address) {
+                    byte[] b = addr.getAddress();
+                    // CGNAT 100.64.0.0/10：首字节 100，次字节高两位为 0100 00xx（64..127）
+                    if ((b[0] & 0xFF) == 100 && (b[1] & 0xC0) == 0x40) {
+                        return true;
+                    }
+                } else if (addr instanceof Inet6Address) {
+                    // IPv6 唯一本地地址 fc00::/7（isSiteLocalAddress 未覆盖）
+                    byte[] b = addr.getAddress();
+                    if ((b[0] & 0xFE) == 0xFC) {
+                        return true;
+                    }
                 }
             }
         } catch (Exception e) {

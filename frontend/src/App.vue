@@ -698,6 +698,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .nav-icon-mq::before { content: 'MQ'; }
 .nav-icon-source::before { content: 'DS'; }
 .nav-icon-py::before { content: 'PY'; }
+.nav-icon-URLProc::before { content: 'UR'; }
 .nav-label { overflow: hidden; text-overflow: ellipsis; }
 .nav-badge {
   background: #ffffff;

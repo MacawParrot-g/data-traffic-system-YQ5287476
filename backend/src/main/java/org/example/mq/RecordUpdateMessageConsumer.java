@@ -43,13 +43,4 @@ public class RecordUpdateMessageConsumer {
             UserDataSourceContextHolder.clear();
         }
     }
-
-    @RabbitListener(queues = RabbitMQConfig.UPDATE_DLQ_QUEUE)
-    public void handleUpdateDlqMessage(
-            @Payload RecordUpdateMessage message,
-            Channel channel,
-            @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag) throws IOException {
-        log.error("更新消息进入死信队列, URL: {}", message.getRecord().getUrl());
-        channel.basicAck(deliveryTag, false);
-    }
 }

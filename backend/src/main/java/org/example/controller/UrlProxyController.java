@@ -3,6 +3,7 @@ package org.example.controller;
 
 import jakarta.servlet.http.HttpServletRequest;
 import org.example.annotation.LogExecutionTime;
+import org.example.annotation.SkipRateLimit;
 import org.example.service.UrlProxyService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -18,6 +19,7 @@ public class UrlProxyController {
 
     @RequestMapping("/**")
     @LogExecutionTime("URL代理请求")
+    @SkipRateLimit
     public ResponseEntity<byte[]> proxy(HttpServletRequest request) {
         return urlProxyService.proxy(request);
     }
