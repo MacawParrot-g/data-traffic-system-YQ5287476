@@ -4,32 +4,49 @@ import { ref } from 'vue'
 const emit = defineEmits(['close'])
 const displayName = ref(localStorage.getItem('userName') || '新用户')
 const accType = ref(localStorage.getItem('accType') || 'USER')
-const activeRole = ref(accType.value === 'DEVELOPER' ? 'developer' : accType.value === 'ADMIN' ? 'admin' : 'user')
-const expandedSections = ref({})
+
+const contentRef = ref(null)
+const activeSection = ref('s-intro')
 
 function close() { emit('close') }
 
-function toggleSection(key) {
-  expandedSections.value[key] = !expandedSections.value[key]
+function go(id) {
+  activeSection.value = id
+  const root = contentRef.value
+  if (!root) return
+  const el = root.querySelector('#' + id)
+  if (el) root.scrollTo({ top: el.offsetTop - 12, behavior: 'smooth' })
 }
 
-function isExpanded(key) {
-  return expandedSections.value[key] !== false
-}
+const toc = [
+  { id: 's-intro', cn: '系统是什么', en: 'OVERVIEW' },
+  { id: 's-login', cn: '登录与界面', en: 'LOGIN' },
+  { id: 's-task', cn: '刷新下载任务', en: 'PULL TASK' },
+  { id: 's-scan', cn: '扫码与越狱', en: 'INSTALL' },
+  { id: 's-operate', cn: '操作与查事件', en: 'OPERATE' },
+  { id: 's-has-event', cn: '有事件 · 入库', en: 'HAS EVENT' },
+  { id: 's-no-event', cn: '无事件 · 冻结', en: 'FREEZE' },
+  { id: 's-grade', cn: '应用评级 ABCD', en: 'RATING' },
+  { id: 's-manual', cn: '手动模式', en: 'MANUAL' },
+  { id: 's-tools', cn: '看板·备注·通知', en: 'TOOLS' },
+  { id: 's-role', cn: '权限地图', en: 'ROLES' },
+  { id: 's-egg', cn: '彩蛋 & 速查', en: 'CHEATSHEET' },
+]
 </script>
 
 <template>
   <div class="guide-overlay" @click.self="close">
     <div class="guide-modal">
+      <!-- ===== Header ===== -->
       <div class="guide-header">
         <div class="guide-header-left">
           <span class="guide-header-icon" aria-hidden="true">
             <svg viewBox="0 0 28 28" fill="none"><path d="M5 5.5A2.5 2.5 0 0 1 7.5 3H14v19H7.5A2.5 2.5 0 0 0 5 24.5v-19Zm18 0A2.5 2.5 0 0 0 20.5 3H14v19h6.5a2.5 2.5 0 0 1 2.5 2.5v-19Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M8 8h3m-3 4h3m6-4h3m-3 4h3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
           </span>
           <div>
-            <span class="guide-header-kicker">KNOWLEDGE BASE / ONBOARDING</span>
+            <span class="guide-header-kicker">TDM ONBOARDING / 新人上手手册</span>
             <h2>新人指南</h2>
-            <div class="guide-header-sub">游戏测试数据管理平台 · 完整使用手册</div>
+            <div class="guide-header-sub">移动应用广告事件归因测试平台 · 图文操作手册</div>
           </div>
         </div>
         <button class="guide-close-btn" @click="close" aria-label="关闭新人指南" title="关闭">
@@ -37,929 +54,351 @@ function isExpanded(key) {
         </button>
       </div>
 
-      <div class="guide-body">
-        <div class="guide-welcome">
-          <p>亲爱的 <strong>{{ displayName }}</strong>，欢迎您加入<strong>深圳市慧动创想科技有限公司</strong>！</p>
-          <p>本系统是专为游戏归因测试打造的一站式数据管理平台，涵盖自动化测试流程、数据入库、归因查询、数据导出、用户管理等核心功能。为了帮助您快速上手，请根据您的账户角色阅读对应的使用教程。</p>
-          <p>您当前的角色为：<span class="role-badge" :class="'role-' + accType.toLowerCase()">{{ accType === 'ADMIN' ? '管理员' : accType === 'DEVELOPER' ? 'root账户' : '普通用户' }}</span></p>
-        </div>
-
-        <div class="guide-role-tabs" aria-label="按角色查看指南">
-          <button class="guide-role-tab" :class="{ active: activeRole === 'user' }" @click="activeRole = 'user'">
-            <span class="role-tab-icon" aria-hidden="true"><svg viewBox="0 0 22 22" fill="none"><circle cx="11" cy="7" r="3.2" stroke="currentColor" stroke-width="1.5"/><path d="M4.5 18c.7-3.4 3-5.2 6.5-5.2s5.8 1.8 6.5 5.2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>
-            <span>普通用户</span><small>USER</small>
-          </button>
-          <button class="guide-role-tab" :class="{ active: activeRole === 'admin' }" @click="activeRole = 'admin'">
-            <span class="role-tab-icon" aria-hidden="true"><svg viewBox="0 0 22 22" fill="none"><path d="M11 2.8 18 5.5v5.2c0 4.2-2.4 6.8-7 8.5-4.6-1.7-7-4.3-7-8.5V5.5l7-2.7Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="m8 10.8 2 2 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-            <span>管理员</span><small>ADMIN</small>
-          </button>
-          <button class="guide-role-tab" :class="{ active: activeRole === 'developer' }" @click="activeRole = 'developer'">
-            <span class="role-tab-icon" aria-hidden="true"><svg viewBox="0 0 22 22" fill="none"><path d="m7.5 6-5 5 5 5m7-10 5 5-5 5M13 3l-4 16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-            <span>开发者</span><small>DEVELOPER</small>
-          </button>
-        </div>
-
-        <!-- ======================== 普通用户教程 ======================== -->
-        <div v-if="activeRole === 'user'" class="guide-content">
-          <div class="guide-toc">
+      <!-- ===== Body ===== -->
+      <div ref="contentRef" class="guide-body">
+        <div class="guide-content">
+          <!-- TOC -->
+          <nav class="guide-toc" aria-label="手册目录">
             <h3><span>CONTENTS</span>目录</h3>
             <ul>
-              <li><a @click="toggleSection('u-overview')">一、系统概览与界面介绍</a></li>
-              <li><a @click="toggleSection('u-login')">二、登录与账户安全</a></li>
-              <li><a @click="toggleSection('u-auto')">三、自动模式 —— 核心工作流</a></li>
-              <li><a @click="toggleSection('u-manual')">四、手动模式 —— 特殊场景处理</a></li>
-              <li><a @click="toggleSection('u-qrcode')">五、二维码生成器</a></li>
-              <li><a @click="toggleSection('u-export')">六、数据导出</a></li>
-              <li><a @click="toggleSection('u-data')">七、数据看板</a></li>
-              <li><a @click="toggleSection('u-dedup')">八、自动去重机制</a></li>
-              <li><a @click="toggleSection('u-rules')">九、测试规范与冻结标准</a></li>
-              <li><a @click="toggleSection('u-faq')">十、常见问题与排障</a></li>
+              <li v-for="t in toc" :key="t.id">
+                <a :class="{ on: activeSection === t.id }" @click="go(t.id)">
+                  <em>{{ t.en }}</em>{{ t.cn }}
+                </a>
+              </li>
             </ul>
+          </nav>
+
+          <!-- Welcome -->
+          <div class="guide-welcome">
+            <p>亲爱的 <strong>{{ displayName }}</strong>，欢迎加入<strong>深圳市慧动创想科技有限公司</strong>测试数据团队！</p>
+            <p>这份手册会带你从零跑通<strong>移动应用广告事件归因测试</strong>的完整流程。别担心，跟着图一步步点就行——你只需要判断一件事：<strong>被测应用有没有把广告事件上报回来</strong>。应用本身好不好用、有没有 bug，跟你无关。</p>
+            <p>你的当前角色：<span class="role-badge" :class="'role-' + accType.toLowerCase()">{{ accType === 'ADMIN' ? '管理员 ADMIN' : accType === 'DEVELOPER' ? '开发者 root' : '普通用户 USER' }}</span></p>
           </div>
 
-          <div class="guide-section" v-show="isExpanded('u-overview')">
-            <h3>一、系统概览与界面介绍</h3>
-            <p>本系统采用前后端分离架构，前端基于 Vue 3 + Vite 构建，后端基于 Spring Boot 3.2，数据存储使用 MySQL 数据库配合 Redis 缓存。系统面向三类用户角色——普通用户（USER）、管理员（ADMIN）、开发者（DEVELOPER），不同角色登录后会看到不同的功能菜单。</p>
+          <!-- ============ 01 系统是什么 ============ -->
+          <section id="s-intro" class="guide-section">
+            <h3>一、这个系统到底在测什么</h3>
+            <p>TDM（测试数据管理平台）服务于<strong>广告事件归因</strong>测试。每个被测应用接入了 AppFlyer / Adjust / Singular / Tenjin 等归因 SDK，我们的任务是：把应用装上、按规范操作一番，然后回平台查询——看它<strong>有没有把用户行为事件（currentTargetNum）上报回来</strong>，并把结果入库留档。</p>
 
-            <h4>1.1 整体布局</h4>
-            <p>系统采用经典的左侧导航栏 + 右侧内容区布局。左侧导航栏包含以下元素：</p>
-            <ul>
-              <li><strong>顶部 Logo 区域</strong>：显示欢迎语，右侧有折叠/展开按钮，点击可收起导航栏以获得更大的工作区域。</li>
-              <li><strong>功能导航区</strong>：以图标 + 文字的方式列出所有可用功能模块，点击即可切换。当前选中的模块会高亮显示，并在左侧有一条紫色指示条。</li>
-              <li><strong>今日统计卡片</strong>：实时显示您今天已入库的数据条数，方便您掌握工作进度。</li>
-              <li><strong>底部用户信息区</strong>：显示您的姓名、角色标签，以及「新人指南」和「退出登录」两个快捷操作链接。</li>
-            </ul>
-
-            <h4>1.2 普通用户可用功能一览</h4>
-            <p>作为普通用户，您可以使用以下功能模块：</p>
-            <div class="guide-table-wrap">
-            <table class="guide-table">
-              <thead><tr><th>功能模块</th><th>导航标签</th><th>核心用途</th></tr></thead>
-              <tbody>
-              <tr><td>自动模式</td><td>A</td><td>自动拉取下载任务，扫码测试，查询事件，一键入库</td></tr>
-              <tr><td>手动模式</td><td>M</td><td>手动输入 App ID 获取任务，适用于特殊场景</td></tr>
-              <tr><td>二维码生成</td><td>Q</td><td>将任意文本或网址转换为二维码图片</td></tr>
-              <tr><td>数据导出</td><td>E</td><td>将您名下未导出的数据打包导出并下载</td></tr>
-              <tr><td>数据看板</td><td>D</td><td>查看、编辑、删除已入库记录，支持筛选和复测</td></tr>
-              </tbody>
-            </table>
+            <div class="callout callout-info">
+              <span class="callout-tag">核心原则</span>
+              <p>你测的是「<strong>事件有没有上报</strong>」，不是「应用有没有 bug」。<strong>应用闪退、卡顿、逻辑混乱都不用你管</strong>——只要它还能正常打开、正常操作，就照常测事件。只有当它<strong>根本没法正常使用</strong>（闪退、越狱检测、要求更高系统版本、地区不支持、必须付费等）时，才走「冻结入库」这条路。</p>
             </div>
 
-            <h4>1.3 技术架构简述</h4>
-            <p>系统后端运行在 Spring Boot 容器上，通过 JdbcTemplate 操作 MySQL 数据库，使用 Redis 进行会话管理、去重控制和缓存加速。RabbitMQ 消息队列用于异步处理导出等耗时任务。前端通过 RESTful API 与后端通信，所有请求均携带认证信息。了解这些技术背景有助于您在遇到问题时更好地定位原因。</p>
-          </div>
+            <h4>自动模式主流程（一图看懂）</h4>
+            <div class="flow">
+              <div class="flow-node"><b>①</b>刷新下载任务</div>
+              <div class="flow-arrow">→</div>
+              <div class="flow-node"><b>②</b>手机扫码装 App</div>
+              <div class="flow-arrow">→</div>
+              <div class="flow-node"><b>③</b>确认已越狱</div>
+              <div class="flow-arrow">→</div>
+              <div class="flow-node"><b>④</b>操作应用</div>
+              <div class="flow-arrow">→</div>
+              <div class="flow-node"><b>⑤</b>查询事件</div>
+              <div class="flow-arrow">→</div>
+              <div class="flow-branch">
+                <div class="flow-node ok"><b>有事件</b>直接入库 / 评级</div>
+                <div class="flow-node warn"><b>无事件</b>冻结 · 评 D 级</div>
+              </div>
+            </div>
+            <p class="muted">下面每一节都对应上面的一步，配真实界面截图，照着做即可。</p>
+          </section>
 
-          <div class="guide-section" v-show="isExpanded('u-login')">
-            <h3>二、登录与账户安全</h3>
+          <!-- ============ 02 登录与界面 ============ -->
+          <section id="s-login" class="guide-section">
+            <h3>二、登录与界面导览</h3>
+            <p>在浏览器地址栏输入系统分配的访问地址（生产环境为内网 IP，例如 <code>10.1.9.56</code>，具体以主管发你的为准），输入<strong>分配给你的账号（UID）和密码</strong>，点「进入系统」。登录采用 Token + Cookie，有效期 30 天，同一账号最多 5 个会话，超出的最早会话会被踢下线。</p>
 
-            <h4>2.1 登录流程</h4>
-            <p>打开系统地址后，您会看到登录页面。请输入管理员为您分配的账号（UID）和密码，点击「进入系统」按钮即可完成登录。登录成功后，系统会自动创建会话并跳转至主界面，默认进入「自动模式」页面。</p>
+            <figure class="shot">
+              <img src="/guide/01-login.png" alt="登录后的自动模式主界面" loading="lazy" />
+              <figcaption>▲ 登录后进入「自动模式」主界面。左侧暖橙导航栏，右侧为工作区。</figcaption>
+            </figure>
 
-            <h4>2.2 会话机制</h4>
-            <p>系统采用服务端 Session 会话机制，会话有效期为 30 天。在会话有效期内，即使关闭浏览器再次打开系统地址，也会自动恢复登录状态，无需重新输入账号密码。但如果会话过期或被管理员强制踢下线，则需要重新登录。</p>
-
-            <h4>2.3 封禁机制</h4>
-            <p>如果管理员在踢您下线时设置了封禁时间，那么在封禁期间内您将无法登录，系统会提示剩余封禁秒数。这是正常的管理操作，请耐心等待封禁结束后再试。</p>
-
-            <h4>2.4 安全建议</h4>
+            <h4>界面分区</h4>
             <ul>
-              <li>不要将您的账号密码分享给他人，每个账户的操作记录都会关联到您的姓名。</li>
-              <li>如果发现账户异常（如非本人操作记录），请立即联系管理员重置密码。</li>
-              <li>长时间不使用时建议主动退出登录，特别是在共享设备上。</li>
+              <li><strong>顶部导航栏</strong>：左上角 Logo「DataEye / TDM CONSOLE」；标题区显示当前模式；右上角环境徽标（<code>PROD ENVIRONMENT</code> 生产 / <code>TEST ENVIRONMENT</code> 测试服）。</li>
+              <li><strong>左侧功能导航</strong>：普通用户可见 自动模式(AU)、手动模式(MN)、二维码生成(QR)、数据看板&导出(DB)、备注管理(RM)、通知中心(NT)、评级管理(GR)。管理员 / 开发者会多出审计日志、定时任务、通知管理、开发者模式、监控面板等入口。</li>
+              <li><strong>收起侧边栏</strong>：点击 Logo 右侧的<strong>「三条杠」按钮</strong>即可把导航栏收成一条窄列（只剩 AU/MN/QR… 图标），腾出更大的操作空间，再点一下展开。</li>
+              <li><strong>底部用户区</strong>：显示你的姓名、角色，以及「新人指南」（打开本手册）和「退出登录」。</li>
             </ul>
-          </div>
+            <p class="muted">💡 建议测试时把侧边栏收起，屏幕更宽敞，二维码和入库表单都更好点。</p>
+          </section>
 
-          <div class="guide-section" v-show="isExpanded('u-auto')">
-            <h3>三、自动模式 —— 核心工作流</h3>
-            <p>自动模式是您日常工作的主要入口，整个流程设计为「拉取任务 → 扫码安装 → 测试应用 → 查询事件 → 入库」五步闭环。</p>
+          <!-- ============ 03 刷新下载任务 ============ -->
+          <section id="s-task" class="guide-section">
+            <h3>三、刷新下载任务 & 看应用评级</h3>
+            <p>进入自动模式后，若任务区为空，会显示「当前没有任何测试条目，请点击刷新按钮刷新第一条数据」。点击右上角的<strong>「刷新下载任务」</strong>按钮，系统会从后端拉取一条待测应用任务。注意：<strong>如果上一条还没入库就点刷新，会弹出「刷新会导致数据丢失」的确认框</strong>，请先确认已入库。</p>
 
-            <h4>3.1 拉取下载任务</h4>
-            <p>进入自动模式页面后，系统会显示当前待测试的应用信息。您可以点击页面右上角的「刷新数据」按钮，系统会向后端请求一条新的下载任务。每条任务包含以下关键信息：</p>
+            <figure class="shot">
+              <img src="/guide/02-task-qr.png" alt="刷新任务后出现二维码与应用信息" loading="lazy" />
+              <figcaption>▲ 刷新后：左侧出现下载二维码，右侧是 App ID / Bundle ID / 原始 CurrentTargetNum / 应用评级卡。</figcaption>
+            </figure>
+
+            <h4>任务卡里的关键信息</h4>
             <ul>
-              <li><strong>下载链接（Download URL）</strong>：用于生成二维码的应用安装包下载地址。</li>
-              <li><strong>Bundle ID</strong>：应用的唯一标识符，用于后续的事件查询和归因查询。</li>
-              <li><strong>原始 CurrentTargetNum</strong>：测试前的基准事件数，后续通过对比此值判断是否有新事件产生。</li>
-            </ul>
-            <p>如果当前没有待测试的任务，页面会显示「当前没有任何测试条目」的提示，此时您可以开启自动轮询来持续等待新任务。</p>
-
-            <h4>3.2 自动轮询</h4>
-            <p>当任务队列为空或您希望持续获取新任务时，可以点击「继续轮询」开启自动轮询模式。系统会每 10 秒自动向服务端请求一次新任务，页面上方会显示绿色的轮询状态条，包含当前轮询次数。轮询期间一旦获取到新任务，会自动停止轮询并展示二维码。您也可以随时点击「停止轮询」手动终止。</p>
-
-            <h4>3.3 扫描二维码安装应用</h4>
-            <p>获取到任务后，页面左侧会显示一个二维码。请使用测试设备（手机或平板）的相机或扫码工具扫描该二维码，系统会跳转到应用下载页面，按提示完成安装即可。</p>
-
-            <h4>3.4 测试应用</h4>
-            <p>安装完成后打开应用进行测试。测试时间要求如下：</p>
-            <ul>
-              <li><strong>游戏类应用</strong>（能正常运行的）：请至少游玩 <strong>10 分钟以上</strong>，确保事件数据充分上报到归因平台。</li>
-              <li><strong>非游戏类应用</strong>（商城类、工具类、需要登录的应用等）：<strong>5 分钟以内</strong>能出事件即可入库。</li>
-            </ul>
-            <p>测试过程中，系统默认每 10 秒自动查询一次事件，但您可以使用「定时查询」功能自定义查询间隔。</p>
-
-            <h4>3.5 定时查询功能</h4>
-            <p>定时查询是一个自动化辅助功能，让您无需反复手动点击「查询事件」按钮。使用方法：</p>
-            <ol>
-              <li>在「定时查询」输入框中填入期望的查询间隔秒数（支持 1 ~ 3600 秒）。</li>
-              <li>点击「开始定时」按钮，系统开始倒计时。</li>
-              <li>倒计时结束后，系统会自动执行一次事件查询，结果会显示在右侧面板。</li>
-              <li>如需取消，点击「取消」按钮即可。</li>
-            </ol>
-
-            <h4>3.6 查询事件与结果解读</h4>
-            <p>点击「查询事件」按钮，系统会同时请求事件接口和四个归因平台（AppFlyer、Adjust、Singular、Tenjin）的归因数据。查询结果会显示在页面右侧面板：</p>
-            <ul>
-              <li><strong>有事件</strong>：显示最新的 currentTargetNum 值，并与原始值进行对比。如果数值发生变化，说明有新事件上报。同时会显示归因标签（如 appflyer、adjust 等），表示该应用在哪些归因平台有记录。</li>
-              <li><strong>无事件</strong>：显示「无事件」，表示 currentTargetNum 未变化。此时您可以选择「冻结应用」将其标记为无事件状态。</li>
-              <li><strong>查看 JSON</strong>：点击此按钮可以查看事件接口返回的原始 JSON 数据，用于调试和详细分析。</li>
+              <li><strong>App ID / Bundle ID</strong>：应用的数字 ID 与唯一包名标识，后续查事件、评级都靠它。</li>
+              <li><strong>原始 CurrentTargetNum 数</strong>：测试前的基准事件数。查事件时就是拿「最新值」和它对比，看有没有增长。</li>
+              <li><strong>版本比对</strong>：<code>current</code> 与 <code>check</code> 两个版本号，不一致时会出现「版本不一致」和「停止二次下发」按钮。</li>
+              <li><strong>应用评级卡</strong>：显示该应用历史评级（如「D级」）与测试要求；没评过则显示「无评级」。</li>
+              <li><strong>实时库存 / 今日入库</strong>：右上角数据条每 10 秒自动刷新，方便掌握进度。</li>
             </ul>
 
-            <h4>3.7 填写入库表单</h4>
-            <p>查询到事件后，页面下方会出现入库表单，需要填写以下字段：</p>
+            <div class="callout callout-warn">
+              <span class="callout-tag">省时技巧</span>
+              <p>如果评级卡显示的是 <strong>D 级</strong>，说明这个应用历史上就出不了事件或根本没法用——<strong>可以直接跳过</strong>，点「刷新下载任务」拿下一条，不必浪费时间。A / B 级的应用则有<strong>固定的出事件操作套路</strong>（A 级出事件快，B 级要玩得久或过特定关卡）。</p>
+            </div>
+          </section>
+
+          <!-- ============ 04 扫码与越狱 ============ -->
+          <section id="s-scan" class="guide-section">
+            <h3>四、扫码安装 & 越狱状态检查</h3>
+            <p>页面左侧的二维码就是被测应用的安装入口。用<strong>测试手机</strong>的相机或扫码工具扫描它，跳转到下载页按提示安装即可。</p>
+
+            <div class="callout callout-danger">
+              <span class="callout-tag">每天开工第一件事</span>
+              <p>请务必确认手机<strong>处于越狱状态</strong>。判断方法：打开桌上的<strong>「水滴」App</strong>（越狱管理工具），<strong>点一下没闪退，就说明越狱还在</strong>。如果水滴闪退 / 打不开，说明越狱掉了——<strong>立刻联系你的直属主管更换设备</strong>，别硬测，否则事件根本归因不上。</p>
+            </div>
+            <p class="muted">为什么强调越狱？因为这套测试环境依赖越狱设备，越狱失效会导致事件无法正常上报，测出来的「无事件」是假象。</p>
+          </section>
+
+          <!-- ============ 05 操作与查事件 ============ -->
+          <section id="s-operate" class="guide-section">
+            <h3>五、操作应用 & 查询事件</h3>
+            <p>装好应用后，按下面的方式操作，把用户行为「跑」出来，事件才有机会上报：</p>
+
+            <div class="op-grid">
+              <div class="op-card">
+                <h5>🎮 游戏类应用</h5>
+                <p>登录 → 通关 → 看广告 → <strong>点击付费但不真的付款</strong>。这一套组合拳下来，<strong>有很大概率触发事件上报</strong>。</p>
+              </div>
+              <div class="op-card">
+                <h5>🛠️ 非游戏类应用</h5>
+                <p>商城 / 工具 / 需登录类，正常走一遍核心流程即可，出事件通常更快。</p>
+              </div>
+            </div>
+
+            <h4>怎么查事件</h4>
             <ul>
-              <li><strong>异常类型</strong>：从下拉列表中选择，包括「正常」「iOS16闪退」「iOS13/14/16均闪退」「需要iOS18以上」「地区不支持」「硬件版本过低」「超过10分钟0上报」「越狱检测」「其他」「验证已解决」等选项。请根据实际测试情况如实选择。</li>
-              <li><strong>备注</strong>：可以手动输入文字描述，也可以从预设模板中选择。注意：如果使用了模板，手动输入的内容会被覆盖。</li>
-              <li><strong>记录人</strong>：默认填充为您的登录名，一般无需修改。</li>
-              <li><strong>记录日期</strong>：默认填充为当天日期，如需补录历史数据可手动修改。</li>
+              <li>点<strong>「查询事件」</strong>按钮，系统会同时请求事件接口和四个归因平台，结果显示在下方「查询的事件会在这里显示」区域。</li>
+              <li>嫌手动点麻烦？用<strong>「定时查询」</strong>：输入间隔秒数（自动模式默认 60 秒，范围 1~3600），点「开始定时」，倒计时结束后自动帮你查一次，可「取消」。</li>
+              <li>想看原始返回？点<strong>「查看 JSON」</strong>。</li>
             </ul>
-            <p>填写完毕后点击「直接入库」按钮，数据会立即写入 MySQL 数据库。入库成功后会显示绿色成功提示。</p>
 
-            <h4>3.8 复测流程</h4>
-            <p>当自动模式的库存耗尽时，系统会弹出提示框，您可以选择：</p>
+            <h4>时间怎么算</h4>
+            <p>围绕评级来把握时长：<strong>A 级</strong>出事件快，可适当缩短；<strong>B 级</strong>建议拉长到 10 分钟以上或玩到指定关卡；<strong>C 级</strong>成因不明，超 10 分钟没上报就联系主管改评 D；<strong>D 级</strong>直接跳过。核心红线是异常类型里的「<code>超过10分钟0上报</code>」——操作满 10 分钟仍 0 事件，就可以走冻结流程了。</p>
+          </section>
+
+          <!-- ============ 06 有事件入库 ============ -->
+          <section id="s-has-event" class="guide-section">
+            <h3>六、有事件 → 填写入库信息</h3>
+            <p>当查询结果显示<strong>「最新 CurrentTargetNum」</strong>并且数值相对原始值发生了变化（例如「原始值：11 → 最新值：6」），说明有新事件上报，右侧会亮起归因平台标签（appflyer / adjust / singular / tenjin）。这时就可以入库了。</p>
+
+            <figure class="shot">
+              <img src="/guide/03-has-event.png" alt="有事件时显示最新值、归因标签与入库表单" loading="lazy" />
+              <figcaption>▲ 有事件：绿色结果卡显示最新值与归因标签；下方「填写入库信息」表单出现，异常类型自动标为「正常」。</figcaption>
+            </figure>
+
+            <h4>入库表单字段</h4>
             <ul>
-              <li><strong>继续轮询</strong>：继续保持每 10 秒轮询一次等待新任务。</li>
-              <li><strong>复测</strong>：从已测过的应用中随机抽取一条进行重新测试。复测会打开一个新的弹窗，显示该应用的二维码，您可以重新扫码测试并入库。</li>
+              <li><strong>异常类型</strong>：有事件时自动打「正常」标签；无事件时从下拉选择（见速查表）。</li>
+              <li><strong>备注</strong>：可手动输入，也可从「模板（可选）」下拉选一条。<span class="muted">注意：选了模板会覆盖手动输入的内容。</span></li>
+              <li><strong>记录人</strong>：默认是你的登录名，一般不用改。</li>
+              <li><strong>记录日期</strong>：默认当天；补录历史可改（仅开发者角色可切换）。</li>
             </ul>
-          </div>
+            <p>填好点<strong>「直接入库」</strong>，数据立即写入数据库，成功后按钮变「已入库」并出现绿色「入库成功」标签。入库后想给这个应用打个评级？点它右边的<strong>「应用评分」</strong>（见第七节）。</p>
+          </section>
 
-          <div class="guide-section" v-show="isExpanded('u-manual')">
-            <h3>四、手动模式 —— 特殊场景处理</h3>
-            <p>手动模式适用于自动模式无法覆盖的特殊场景，例如：群里临时发的测试链接、需要指定 App ID 测试的应用等。</p>
+          <!-- ============ 07 无事件冻结 ============ -->
+          <section id="s-no-event" class="guide-section">
+            <h3>七、无事件 → 冻结应用</h3>
+            <p>如果操作满 10 分钟仍未上报，或应用<strong>根本无法正常运行</strong>（闪退、越狱检测、要求更高 iOS 版本、地区不支持、必须付费才能用等），查询结果会显示「<strong>无事件</strong>」，旁边出现<strong>「冻结应用」</strong>按钮。</p>
 
-            <h4>4.1 使用流程</h4>
-            <ol>
-              <li>进入「手动模式」页面，顶部会有一条黄色提示：「请注意！该模式下自动去重不生效」。</li>
-              <li>在输入框中粘贴或输入 App ID（通常是在工作群里收到的那串标识符）。</li>
-              <li>点击「生成」按钮或按回车键，系统会根据该 App ID 请求下载链接。</li>
-              <li>后续流程与自动模式完全一致：扫码安装 → 测试 → 查询事件 → 填写表单 → 入库。</li>
-            </ol>
+            <figure class="shot">
+              <img src="/guide/04-no-event.png" alt="无事件时出现冻结应用按钮与冻结理由输入" loading="lazy" />
+              <figcaption>▲ 无事件：点「冻结应用」前，必须先在输入框填写 / 下拉选择「冻结理由」，否则无法冻结。</figcaption>
+            </figure>
 
-            <h4>4.2 与自动模式的区别</h4>
+            <div class="callout callout-warn">
+              <span class="callout-tag">冻结必写理由</span>
+              <p>冻结操作<strong>强制要求填写冻结理由</strong>：可在输入框自定义（200 字以内），或从「请选择冻结理由」下拉里选一条。<strong>不写理由会直接报错「请选择或填写冻结理由」，无法完成冻结。</strong>备注请一并写在冻结理由框内。</p>
+            </div>
+
+            <figure class="shot">
+              <img src="/guide/05-frozen.png" alt="冻结成功后应用状态变为已冻结并显示D级" loading="lazy" />
+              <figcaption>▲ 冻结成功后：应用状态变「已冻结」、评级卡显示「D级」、结果区显示「冻结结果：成功」；入库表单提示「该应用已存在评级记录，无法评分」。</figcaption>
+            </figure>
+
+            <p>冻结成功后，按大纲要求：<strong>点击「直接入库」旁的「应用评分」，把它评为 D 级，并在测试要求里写上理由</strong>（例如「需要 iOS17 以上」）。这样下次再遇到同一个 Bundle ID，评级卡会直接显示 D 级，可以秒跳过。</p>
+
+            <h4>冻结理由下拉长什么样</h4>
+            <figure class="shot shot-sm">
+              <img src="/guide/08-freeze-options.png" alt="备注类型下拉：异常类型/备注模板/冻结理由/冻结理由屏蔽词" loading="lazy" />
+              <figcaption>▲ 备注管理里的「类型」下拉，冻结理由等模板就维护在这里（详见第九节）。</figcaption>
+            </figure>
+          </section>
+
+          <!-- ============ 08 评级 ABCD ============ -->
+          <section id="s-grade" class="guide-section">
+            <h3>八、应用评级 A / B / C / D</h3>
+            <p>评级入口就在<strong>「直接入库」按钮右侧的「应用评分」</strong>。点开后是「应用评级」弹窗，选等级、写测试要求、保存即可。评级以 <strong>Bundle ID</strong> 为维度，一个应用只需评一次；<strong>已评级的应用再次进入会提示「无法评分」</strong>，避免重复。</p>
+
+            <figure class="shot">
+              <img src="/guide/06-rating-dialog.png" alt="应用评级弹窗：ABCD四级与测试要求输入" loading="lazy" />
+              <figcaption>▲ 应用评级弹窗：顶部 Bundle ID，中间 A/B/C/D 四个等级按钮，下方「测试要求 / 备注」输入框 + 备注库下拉（与冻结理由共用），评分人自动填当前用户。</figcaption>
+            </figure>
+
+            <h4>四个等级意味着什么</h4>
+            <div class="grade-grid">
+              <div class="grade-card g-a"><b>A 级</b><p>很容易出事件，游玩时可适当缩短测试时间。</p></div>
+              <div class="grade-card g-b"><b>B 级</b><p>需要玩较长时间，或玩到指定关卡才出事件，建议拉长到 10 分钟以上。</p></div>
+              <div class="grade-card g-c"><b>C 级</b><p>出事件成因不明；若超 10 分钟没上报，联系管理员把评级改为 D。</p></div>
+              <div class="grade-card g-d"><b>D 级</b><p>超时 10 分钟无法出事件，或需更高系统 / 越狱检测 / 卡死进不去 / 需付费 / 网络问题 / 地区不支持——建议跳过。</p></div>
+            </div>
+
+            <h4>评级管理页</h4>
+            <p>侧边栏「评级管理」可以查询、编辑、删除全部评级记录，支持按 Bundle ID、等级、记录人、备注关键字筛选。</p>
+            <figure class="shot">
+              <img src="/guide/07-grade-manage.png" alt="应用评级管理列表页" loading="lazy" />
+              <figcaption>▲ 评级管理：列表展示 Bundle ID / 评级 / 记录人 / 备注，可编辑或删除（删除会同时清理数据库与 Redis 缓存）。</figcaption>
+            </figure>
+          </section>
+
+          <!-- ============ 09 手动模式 ============ -->
+          <section id="s-manual" class="guide-section">
+            <h3>九、手动模式（指定 App ID）</h3>
+            <p>手动模式用于自动队列覆盖不到的场景，比如<strong>群里临时发的测试链接、需要指定某个 App 测试</strong>。进入「手动模式」，在「指定应用任务」输入框粘贴 App ID，点<strong>「生成」</strong>，后续流程（扫码 → 操作 → 查事件 → 入库）与自动模式一致。</p>
+
+            <figure class="shot">
+              <img src="/guide/09-manual.png" alt="手动模式：输入App ID并生成" loading="lazy" />
+              <figcaption>▲ 手动模式：输入 App ID → 点「生成」拉取任务；空态提示「请输入 App ID 并点击生成按钮」。</figcaption>
+            </figure>
+
+            <h4>与自动模式的区别</h4>
             <div class="guide-table-wrap">
             <table class="guide-table">
               <thead><tr><th>对比项</th><th>自动模式</th><th>手动模式</th></tr></thead>
               <tbody>
-              <tr><td>任务来源</td><td>系统自动从任务队列拉取</td><td>用户手动输入 App ID</td></tr>
-              <tr><td>自动去重</td><td>支持（需开启）</td><td>不生效</td></tr>
-              <tr><td>轮询功能</td><td>支持</td><td>不支持</td></tr>
-              <tr><td>复测功能</td><td>支持</td><td>不支持</td></tr>
-              <tr><td>适用场景</td><td>日常批量测试</td><td>临时/指定应用测试</td></tr>
+                <tr><td>任务来源</td><td>从队列自动拉取</td><td>手动输入 App ID 生成</td></tr>
+                <tr><td>自动去重</td><td>支持（重复会自动跳过重试）</td><td>不生效</td></tr>
+                <tr><td>评级卡</td><td>显示</td><td>无</td></tr>
+                <tr><td>实时库存 / 今日入库</td><td>显示</td><td>无</td></tr>
+                <tr><td>库存耗尽复测</td><td>支持（弹窗「复测 / 取消」）</td><td>无</td></tr>
+                <tr><td>定时查询默认间隔</td><td>60 秒</td><td>30 秒</td></tr>
               </tbody>
             </table>
             </div>
+          </section>
 
-            <h4>4.3 请求地址说明</h4>
-            <p>手动模式输入 App ID 后，系统会经由后端代理请求上游任务接口（实际地址由服务端环境变量配置，不在前端展示）。任务数据返回后，页面会显示下载链接、Bundle ID 等信息供您确认。</p>
-          </div>
+          <!-- ============ 10 工具页 ============ -->
+          <section id="s-tools" class="guide-section">
+            <h3>十、日常工具页速览</h3>
 
-          <div class="guide-section" v-show="isExpanded('u-qrcode')">
-            <h3>五、二维码生成器</h3>
-            <p>这是一个独立的工具模块，用于将任意文本内容（通常是网址链接）转换为二维码图片。</p>
+            <h4>二维码生成器</h4>
+            <p>纯前端小工具：把任意网址 / 文本转成可扫描二维码，内容变更后自动渲染，尺寸可调（128~512px）。适合临时把某个链接变成二维码给设备扫。</p>
+            <figure class="shot shot-sm">
+              <img src="/guide/10-qrcode.png" alt="手动二维码生成器" loading="lazy" />
+              <figcaption>▲ 手动二维码生成器：左侧输入内容与尺寸，右侧实时预览。</figcaption>
+            </figure>
 
-            <h4>5.1 使用方法</h4>
-            <ol>
-              <li>进入「二维码生成」页面。</li>
-              <li>在文本输入框中粘贴或输入要转换的内容（如一个下载链接）。</li>
-              <li>系统会实时自动生成二维码并显示在下方，无需点击任何按钮。</li>
-              <li>您可以通过「二维码尺寸」输入框调整二维码的像素大小（128px ~ 512px，步进 32px）。</li>
-            </ol>
+            <h4>数据看板 & 导出</h4>
+            <p>普通用户的「数据看板」查看、筛选、导出<strong>自己名下</strong>的入库记录。可按归因平台（appflyer / adjust / singular / tenjin）与日期筛选，支持「按当前日期导出」「导出选中行」「刷新未导出」。列表含 URL、Bundle ID、归因、事件数、异常类型、记录人、备注、导出状态等列。</p>
+            <figure class="shot">
+              <img src="/guide/12-dashboard.png" alt="数据看板与导出" loading="lazy" />
+              <figcaption>▲ 数据看板：归因筛选 + 日期范围 + 导出操作 + 记录明细表。</figcaption>
+            </figure>
 
-            <h4>5.2 使用场景</h4>
-            <ul>
-              <li>临时需要将某个链接转为二维码供设备扫码安装。</li>
-              <li>验证某个下载链接是否可以正常访问和安装。</li>
-              <li>非标准化测试场景下快速生成二维码。</li>
-            </ul>
-          </div>
+            <h4>备注管理（模板库）</h4>
+            <p>统一维护四类可复用文本：<strong>异常类型 / 备注模板 / 冻结理由 / 冻结理由屏蔽词</strong>。所有人可操作，可新增、编辑、删除条目；入库和冻结时的下拉选项就来自这里。</p>
+            <figure class="shot">
+              <img src="/guide/11-remark.png" alt="备注管理模板库" loading="lazy" />
+              <figcaption>▲ 备注管理：新增条目（选类型 + 内容），下方列表管理全部模板。</figcaption>
+            </figure>
 
-          <div class="guide-section" v-show="isExpanded('u-export')">
-            <h3>六、数据导出</h3>
-            <p>数据导出功能用于将您名下已入库但尚未导出的记录打包生成文件并下载。导出流程采用异步处理机制，确保大数据量时也不会超时。</p>
+            <h4>通知中心</h4>
+            <p>接收系统与管理员推送的通知，右上角铃铛有未读角标（每 5 秒轮询）。重要通知会以全局强制弹窗出现，点「我已了解」关闭。</p>
+            <figure class="shot shot-sm">
+              <img src="/guide/13-notify.png" alt="通知中心" loading="lazy" />
+              <figcaption>▲ 通知中心：个人收件箱，「消息已读完毕 / 暂无通知」为正常空态。</figcaption>
+            </figure>
+          </section>
 
-            <h4>6.1 导出流程</h4>
-            <ol>
-              <li>进入「数据导出」页面，系统会自动查询您名下所有未导出的数据条数。</li>
-              <li>如果有未导出数据，页面会显示条数和「一键导出」按钮。</li>
-              <li>点击「一键导出」，后端会通过 RabbitMQ 消息队列异步处理导出任务。</li>
-              <li>文件生成期间，页面会显示「文件生成中，请稍候...」的闪烁提示，系统每 2 秒轮询一次检查文件是否就绪。</li>
-              <li>文件就绪后，页面会显示文件名和「下载文件」按钮，点击下载即可。</li>
-              <li>下载完成后，服务器端的文件会自动删除以节省存储空间。</li>
-            </ol>
+          <!-- ============ 11 权限地图 ============ -->
+          <section id="s-role" class="guide-section">
+            <h3>十一、角色权限地图</h3>
+            <p>三种角色看到的菜单不同。作为新人，你大概率是<strong>普通用户</strong>，重点用前六节即可；下面两张表帮你了解其他角色能碰哪些高级功能。</p>
 
-            <h4>6.2 注意事项</h4>
-            <ul>
-              <li>导出是按用户隔离的，您只能导出自己名下的数据。</li>
-              <li>如果当前没有未导出的数据，页面会显示「当前用户所有数据均已导出并下载」。</li>
-              <li>导出文件为 HTML 和 TXT 两种格式，文件名包含时间戳以便区分。</li>
-              <li>如果您使用的是测试环境，请务必及时导出数据！测试环境一旦出现数据损坏，概不负责。</li>
-            </ul>
-          </div>
-
-          <div class="guide-section" v-show="isExpanded('u-data')">
-            <h3>七、数据看板</h3>
-            <p>数据看板是您查看和管理已入库记录的核心页面。普通用户的数据看板提供以下功能：</p>
-
-            <h4>7.1 数据浏览</h4>
-            <p>进入数据看板后，系统会自动加载您名下的入库记录列表。每条记录显示以下字段：</p>
-            <ul>
-              <li>Bundle ID、应用名称、下载链接、归因平台、异常类型、备注、记录人、记录日期、是否冻结、是否已导出等。</li>
-            </ul>
-            <p>列表支持分页显示，默认每页 15 条，可通过翻页按钮浏览更多数据。页面底部会显示总记录数和当前页码。</p>
-
-            <h4>7.2 筛选功能</h4>
-            <p>数据看板提供多维度筛选能力：</p>
-            <ul>
-              <li><strong>归因平台筛选</strong>：可按 AppFlyer、Adjust、Singular、Tenjin 等归因平台过滤。</li>
-              <li><strong>冻结状态筛选</strong>：可单独查看所有已冻结的记录。</li>
-              <li><strong>记录人搜索</strong>：输入记录人姓名进行精确匹配。</li>
-              <li><strong>日期搜索</strong>：按记录日期筛选。</li>
-            </ul>
-
-            <h4>7.3 编辑与删除</h4>
-            <p>对于已有的记录，您可以：</p>
-            <ul>
-              <li><strong>编辑</strong>：点击编辑按钮后，该行数据变为可编辑状态，您可以修改异常类型、备注等字段，修改完毕后点击保存。</li>
-              <li><strong>删除</strong>：点击删除按钮，系统会弹出确认对话框，确认后该条记录将被永久删除。此操作不可撤销，请谨慎操作。</li>
-            </ul>
-
-            <h4>7.4 重新测试（复测）</h4>
-            <p>点击记录的「重新测试」按钮，系统会打开一个弹窗，显示该应用的二维码和当前事件状态。您可以重新扫码测试、查询事件变化、修改入库信息后重新入库。复测弹窗同样支持定时查询和冻结操作。</p>
-
-            <h4>7.5 去重开关</h4>
-            <p>在数据看板页面，您可以看到「自动去重」开关按钮。去重功能默认关闭，需要时点击开启，系统会要求您输入姓名进行确认。开启后，自动模式拉取任务时会自动跳过与您姓名关联的已测应用，防止重复测试。关闭后则不做去重检查。</p>
-          </div>
-
-          <div class="guide-section" v-show="isExpanded('u-dedup')">
-            <h3>八、自动去重机制</h3>
-            <p>自动去重是系统的一项重要功能，用于防止同一个应用被多人重复测试，从而节省测试资源并提高数据质量。</p>
-
-            <h4>8.1 工作原理</h4>
-            <p>去重机制基于 Redis 实现。当某位用户开启去重后，系统会在 Redis 中记录该用户已测试过的应用 Bundle ID。后续拉取任务时，系统会自动跳过这些已测应用，直接获取下一个未测任务。</p>
-
-            <h4>8.2 使用注意</h4>
-            <ul>
-              <li>去重功能仅在自动模式下生效，手动模式下不生效。</li>
-              <li>去重是按用户维度隔离的，A 用户的去重记录不会影响 B 用户。</li>
-              <li>去重开关的状态在服务端维护，即使刷新页面或重新登录也会保持。</li>
-              <li>如果页面提示「重复应用」，说明当前拉取到的任务已经在您的去重记录中，请继续轮询获取下一个任务。</li>
-            </ul>
-          </div>
-
-          <div class="guide-section" v-show="isExpanded('u-rules')">
-            <h3>九、测试规范与冻结标准</h3>
-
-            <h4>9.1 游戏类应用测试规范</h4>
-            <p>对于能够正常运行的游戏类应用，请务必玩够 <strong>10 分钟以上</strong> 再进行入库操作。这是为了确保事件数据能够充分上报到归因平台。如果玩了 10 分钟仍然 0 事件，可以直接冻结该应用。</p>
-
-            <h4>9.2 非游戏类应用测试规范</h4>
-            <p>对于无法运行的应用、商城类应用、需要登录的应用、工具类应用等，<strong>5 分钟以内能出事件就可以入库</strong>。这类应用通常不需要长时间测试。</p>
-
-            <h4>9.3 直接冻结标准</h4>
-            <p>以下情况无需抢救，请直接点击「冻结应用」按钮：</p>
-            <ul>
-              <li>需要登录但无法注册的应用</li>
-              <li>必须付费才能使用的应用</li>
-              <li>版本不兼容的应用（如要求 iOS 17 以上但设备不满足）</li>
-              <li>地区不支持的应用（打开后提示不在服务区等）</li>
-              <li>越狱检测的应用（检测到设备环境异常拒绝运行）</li>
-              <li>网络太差完全进不去的应用</li>
-              <li>玩了很久（超过 10 分钟）仍然 0 事件的应用</li>
-            </ul>
-            <p>冻结后，该记录会被标记为冻结状态，在数据看板中可以通过「仅看冻结」筛选快速找到。</p>
-
-            <h4>9.4 测试环境特别提醒</h4>
-            <p>如果您使用的是测试服务器（页面标题栏会标注「测试服」字样），请务必在完成测试后<strong>及时导出数据</strong>。测试环境的数据一旦损坏，将无法恢复，概不负责！</p>
-          </div>
-
-          <div class="guide-section" v-show="isExpanded('u-faq')">
-            <h3>十、常见问题与排障</h3>
-
-            <h4>Q1：页面显示「当前没有任何测试条目」怎么办？</h4>
-            <p>这说明当前任务队列已空。您可以点击「刷新数据」再试一次，或者开启自动轮询等待新任务入库。如果长时间无任务，请联系项目负责人确认是否有新的测试需求。</p>
-
-            <h4>Q2：扫描二维码后无法下载应用？</h4>
-            <p>请检查：① 设备是否联网；② 设备系统版本是否满足应用要求；③ 应用是否已下架。如果确认设备和网络正常但仍无法下载，可能是链接已失效，请冻结该应用并获取下一条任务。</p>
-
-            <h4>Q3：查询事件一直是 0 怎么办？</h4>
-            <p>首先确认测试时间是否足够（游戏类至少 10 分钟）。如果时间足够仍无事件，可以尝试：① 关闭应用重新打开；② 切换网络后重试；③ 确认应用是否正常安装和运行。如果确认无法出事件，直接冻结即可。</p>
-
-            <h4>Q4：入库失败怎么办？</h4>
-            <p>入库操作会直接写入 MySQL 数据库，如果提示入库失败，通常是网络问题或后端服务异常。请：① 检查网络连接；② 刷新页面重试；③ 如果持续失败，联系开发者（邮箱：2448248501@qq.com）。</p>
-
-            <h4>Q5：导出文件下载后打不开？</h4>
-            <p>导出文件为 HTML 和 TXT 格式，请使用浏览器打开 HTML 文件，使用文本编辑器打开 TXT 文件。如果文件损坏，可以尝试重新导出一次。</p>
-
-            <h4>Q6：被踢下线了怎么办？</h4>
-            <p>被踢下线通常是管理员的操作，可能是因为长时间未操作、账户异常等原因。如果页面提示封禁，请等待封禁时间结束后重新登录。如有疑问请联系管理员。</p>
-          </div>
-        </div>
-
-        <!-- ======================== 管理员教程 ======================== -->
-        <div v-if="activeRole === 'admin'" class="guide-content">
-          <div class="guide-toc">
-            <h3><span>CONTENTS</span>目录</h3>
-            <ul>
-              <li><a @click="toggleSection('a-overview')">一、管理员角色概述</a></li>
-              <li><a @click="toggleSection('a-panel')">二、管理员后台入口</a></li>
-              <li><a @click="toggleSection('a-user-create')">三、创建用户</a></li>
-              <li><a @click="toggleSection('a-user-manage')">四、用户列表管理</a></li>
-              <li><a @click="toggleSection('a-user-kick')">五、踢下线与会话管理</a></li>
-              <li><a @click="toggleSection('a-user-reset')">六、重置密码</a></li>
-              <li><a @click="toggleSection('a-data-manage')">七、数据管理</a></li>
-              <li><a @click="toggleSection('a-stats')">八、统计报表</a></li>
-              <li><a @click="toggleSection('a-batch')">九、批量操作</a></li>
-              <li><a @click="toggleSection('a-report')">十、日报查询</a></li>
-              <li><a @click="toggleSection('a-best')">十一、管理最佳实践</a></li>
-            </ul>
-          </div>
-
-          <div class="guide-section" v-show="isExpanded('a-overview')">
-            <h3>一、管理员角色概述</h3>
-            <p>管理员（ADMIN）是系统中权限最高的常规角色，拥有普通用户的全部功能，并额外拥有以下管理能力：</p>
-            <ul>
-              <li>创建、删除系统用户（包括普通用户和其他管理员）</li>
-              <li>查看在线用户状态，强制踢下线任意用户</li>
-              <li>重置任意用户的密码</li>
-              <li>管理所有入库数据（查看所有用户的记录、批量删除等）</li>
-              <li>查看统计报表和日报数据</li>
-            </ul>
-            <p>管理员的导航栏中，「数据看板」会显示为「管理员看板」，点击进入的是功能更强大的管理员后台管理系统。</p>
-          </div>
-
-          <div class="guide-section" v-show="isExpanded('a-panel')">
-            <h3>二、管理员后台入口</h3>
-            <p>管理员登录后，左侧导航栏的「数据看板」会自动变为「管理员看板」。点击进入后，您会看到两个 Tab 页签：</p>
-            <ul>
-              <li><strong>数据管理</strong>：用于查看和管理所有用户的入库数据，支持高级筛选、统计、批量操作等。</li>
-              <li><strong>用户管理</strong>：用于创建新用户、查看用户列表、管理在线状态、重置密码等。</li>
-            </ul>
-            <p>管理员后台默认进入「数据管理」Tab，您可以随时点击切换。</p>
-          </div>
-
-          <div class="guide-section" v-show="isExpanded('a-user-create')">
-            <h3>三、创建用户</h3>
-
-            <h4>3.1 操作步骤</h4>
-            <ol>
-              <li>进入管理员看板，切换到「用户管理」Tab。</li>
-              <li>在「创建新用户」卡片中，依次填写以下信息：
-                <ul>
-                  <li><strong>姓名</strong>：用户的真实姓名，将用于系统内显示和操作记录关联。</li>
-                  <li><strong>密码</strong>：用户的登录密码，建议使用强密码（包含大小写字母、数字和特殊字符）。</li>
-                  <li><strong>账户类型</strong>：选择「普通用户 (USER)」或「管理员 (ADMIN)」。</li>
-                </ul>
-              </li>
-              <li>点击「创建用户」按钮，系统会生成一个唯一的 UID（格式为 U + 10位随机字符）。</li>
-              <li>创建成功后，页面会显示创建的 UID，请将 UID 和密码告知对应用户。</li>
-            </ol>
-
-            <h4>3.2 注意事项</h4>
-            <ul>
-              <li>UID 由系统自动生成，不可自定义，格式为 U 开头加 10 位大写字母和数字的随机组合。</li>
-              <li>创建后请立即告知用户其 UID 和密码，因为 UID 无法再次查看（除非在用户列表中查找）。</li>
-              <li>账户类型一旦创建，后续无法修改。如需变更，只能删除后重新创建。</li>
-              <li>创建用户时会使用 BCrypt 算法对密码进行加密存储，即使数据库泄露也无法还原明文密码。</li>
-            </ul>
-          </div>
-
-          <div class="guide-section" v-show="isExpanded('a-user-manage')">
-            <h3>四、用户列表管理</h3>
-
-            <h4>4.1 查看用户列表</h4>
-            <p>在「用户管理」Tab 下方的「用户列表」区域，您可以看到系统中所有用户的详细信息，包括：</p>
-            <ul>
-              <li><strong>UID</strong>：用户的唯一标识符。</li>
-              <li><strong>姓名</strong>：用户注册时填写的姓名。</li>
-              <li><strong>类型</strong>：账户角色（管理员 / 用户）。</li>
-              <li><strong>在线状态</strong>：实时显示用户当前是否在线（绿色圆点表示在线，灰色表示离线）。</li>
-            </ul>
-            <p>用户列表每 15 秒自动刷新一次，确保在线状态的实时性。</p>
-
-            <h4>4.2 删除用户</h4>
-            <p>点击用户行中的「删除」按钮，系统会弹出确认对话框。确认后该用户将被永久删除，其账户将无法再登录。请注意：</p>
-            <ul>
-              <li>删除用户不会删除该用户已入库的数据记录。</li>
-              <li>删除操作不可撤销，请谨慎操作。</li>
-              <li>如果用户当前在线，删除后其会话不会立即失效（建议先踢下线再删除）。</li>
-            </ul>
-          </div>
-
-          <div class="guide-section" v-show="isExpanded('a-user-kick')">
-            <h3>五、踢下线与会话管理</h3>
-
-            <h4>5.1 踢下线操作</h4>
-            <p>对于在线用户，您可以点击「踢下线」按钮强制终止其会话。踢下线时可以选择是否同时封禁账户：</p>
-            <ul>
-              <li>在用户列表右上角的「踢下线封禁」输入框中设置封禁秒数（默认 300 秒）。</li>
-              <li>如果封禁秒数设为 0，则仅踢下线不封禁，用户可以立即重新登录。</li>
-              <li>如果封禁秒数大于 0，用户在封禁期间内无法登录，系统会提示剩余封禁时间。</li>
-            </ul>
-
-            <h4>5.2 会话管理原理</h4>
-            <p>系统使用双重会话管理机制：服务端的 HttpSession 和 Redis 中的会话映射。踢下线操作会同时执行以下动作：</p>
-            <ol>
-              <li>使服务端的 HttpSession 失效。</li>
-              <li>删除 Redis 中的会话映射记录。</li>
-              <li>如果设置了封禁时间，在 Redis 中写入封禁键（ban:uid:xxx），带 TTL 自动过期。</li>
-            </ol>
-            <p>这意味着被踢下线的用户会立即失去操作权限，页面会跳转到登录页面。</p>
-
-            <h4>5.3 使用场景</h4>
-            <ul>
-              <li>用户长时间挂机不操作，需要释放资源。</li>
-              <li>发现用户有违规操作行为。</li>
-              <li>需要强制用户重新登录以刷新权限。</li>
-              <li>安全审计需要临时冻结某个账户。</li>
-            </ul>
-          </div>
-
-          <div class="guide-section" v-show="isExpanded('a-user-reset')">
-            <h3>六、重置密码</h3>
-
-            <h4>6.1 操作步骤</h4>
-            <ol>
-              <li>在「用户管理」Tab 的「重置账户密码」卡片中操作。</li>
-              <li>输入要重置的用户 UID。</li>
-              <li>输入新密码。</li>
-              <li>点击「重置密码并踢下线」按钮。</li>
-              <li>系统会立即更新该用户的密码（BCrypt 加密存储），同时将其踢下线。</li>
-            </ol>
-
-            <h4>6.2 设计说明</h4>
-            <p>重置密码操作会同时踢用户下线，这是一个安全设计：确保旧密码的会话立即失效，用户必须使用新密码重新登录。重置完成后，请及时将新密码告知对应用户。</p>
-          </div>
-
-          <div class="guide-section" v-show="isExpanded('a-data-manage')">
-            <h3>七、数据管理</h3>
-
-            <h4>7.1 高级搜索</h4>
-            <p>管理员的数据管理页面提供强大的高级搜索功能，支持以下筛选条件组合：</p>
-            <ul>
-              <li><strong>日期范围</strong>：设置起止日期，查看指定时间段内的记录。</li>
-              <li><strong>Bundle ID</strong>：精确搜索特定应用的记录。</li>
-              <li><strong>关键词搜索</strong>：在备注等字段中模糊搜索。</li>
-              <li><strong>异常类型</strong>：按异常类型精确筛选。</li>
-              <li><strong>归因平台</strong>：按 AppFlyer / Adjust / Singular / Tenjin 筛选。</li>
-              <li><strong>记录人</strong>：查看特定用户录入的数据。</li>
-              <li><strong>冻结状态</strong>：可单独查看已冻结或仅未冻结的记录。</li>
-              <li><strong>导出状态</strong>：筛选已导出或未导出的记录。</li>
-            </ul>
-            <p>所有筛选条件可以自由组合，实现精确的数据定位。点击「重置」按钮可一键清空所有筛选条件。</p>
-
-            <h4>7.2 数据汇总</h4>
-            <p>搜索结果上方会显示数据汇总信息，包括总记录数、已导出数、待导出数等关键指标。搜索结果下方还会显示归因统计，如各归因平台的记录占比等。</p>
-          </div>
-
-          <div class="guide-section" v-show="isExpanded('a-stats')">
-            <h3>八、统计报表</h3>
-            <p>管理员后台会自动加载全局统计数据，包括：</p>
-            <ul>
-              <li><strong>总记录数</strong>：系统中所有入库记录的总数。</li>
-              <li><strong>已导出数</strong>：已经完成导出的记录数。</li>
-              <li><strong>待处理数</strong>：尚未导出的记录数。</li>
-              <li><strong>异常类型分布</strong>：各类异常类型的记录数量分布。</li>
-              <li><strong>记录人分布</strong>：各用户录入数据的数量统计。</li>
-            </ul>
-            <p>这些数据帮助您全面掌握团队的测试进度和数据质量。</p>
-          </div>
-
-          <div class="guide-section" v-show="isExpanded('a-batch')">
-            <h3>九、批量操作</h3>
-
-            <h4>9.1 批量删除</h4>
-            <p>管理员支持批量删除记录：在数据列表中勾选要删除的记录（可以点击表头的全选框一次性选中当前页所有记录），然后点击「批量删除」按钮。系统会弹出确认对话框，显示选中的记录数量，确认后执行批量删除。</p>
-            <p><strong>重要提醒</strong>：批量删除操作不可撤销！执行前请务必确认选中的记录是正确的。</p>
-
-            <h4>9.2 全选与反选</h4>
-            <p>点击表头的复选框可以全选/取消全选当前页的所有记录。配合分页功能，可以逐页选择要操作的记录。</p>
-          </div>
-
-          <div class="guide-section" v-show="isExpanded('a-report')">
-            <h3>十、日报查询</h3>
-            <p>管理员可以按日期查询日报统计数据，了解特定日期的测试成果。</p>
-
-            <h4>10.1 操作步骤</h4>
-            <ol>
-              <li>在数据管理页面找到日报查询区域。</li>
-              <li>选择要查询的日期。</li>
-              <li>点击「查询日报」按钮。</li>
-              <li>系统会弹出一个模态窗口，显示该日期的详细统计数据，包括：
-                <ul>
-                  <li>合格记录数（qualifiedCount）</li>
-                  <li>各归因平台的记录数和占比</li>
-                  <li>各异常类型的分布</li>
-                  <li>记录人维度的统计</li>
-                </ul>
-              </li>
-            </ol>
-
-            <h4>10.2 合格标准</h4>
-            <p>日报中的「合格记录」指的是满足以下条件的记录：异常类型为「正常」或「验证已解决」，且未被冻结。这些记录代表测试通过并成功上报了事件的应用。</p>
-          </div>
-
-          <div class="guide-section" v-show="isExpanded('a-best')">
-            <h3>十一、管理最佳实践</h3>
-            <ul>
-              <li><strong>定期审查用户列表</strong>：检查是否有已离职员工的账户需要删除，是否有异常登录行为。</li>
-              <li><strong>及时清理数据</strong>：对于已导出的历史数据，可以考虑定期归档或清理，保持数据库精简。</li>
-              <li><strong>合理设置封禁时间</strong>：对于轻微违规的用户，短时间封禁（如 300 秒）即可；对于严重违规，可以设置较长的封禁时间。</li>
-              <li><strong>密码管理</strong>：创建用户时设置强密码，并在首次登录后要求用户修改。定期提醒用户更换密码。</li>
-              <li><strong>关注统计数据</strong>：通过统计报表监控团队的测试效率，发现异常数据（如某用户入库量异常低或异常高）及时沟通。</li>
-              <li><strong>备份意识</strong>：虽然系统有完善的数据存储机制，但管理员仍应定期关注数据备份情况，防患于未然。</li>
-            </ul>
-          </div>
-        </div>
-
-        <!-- ======================== 开发者教程 ======================== -->
-        <div v-if="activeRole === 'developer'" class="guide-content">
-          <div class="guide-toc">
-            <h3><span>CONTENTS</span>目录</h3>
-            <ul>
-              <li><a @click="toggleSection('d-overview')">一、开发者角色概述</a></li>
-              <li><a @click="toggleSection('d-permissions')">二、权限范围与功能矩阵</a></li>
-              <li><a @click="toggleSection('d-devmode')">三、开发者模式详解</a></li>
-              <li><a @click="toggleSection('d-protest')">四、专业测试工作流</a></li>
-              <li><a @click="toggleSection('d-attr')">五、四平台归因查询</a></li>
-              <li><a @click="toggleSection('d-history')">六、今日测试历史</a></li>
-              <li><a @click="toggleSection('d-governance')">七、数据建表与治理</a></li>
-              <li><a @click="toggleSection('d-monitor')">八、系统监控面板</a></li>
-              <li><a @click="toggleSection('d-admin')">九、管理员功能（用户管理）</a></li>
-              <li><a @click="toggleSection('d-arch')">十、系统架构与技术栈</a></li>
-              <li><a @click="toggleSection('d-deploy')">十一、部署与运维</a></li>
-              <li><a @click="toggleSection('d-trouble')">十二、故障排查手册</a></li>
-            </ul>
-          </div>
-
-          <div class="guide-section" v-show="isExpanded('d-overview')">
-            <h3>一、开发者角色概述</h3>
-            <p>开发者（DEVELOPER）是系统中的最高权限角色，拥有普通用户和管理员的全部功能，并额外享有以下专属能力：</p>
-            <ul>
-              <li><strong>开发者模式</strong>：包含专业测试工具（合并了自动/手动模式的高级功能）和四平台独立归因查询面板。</li>
-              <li><strong>数据建表与治理</strong>：可以直接在数据库中创建表、删除表、添加/修改/删除列、执行自定义 SQL。</li>
-              <li><strong>系统监控面板</strong>：实时查看服务器 CPU/内存状态、Redis 数据库监控、应用日志。</li>
-              <li><strong>管理员全部权限</strong>：包括用户管理、数据管理、统计报表等所有管理员功能。</li>
-            </ul>
-            <p>开发者角色在用户列表中显示为绿色的「root账户」标签，代表其最高权限地位。</p>
-          </div>
-
-          <div class="guide-section" v-show="isExpanded('d-permissions')">
-            <h3>二、权限范围与功能矩阵</h3>
-            <p>以下是三种角色的完整功能权限对比：</p>
+            <h4>各角色可用功能</h4>
             <div class="guide-table-wrap">
             <table class="guide-table">
               <thead><tr><th>功能模块</th><th>普通用户</th><th>管理员</th><th>开发者</th></tr></thead>
               <tbody>
-              <tr><td>自动模式</td><td>支持</td><td>支持</td><td>支持</td></tr>
-              <tr><td>手动模式</td><td>支持</td><td>支持</td><td>支持</td></tr>
-              <tr><td>二维码生成器</td><td>支持</td><td>支持</td><td>支持</td></tr>
-              <tr><td>数据导出</td><td>支持（仅自己）</td><td>支持（仅自己）</td><td>支持（仅自己）</td></tr>
-              <tr><td>数据看板</td><td>支持（基础）</td><td>支持（管理员看板）</td><td>支持（管理员看板）</td></tr>
-              <tr><td>自动去重开关</td><td>支持</td><td>不支持</td><td>支持</td></tr>
-              <tr><td>用户管理</td><td>不支持</td><td>支持</td><td>支持</td></tr>
-              <tr><td>数据批量操作</td><td>不支持</td><td>支持</td><td>支持</td></tr>
-              <tr><td>统计报表/日报</td><td>不支持</td><td>支持</td><td>支持</td></tr>
-              <tr><td>开发者模式</td><td>不支持</td><td>不支持</td><td>支持</td></tr>
-              <tr><td>数据建表与治理</td><td>不支持</td><td>不支持</td><td>支持</td></tr>
-              <tr><td>系统监控面板</td><td>不支持</td><td>不支持</td><td>支持</td></tr>
+                <tr><td>自动 / 手动模式</td><td>✓</td><td>✓</td><td>✓</td></tr>
+                <tr><td>二维码生成</td><td>✓</td><td>✓</td><td>✓</td></tr>
+                <tr><td>数据看板（个人）</td><td>✓</td><td>✓</td><td>✓</td></tr>
+                <tr><td>评级管理 / 备注管理</td><td>✓</td><td>✓</td><td>✓</td></tr>
+                <tr><td>通知中心</td><td>✓</td><td>✓</td><td>✓</td></tr>
+                <tr><td>管理员看板（用户/数据管理）</td><td>—</td><td>✓</td><td>✓</td></tr>
+                <tr><td>通知管理 / 审计日志 / 定时任务</td><td>—</td><td>✓</td><td>✓</td></tr>
+                <tr><td>开发者模式（专业测试 + 数据治理）</td><td>—</td><td>—</td><td>✓</td></tr>
+                <tr><td>监控面板 / MQ 监控 / DeepSeek 助手 / Python 脚本</td><td>—</td><td>—</td><td>✓</td></tr>
               </tbody>
             </table>
             </div>
-            <p>开发者登录后，导航栏会额外显示「开发者模式」和「监控面板」两个入口。</p>
-          </div>
 
-          <div class="guide-section" v-show="isExpanded('d-devmode')">
-            <h3>三、开发者模式详解</h3>
-            <p>开发者模式是专为开发者设计的高级功能模块，包含两个子 Tab：</p>
+            <h4>管理员 / 开发者高级功能一览</h4>
             <ul>
-              <li><strong>专业测试</strong>：整合了自动模式和手动模式的全部功能，并增加了独立的四平台归因查询面板和今日测试历史记录。</li>
-              <li><strong>数据建表和治理</strong>：提供数据库表结构管理功能，支持 DDL 操作。</li>
+              <li><strong>管理员看板</strong>：数据报表、数据管理（含从 WPS 粘贴一键导入、批量删除）、App 信息查询、复测数据缓存（Redis DB12）、用户管理（创建用户 / 重置密码 / 踢下线封禁）。会话机制：单用户最多 5 会话，踢下线可设封禁秒数。</li>
+              <li><strong>开发者模式</strong>：「专业测试」几乎复刻自动模式并附 7 日测试历史；「数据建表和治理」可建表 / 删表 / 增删改列 / 执行自定义 SQL / 跨库批量导入。</li>
+              <li><strong>监控面板</strong>：服务器状态（oshi 指标）、实时日志流、Redis 键空间监控、远程终端。</li>
+              <li><strong>MQ 监控</strong>：RabbitMQ 队列拓扑与死信记录（重试 / 清理）。<strong>定时任务</strong>：任务编排与执行。<strong>审计日志</strong>：操作留痕查询与清理。</li>
+              <li><strong>DeepSeek 助手</strong>：AI 对话工作台。<strong>Python 脚本</strong>：上传 / 执行运维脚本。<strong>数据源切换</strong>：多租户 MySQL 数据源管理。<strong>URL 执行器</strong>：经后端代理打开目标页并用 CSS 选择器操作。</li>
             </ul>
-            <p>开发者模式页面顶部会显示一个紫色的「开发者模式」徽章，以区分普通用户界面。右上角还有「使用指南」按钮，可以快速查看开发者模式的使用说明。</p>
-          </div>
+            <p class="muted">⚠️ 数据治理里的自定义 SQL、删表、批量删除都是<strong>不可逆的高危操作</strong>，非开发者请勿触碰；开发者在生产库操作前务必三思并确认备份。</p>
+          </section>
 
-          <div class="guide-section" v-show="isExpanded('d-protest')">
-            <h3>四、专业测试工作流</h3>
-            <p>专业测试 Tab 融合了自动模式和手动模式的所有能力，并提供更多调试信息。</p>
+          <!-- ============ 12 彩蛋 & 速查 ============ -->
+          <section id="s-egg" class="guide-section">
+            <h3>十二、彩蛋 & 速查小抄</h3>
 
-            <h4>4.1 获取任务</h4>
-            <p>您可以通过两种方式获取测试任务：</p>
-            <ul>
-              <li><strong>刷新数据</strong>：与自动模式相同，从任务队列中拉取下一条待测应用。</li>
-              <li><strong>输入 App ID</strong>：与手动模式相同，在输入框中填入 App ID 后点击生成。</li>
-            </ul>
-            <p>两种方式可以混合使用，灵活度更高。</p>
-
-            <h4>4.2 测试与事件查询</h4>
-            <p>与自动/手动模式一致，包括二维码展示、定时查询、事件对比、归因标签显示等。额外地，专业测试模式会显示更详细的事件信息，方便调试。</p>
-
-            <h4>4.3 入库表单</h4>
-            <p>入库表单与自动模式完全一致，包括异常类型选择、备注（支持模板）、记录人和记录日期。开发者模式下同样支持复测流程。</p>
-          </div>
-
-          <div class="guide-section" v-show="isExpanded('d-attr')">
-            <h3>五、四平台归因查询</h3>
-            <p>这是开发者模式的核心特色功能。在专业测试页面下方，有四个独立的归因查询面板，分别对应四大归因平台：</p>
-
-            <h4>5.1 AppFlyer 查询</h4>
-            <p>输入 Bundle ID 后点击查询，系统会请求 AppFlyer 的归因 API，返回该应用在 AppFlyer 平台上的归因记录。返回数据包括归因类型、归因来源、时间戳等字段。查询结果会以卡片形式展示，每条记录显示所有字段和对应的值。</p>
-
-            <h4>5.2 Adjust 查询</h4>
-            <p>操作方式与 AppFlyer 相同。Adjust 平台的归因数据格式略有不同，返回的字段包括 tracker、network、campaign 等 Adjust 特有的归因维度。</p>
-
-            <h4>5.3 Singular 查询</h4>
-            <p>Singular 平台的归因查询，返回数据包含 Singular 的归因模型相关字段。每个平台的查询是独立的，可以分别查询不同 Bundle ID 的归因数据。</p>
-
-            <h4>5.4 Tenjin 查询</h4>
-            <p>Tenjin 平台的归因查询。四个平台的面板完全独立，您可以同时对比同一应用在四个平台上的归因情况，这对于排查归因差异问题非常有帮助。</p>
-
-            <h4>5.5 使用技巧</h4>
-            <ul>
-              <li>四个面板的 Bundle ID 输入框是独立的，可以同时查询不同应用在不同平台上的归因。</li>
-              <li>查询结果会显示记录条数（如 "3条"），方便快速判断数据量。</li>
-              <li>如果某个平台返回「无数据」，说明该应用在对应平台上没有归因记录，可能是该应用未接入此归因平台。</li>
-              <li>每个面板支持独立查询，互不影响。可以只查其中一两个平台，无需全部查询。</li>
-            </ul>
-          </div>
-
-          <div class="guide-section" v-show="isExpanded('d-history')">
-            <h3>六、今日测试历史</h3>
-            <p>专业测试页面下方有一个「今日测试历史」区域，记录您今天在开发者模式下所有测试过的应用。每条历史记录包含应用信息、测试结果、入库状态等。</p>
-
-            <h4>6.1 功能说明</h4>
-            <ul>
-              <li><strong>自动记录</strong>：每次测试并入库后，记录会自动追加到历史列表中。</li>
-              <li><strong>Redis 存储</strong>：历史数据存储在 Redis 中（非 MySQL），按天自动清理。</li>
-              <li><strong>Redis 状态指示</strong>：历史区域右上角会显示 Redis 连接状态（绿色 "ok" 或黄色 "warn"），帮助您判断历史功能是否正常。</li>
-              <li><strong>刷新/清空</strong>：可以手动刷新历史列表，或点击「清空」按钮清除所有历史记录。</li>
-              <li><strong>删除单条</strong>：每条历史记录右侧有删除按钮，可以删除特定的历史条目。</li>
-            </ul>
-
-            <h4>6.2 使用场景</h4>
-            <ul>
-              <li>回顾今天已经测试过哪些应用，避免遗漏。</li>
-              <li>查看某个应用的测试时间线和事件变化。</li>
-              <li>在 Redis 异常时通过 Redis 状态指示器快速发现问题。</li>
-            </ul>
-          </div>
-
-          <div class="guide-section" v-show="isExpanded('d-governance')">
-            <h3>七、数据建表与治理</h3>
-            <p>这是开发者模式中最强大的功能之一，允许您直接管理数据库的表结构。切换到「数据建表和治理」Tab 后可以使用。</p>
-
-            <h4>7.1 查看表列表</h4>
-            <p>进入该 Tab 后，系统会自动加载当前数据库中的所有表。每个表显示表名和基本信息，点击可以查看详情。</p>
-
-            <h4>7.2 查看表结构</h4>
-            <p>点击某个表后，可以查看该表的完整结构定义（DESCRIBE），包括列名、数据类型、是否允许为空、默认值、索引等信息。</p>
-
-            <h4>7.3 创建新表</h4>
-            <p>提供可视化的建表界面，您需要指定：</p>
-            <ul>
-              <li><strong>表名</strong>：新表的名称。</li>
-              <li><strong>列定义</strong>：每列需要指定列名、数据类型（如 VARCHAR、INT、TEXT、DATETIME 等）、是否允许为空、默认值等。</li>
-            </ul>
-            <p>系统会将您的定义转换为 CREATE TABLE SQL 语句并执行。</p>
-
-            <h4>7.4 删除表</h4>
-            <p>选择要删除的表，系统会执行 DROP TABLE 操作。<strong>注意：此操作不可逆，表中的数据将全部丢失！</strong></p>
-
-            <h4>7.5 添加列</h4>
-            <p>为已有表添加新的列，需要指定列名和数据类型定义。系统会执行 ALTER TABLE ADD COLUMN 语句。</p>
-
-            <h4>7.6 修改列</h4>
-            <p>修改已有列的数据类型或其他属性。系统会执行 ALTER TABLE MODIFY COLUMN 语句。修改列时请注意数据兼容性，避免数据丢失。</p>
-
-            <h4>7.7 删除列</h4>
-            <p>删除已有表中的某一列。系统会执行 ALTER TABLE DROP COLUMN 语句。<strong>该列的数据将永久丢失！</strong></p>
-
-            <h4>7.8 执行自定义 SQL</h4>
-            <p>这是最灵活的功能，允许您输入任意 SQL 语句并执行。支持 SELECT、INSERT、UPDATE、DELETE、ALTER 等所有 SQL 操作。执行结果会以表格形式展示。</p>
-            <p><strong>安全警告</strong>：自定义 SQL 功能非常强大，但也意味着误操作可能造成严重后果。执行前请务必仔细检查 SQL 语句，特别是 DROP、DELETE、TRUNCATE 等破坏性操作。建议在生产环境中使用此功能前先做好数据备份。</p>
-          </div>
-
-          <div class="guide-section" v-show="isExpanded('d-monitor')">
-            <h3>八、系统监控面板</h3>
-            <p>系统监控面板是开发者的运维利器，提供三个子 Tab：</p>
-
-            <h4>8.1 服务器状态</h4>
-            <p>实时展示服务器的硬件和运行状态信息：</p>
-            <ul>
-              <li><strong>操作系统</strong>：显示服务器 OS 名称和版本。</li>
-              <li><strong>系统架构</strong>：显示 CPU 架构（如 amd64、aarch64）。</li>
-              <li><strong>CPU 信息</strong>：显示 CPU 型号和核心数。</li>
-              <li><strong>CPU 占用</strong>：实时 CPU 使用率百分比，超过 80% 会标红警告。底层使用 oshi 库采集系统指标。</li>
-              <li><strong>内存信息</strong>：显示总内存、已用内存、可用内存和使用率百分比。超过 85% 会标红警告。</li>
-              <li><strong>服务运行时长</strong>：显示 Java 进程自启动以来的运行时间。</li>
-            </ul>
-            <p>页面下方还有内存使用率和 CPU 使用率的可视化进度条，直观展示资源消耗情况。</p>
-
-            <h4>8.2 实时日志</h4>
-            <p>实时查看后端应用的运行日志，功能包括：</p>
-            <ul>
-              <li><strong>自动刷新</strong>：默认每 3 秒自动拉取最新日志，保持实时监控状态。</li>
-              <li><strong>日志级别筛选</strong>：可以按 ALL / INFO / WARN / ERROR / DEBUG 级别过滤日志。</li>
-              <li><strong>暂停/恢复</strong>：点击暂停按钮可以冻结日志刷新，方便查看某段特定日志。</li>
-              <li><strong>自动滚动</strong>：勾选后日志会自动滚动到最新行。</li>
-              <li><strong>语法高亮</strong>：不同级别的日志会以不同颜色显示（ERROR 红色、WARN 黄色、INFO 蓝色、DEBUG 紫色），方便快速定位问题。</li>
-              <li><strong>行数统计</strong>：底部显示当前加载的日志总行数。</li>
-            </ul>
-            <p>日志数据来源于服务器上的日志文件（默认路径 /data/logs/app.log），系统会从文件末尾读取最新的 N 行日志。</p>
-
-            <h4>8.3 Redis 监控</h4>
-            <p>全面监控 Redis 数据库的运行状态：</p>
-            <ul>
-              <li><strong>服务器信息</strong>：显示 Redis 版本、已用内存、峰值内存、当前连接数、运行时长。</li>
-              <li><strong>数据库概览</strong>：以卡片网格形式展示所有 16 个 Redis 数据库（DB0 ~ DB15），每个卡片显示该数据库中的 key 数量。空数据库会以半透明样式显示。</li>
-              <li><strong>键查看器</strong>：点击任意数据库卡片，会展开该数据库的键列表，显示每个键的名称、数据类型（string/list/set/zset/hash）和 TTL（过期时间）。不同类型会以不同颜色的标签区分。</li>
-            </ul>
-            <p>Redis 监控功能对于排查缓存问题、检查会话状态、调试去重功能等场景非常有用。</p>
-          </div>
-
-          <div class="guide-section" v-show="isExpanded('d-admin')">
-            <h3>九、管理员功能（用户管理）</h3>
-            <p>开发者拥有管理员的全部权限，包括用户管理。在管理员看板中可以执行所有管理员操作。特别地，开发者在创建用户时可以选择三种账户类型：普通用户（USER）、管理员（ADMIN）、开发者（DEVELOPER）。</p>
-            <p>这意味着开发者可以创建新的开发者账户，请谨慎使用此权限。建议仅在确实需要时才创建新的开发者账户。</p>
-          </div>
-
-          <div class="guide-section" v-show="isExpanded('u-rules')">
-            <h3>测试规范与冻结标准</h3>
-
-            <div class="rules-card">
-              <h4>测试规范（重要）</h4>
-
-              <div class="rule-group">
-                <h5>游戏类应用（能正常运行）</h5>
-                <p>请玩够 <strong>10 分钟以上</strong>再进行入库操作，确保事件数据充分上报。</p>
-              </div>
-
-              <div class="rule-group">
-                <h5>其他类型应用</h5>
-                <p>如无法运行的应用、商城类、需要登录的应用、其他工具类应用等，<strong>5 分钟以内能出事件就可以入库</strong>。</p>
-              </div>
-
-              <div class="rule-group rule-warning">
-                <h5>测试服特别提醒</h5>
-                <p>如果您使用的是测试服（在标题一栏会用括号标记测试服三字），请记得一定及时导出数据，测试环境一旦出现数据损坏概不负责！！！</p>
-              </div>
+            <div class="callout callout-info">
+              <span class="callout-tag">彩蛋 🥚</span>
+              <p>本系统由「<strong>蓝黄金刚鹦鹉</strong>」开发维护。据说深夜跑批时对着屏幕念一句「让每一条测试数据都有迹可循」，第二天的 D 级应用会少一半。（别信，但也别不信。）</p>
             </div>
 
-            <div class="rules-card rules-card-danger">
-              <h4>直接冻结（无需抢救）</h4>
-              <p class="freeze-intro">以下情况不用抢救，直接冻结：</p>
-              <ul class="freeze-list">
-                <li>需要登录但无法注册的应用</li>
-                <li>必须付费才能使用的应用</li>
-                <li>版本不兼容（如操作系统要求 iOS 17 以上）的应用</li>
-                <li>地区不支持的应用</li>
-                <li>越狱检测的应用</li>
-                <li>网络太撇了进不去的应用</li>
-                <li>耍了很久没得事件的应用（10分钟0事件）</li>
-              </ul>
+            <h4>异常类型下拉（入库用）</h4>
+            <p><code>正常</code> · <code>iOS16闪退</code> · <code>iOS13/14/16均闪退</code> · <code>需要iOS18以上</code> · <code>地区不支持</code> · <code>硬件版本过低</code> · <code>超过10分钟0上报</code> · <code>越狱检测</code> · <code>其他</code> · <code>验证已解决</code> · <code>测试</code></p>
+
+            <h4>常见冻结理由</h4>
+            <p><code>需要付费下载</code> · <code>VPN检测</code> · <code>软件不可用</code> · <code>设备不兼容</code> · <code>非常卡顿，无法正常使用</code> · <code>看了广告玩通关也不出事件</code> · <code>越狱检测</code> · <code>超过10分钟0上报</code> · <code>硬件版本过低</code> · <code>地区不支持</code> · <code>需要iOS17以上</code> · <code>iOS13/14/16均闪退</code> …（完整清单在「备注管理」维护）</p>
+
+            <h4>归因平台标签</h4>
+            <div class="attr-legend">
+              <span class="attr-tag attr-appflyer">appflyer</span>
+              <span class="attr-tag attr-adjust">adjust</span>
+              <span class="attr-tag attr-singular">singular</span>
+              <span class="attr-tag attr-tenjin">tenjin</span>
             </div>
-          </div>
 
-          <div class="guide-section" v-show="isExpanded('d-arch')">
-            <h3>十、系统架构与技术栈</h3>
-            <p>作为开发者，了解系统的整体架构对于日常维护和故障排查至关重要。</p>
-
-            <h4>10.1 前端架构</h4>
+            <h4>新手最常踩的坑</h4>
             <ul>
-              <li><strong>框架</strong>：Vue 3（Composition API + &lt;script setup&gt; 语法）</li>
-              <li><strong>构建工具</strong>：Vite</li>
-              <li><strong>HTTP 客户端</strong>：原生 fetch API（封装了 fetchWithTimeout 和 safeJson 工具函数）</li>
-              <li><strong>二维码生成</strong>：qrcode 库</li>
-              <li><strong>路由</strong>：无路由库，采用组件动态切换（component :is）</li>
-              <li><strong>样式</strong>：纯 CSS（scoped），CSS 变量定义主题色</li>
+              <li>没确认越狱就开测 → 测出一堆假「无事件」。先点水滴 App 验身。</li>
+              <li>上一条没入库就点刷新 → 数据丢失弹窗。先入库再刷新。</li>
+              <li>冻结时没写理由 → 报「请选择或填写冻结理由」。理由必填。</li>
+              <li>给已评级应用重复评分 → 提示「无法评分」。评级按 Bundle ID 唯一。</li>
+              <li>把「应用有 bug」当成测试目标 → 记住：你只关心事件有没有上报。</li>
             </ul>
+          </section>
 
-            <h4>10.2 后端架构</h4>
-            <ul>
-              <li><strong>框架</strong>：Spring Boot 3.2.0</li>
-              <li><strong>JDK</strong>：OpenJDK 26</li>
-              <li><strong>数据库访问</strong>：JdbcTemplate + MyBatis-Plus 3.5.5</li>
-              <li><strong>数据库</strong>：MySQL 8.0</li>
-              <li><strong>缓存/会话</strong>：Spring Data Redis（Lettuce 客户端）</li>
-              <li><strong>消息队列</strong>：RabbitMQ（Spring AMQP）</li>
-              <li><strong>连接池</strong>：HikariCP</li>
-              <li><strong>系统监控</strong>：oshi 6.4.10</li>
-              <li><strong>API 文档</strong>：SpringDoc OpenAPI（Swagger UI）</li>
-              <li><strong>密码加密</strong>：BCrypt（Spring Security Crypto）</li>
-              <li><strong>限流</strong>：Bucket4j 8.15</li>
-              <li><strong>本地缓存</strong>：Caffeine 3.1.8</li>
-              <li><strong>AOP</strong>：AspectJ（用于日志执行时间注解）</li>
-            </ul>
+          <div class="guide-divider"></div>
 
-            <h4>10.3 关键设计模式</h4>
-            <ul>
-              <li><strong>拦截器链</strong>：AuthInterceptor（认证）→ RateLimitInterceptor（限流）→ UserContextInterceptor（用户上下文），按 order 顺序执行。</li>
-              <li><strong>消息队列异步处理</strong>：导出功能通过 RabbitMQ 实现异步处理，避免 HTTP 请求超时。</li>
-              <li><strong>分布式锁</strong>：使用 Redis 实现分布式锁（RedisDistributedLock），用于多 Pod 环境下的并发控制。</li>
-              <li><strong>多 Pod 会话一致性</strong>：通过 Redis 存储会话映射，确保多实例部署下的会话一致性。</li>
-              <li><strong>缓存策略</strong>：CacheStrategyService 提供多级缓存策略，结合 Caffeine 本地缓存和 Redis 分布式缓存。</li>
-            </ul>
-          </div>
-
-          <div class="guide-section" v-show="isExpanded('d-deploy')">
-            <h3>十一、部署与运维</h3>
-
-            <h4>11.1 项目构建</h4>
-            <p>后端使用 Maven 构建，执行 <code>mvn clean package</code> 生成可执行 JAR 文件。前端使用 Vite 构建，执行 <code>npm run build</code> 生成静态资源到 dist 目录。</p>
-
-            <h4>11.2 配置文件</h4>
-            <p>核心配置文件为 <code>application.yml</code>，包含以下关键配置：</p>
-            <ul>
-              <li><strong>服务端口</strong>：默认 8080</li>
-              <li><strong>MySQL 数据源</strong>：数据库名 test_data，使用 HikariCP 连接池（最大 20 连接）</li>
-              <li><strong>Redis</strong>：默认连接 10.1.13.140:6379，使用 DB 1</li>
-              <li><strong>RabbitMQ</strong>：默认连接 10.1.13.140:5672</li>
-              <li><strong>日志</strong>：输出到 /data/logs/app.log，滚动策略为单文件最大 100MB，保留 30 天，总容量上限 3GB</li>
-              <li><strong>导出目录</strong>：/data/export</li>
-            </ul>
-
-            <h4>11.3 Docker 部署</h4>
-            <p>项目在 <code>src/main/resources/static/</code> 目录下提供了 Dockerfile、docker-compose.yml 和 nginx.conf，支持容器化部署。nginx 用于反向代理前端静态资源和后端 API 请求。</p>
-
-            <h4>11.4 日常运维要点</h4>
-            <ul>
-              <li><strong>日志监控</strong>：定期检查日志文件大小，虽然已配置自动滚动，但磁盘空间仍需关注。</li>
-              <li><strong>Redis 内存</strong>：通过监控面板关注 Redis 内存使用，避免内存溢出。</li>
-              <li><strong>数据库备份</strong>：建议定期 mysqldump 备份 test_data 数据库。</li>
-              <li><strong>导出文件清理</strong>：系统配置了 ExportFileCleaner 自动清理过期的导出文件，但建议定期检查 /data/export 目录。</li>
-              <li><strong>RabbitMQ 队列</strong>：关注队列积压情况，如果导出消息堆积，可能需要增加消费者并发数。</li>
-            </ul>
-          </div>
-
-          <div class="guide-section" v-show="isExpanded('d-trouble')">
-            <h3>十二、故障排查手册</h3>
-
-            <h4>12.1 用户反馈「无法登录」</h4>
-            <ol>
-              <li>检查 Redis 连接是否正常（通过监控面板查看）。</li>
-              <li>检查该用户是否被封禁：在 Redis 中查看 ban:uid:xxx 键。</li>
-              <li>检查数据库中的用户记录是否存在：在数据治理中执行 SELECT * FROM sys_user WHERE uid='xxx'。</li>
-              <li>检查会话是否过期：查看 Redis 中的 session:uid:xxx 键。</li>
-            </ol>
-
-            <h4>12.2 用户反馈「入库失败」</h4>
-            <ol>
-              <li>检查 MySQL 连接是否正常：查看日志中是否有数据库连接异常。</li>
-              <li>检查 HikariCP 连接池状态：是否达到最大连接数。</li>
-              <li>检查目标表是否存在、表结构是否匹配。</li>
-              <li>查看后端日志中的具体错误信息。</li>
-            </ol>
-
-            <h4>12.3 导出功能异常</h4>
-            <ol>
-              <li>检查 RabbitMQ 连接状态和队列健康情况。</li>
-              <li>检查消费者是否正常运行：查看日志中是否有消费者异常。</li>
-              <li>检查 /data/export 目录的磁盘空间是否充足。</li>
-              <li>如果文件已生成但下载失败，检查 nginx 配置中的静态文件路径。</li>
-            </ol>
-
-            <h4>12.4 CPU/内存告警</h4>
-            <ol>
-              <li>通过监控面板查看具体的资源使用情况。</li>
-              <li>查看实时日志中是否有异常循环或内存泄漏的线索。</li>
-              <li>如果是正常业务高峰导致的短暂升高，可以观察是否自行回落。</li>
-              <li>如果持续高位，考虑重启服务或扩容。</li>
-            </ol>
-
-            <h4>12.5 Redis 连接异常</h4>
-            <ol>
-              <li>检查 Redis 服务是否运行：通过监控面板查看 Redis 状态。</li>
-              <li>检查网络连通性：确认应用服务器能访问 Redis 端口。</li>
-              <li>检查 Redis 内存使用：如果达到 maxmemory，Redis 会拒绝写入。</li>
-              <li>检查 Redis 配置：确认密码（如有）和数据库编号配置正确。</li>
-            </ol>
-
-            <h4>12.6 归因查询失败</h4>
-            <ol>
-              <li>检查外部归因 API 的可达性：归因查询依赖上游归因平台（外部服务），如果外部服务不可用会导致查询失败。</li>
-              <li>检查 Bundle ID 格式是否正确。</li>
-              <li>查看后端日志中是否有外部 API 调用的超时或错误信息。</li>
-            </ol>
-          </div>
-        </div>
-
-        <div class="guide-divider"></div>
-
-        <div class="guide-footer">
-          <div class="guide-footer-signature">
-            <p>本系统由</p>
-            <p class="guide-dev-name">蓝黄金刚鹦鹉</p>
-            <p>开发维护</p>
-            <div class="guide-contact">
-              <p>联系开发者：2448248501@qq.com</p>
-              <p>深圳市慧动创想科技有限公司</p>
+          <div class="guide-footer">
+            <div class="guide-footer-signature">
+              <p>本手册由</p>
+              <p class="guide-dev-name">蓝黄金刚鹦鹉</p>
+              <p>开发维护 · 深圳市慧动创想科技有限公司</p>
+              <div class="guide-contact"><p>联系开发者：2448248501@qq.com</p></div>
             </div>
           </div>
         </div>
@@ -969,48 +408,31 @@ function isExpanded(key) {
 </template>
 
 <style scoped>
+/* ===== 主题色沿用系统 CSS 变量（暖白 Claude 风），结构样式为手册专用 ===== */
 .guide-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-  box-sizing: border-box;
+  position: fixed; inset: 0; z-index: 9999;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px; box-sizing: border-box;
   background: rgba(4, 18, 18, 0.5);
   backdrop-filter: blur(14px) saturate(120%);
   -webkit-backdrop-filter: blur(14px) saturate(120%);
   animation: guide-fade-in 220ms ease both;
 }
 .guide-modal {
-  display: flex;
-  flex-direction: column;
-  width: min(1120px, 100%);
-  height: min(900px, calc(100vh - 48px));
-  height: min(900px, calc(100dvh - 48px));
-  max-height: calc(100vh - 48px);
-  max-height: calc(100dvh - 48px);
-  overflow: hidden;
-  color: var(--text-primary);
-  font-family: var(--font-sans);
+  display: flex; flex-direction: column;
+  width: min(1160px, 100%);
+  height: min(920px, calc(100vh - 48px)); height: min(920px, calc(100dvh - 48px));
+  max-height: calc(100vh - 48px); max-height: calc(100dvh - 48px);
+  overflow: hidden; color: var(--text-primary); font-family: var(--font-sans);
   background: rgba(248, 252, 250, 0.94);
-  border: 1px solid rgba(255,255,255,0.72);
-  border-radius: 24px;
+  border: 1px solid rgba(255,255,255,0.72); border-radius: 24px;
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.96), inset 0 -1px 0 rgba(201,106,69,0.05), var(--shadow-lg);
-  backdrop-filter: blur(28px) saturate(145%);
-  -webkit-backdrop-filter: blur(28px) saturate(145%);
+  backdrop-filter: blur(28px) saturate(145%); -webkit-backdrop-filter: blur(28px) saturate(145%);
   animation: guide-slide-up 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 .guide-header {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-  flex-shrink: 0;
-  padding: 20px 26px;
-  border-bottom: 1px solid rgba(221,211,193,0.85);
+  position: relative; display: flex; align-items: center; justify-content: space-between; gap: 18px;
+  flex-shrink: 0; padding: 20px 26px; border-bottom: 1px solid rgba(221,211,193,0.85);
   background: linear-gradient(115deg, rgba(248,233,223,0.72), rgba(255,255,255,0.6) 55%, rgba(255,255,255,0.82));
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.9);
 }
@@ -1021,34 +443,19 @@ function isExpanded(key) {
 .guide-header-kicker { display: block; margin-bottom: 4px; color: var(--accent); font-size: 8px; line-height: 1.2; font-weight: 800; letter-spacing: 1.6px; }
 .guide-header h2 { margin: 0; color: var(--text-primary); font-size: 21px; line-height: 1.25; font-weight: 750; letter-spacing: -0.5px; }
 .guide-header-sub { margin-top: 4px; color: var(--text-secondary); font-size: 10px; line-height: 1.5; }
-.guide-close-btn { display: grid; place-items: center; width: 36px; height: 36px; flex: 0 0 36px; padding: 8px; color: var(--text-secondary); background: rgba(255,255,255,0.48); border: 1px solid rgba(221,211,193,0.85); border-radius: 10px; cursor: pointer; box-shadow: inset 0 1px 0 rgba(255,255,255,0.8); transition: color var(--transition, 180ms ease), background var(--transition, 180ms ease), border-color var(--transition, 180ms ease); }
+.guide-close-btn { display: grid; place-items: center; width: 36px; height: 36px; flex: 0 0 36px; padding: 8px; color: var(--text-secondary); background: rgba(255,255,255,0.48); border: 1px solid rgba(221,211,193,0.85); border-radius: 10px; cursor: pointer; box-shadow: inset 0 1px 0 rgba(255,255,255,0.8); transition: color var(--transition), background var(--transition), border-color var(--transition); }
 .guide-close-btn svg { width: 18px; height: 18px; }
 .guide-close-btn:hover { color: var(--danger); background: var(--danger-soft); border-color: #f0d6cc; }
 
-.guide-body {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
-  overscroll-behavior: contain;
-  padding: 22px 26px 30px;
-  scroll-behavior: smooth;
-  scrollbar-gutter: stable;
-}
+.guide-body { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; padding: 22px 26px 30px; scroll-behavior: smooth; scrollbar-gutter: stable; }
 .guide-body::-webkit-scrollbar, .guide-toc::-webkit-scrollbar, .guide-table-wrap::-webkit-scrollbar { width: 6px; height: 6px; }
 .guide-body::-webkit-scrollbar-thumb, .guide-toc::-webkit-scrollbar-thumb, .guide-table-wrap::-webkit-scrollbar-thumb { background: #cecac3; border-radius: 6px; }
+
 .guide-welcome {
-  position: relative;
-  margin-bottom: 18px;
-  padding: 20px 22px 18px;
-  overflow: hidden;
-  color: #4c473d;
+  position: relative; margin-bottom: 18px; padding: 20px 22px 18px; overflow: hidden; color: #4c473d;
   background: linear-gradient(125deg, rgba(248,233,223,0.9), rgba(255,255,255,0.7));
-  border: 1px solid #e3dfd9;
-  border-radius: var(--radius);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.9);
-  font-size: 12px;
-  line-height: 1.9;
+  border: 1px solid #e3dfd9; border-radius: var(--radius); box-shadow: inset 0 1px 0 rgba(255,255,255,0.9);
+  font-size: 12px; line-height: 1.9;
 }
 .guide-welcome::before { content: 'START HERE'; display: block; margin-bottom: 9px; color: var(--accent); font-size: 8px; line-height: 1.2; font-weight: 800; letter-spacing: 1.6px; }
 .guide-welcome::after { content: ''; position: absolute; width: 180px; height: 180px; right: -100px; top: -110px; border: 1px solid rgba(201,106,69,0.1); border-radius: 50%; box-shadow: 0 0 0 34px rgba(201,106,69,0.025); pointer-events: none; }
@@ -1060,27 +467,20 @@ function isExpanded(key) {
 .role-admin { color: var(--warning); background: var(--warning-soft); border-color: #eaddca; }
 .role-developer { color: var(--success); background: var(--success-soft); border-color: #e1dcd3; }
 
-.guide-role-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 22px; }
-.guide-role-tab { display: flex; align-items: center; justify-content: center; gap: 8px; min-width: 0; min-height: 46px; padding: 10px 13px; color: var(--text-secondary); background: rgba(255,255,255,0.62); border: 1px solid var(--border-color); border-radius: 11px; cursor: pointer; font-size: 12px; font-weight: 650; box-shadow: inset 0 1px 0 rgba(255,255,255,0.8); transition: color var(--transition, 180ms ease), background var(--transition, 180ms ease), border-color var(--transition, 180ms ease), transform var(--transition, 180ms ease); }
-.guide-role-tab small { margin-left: auto; color: var(--text-tertiary, #a99f8c); font-family: var(--font-mono); font-size: 7px; letter-spacing: 0.5px; }
-.role-tab-icon { display: grid; place-items: center; width: 22px; height: 22px; flex: 0 0 22px; }
-.role-tab-icon svg { width: 20px; height: 20px; }
-.guide-role-tab:hover { color: var(--accent-strong); background: #fff; border-color: #d4cfc5; transform: translateY(-1px); }
-.guide-role-tab.active { color: var(--accent-strong); background: var(--accent-soft); border-color: #ccc4b6; box-shadow: inset 0 1px 0 rgba(255,255,255,0.85), 0 6px 16px rgba(201,106,69,0.07); }
-.guide-role-tab.active small { color: #887d6a; }
-
-.guide-content { display: grid; grid-template-columns: 190px minmax(0, 1fr); column-gap: 22px; align-items: start; animation: guide-content-in 220ms ease both; }
-.guide-toc { grid-column: 1; grid-row: 1 / span 40; position: sticky; top: 0; align-self: start; max-height: calc(100dvh - 260px); overflow-y: auto; padding: 16px 12px 12px; background: rgba(237,245,242,0.76); border: 1px solid #e3e0dc; border-radius: 12px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.75); }
+.guide-content { display: grid; grid-template-columns: 196px minmax(0, 1fr); column-gap: 24px; align-items: start; animation: guide-content-in 220ms ease both; }
+.guide-toc { grid-column: 1; grid-row: 1 / span 60; position: sticky; top: 0; align-self: start; max-height: calc(100dvh - 220px); overflow-y: auto; padding: 16px 12px 12px; background: rgba(237,245,242,0.76); border: 1px solid #e3e0dc; border-radius: 12px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.75); }
 .guide-toc h3 { margin: 0 6px 12px; padding-bottom: 11px; color: var(--text-primary); border-bottom: 1px solid #e1deda; font-size: 13px; font-weight: 750; }
 .guide-toc h3 span { display: block; margin-bottom: 4px; color: var(--accent); font-size: 7px; letter-spacing: 1.4px; }
-.guide-toc ul { display: flex; flex-direction: column; gap: 2px; list-style: none; padding: 0; margin: 0; counter-reset: guide-item; }
+.guide-toc ul { display: flex; flex-direction: column; gap: 2px; list-style: none; padding: 0; margin: 0; }
 .guide-toc li { min-width: 0; }
-.guide-toc li a { position: relative; display: block; padding: 7px 7px 7px 12px; color: #6d6860; border-radius: 7px; cursor: pointer; font-size: 10px; line-height: 1.55; text-decoration: none; overflow-wrap: anywhere; transition: color var(--transition, 180ms ease), background var(--transition, 180ms ease); }
-.guide-toc li a::before { content: ''; position: absolute; left: 2px; top: 12px; width: 3px; height: 3px; border-radius: 50%; background: #b3aea5; }
+.guide-toc li a { position: relative; display: block; padding: 7px 7px 7px 14px; color: #6d6860; border-radius: 7px; cursor: pointer; font-size: 10.5px; line-height: 1.5; text-decoration: none; overflow-wrap: anywhere; transition: color var(--transition), background var(--transition); }
+.guide-toc li a em { display: block; color: var(--text-tertiary); font-family: var(--font-mono); font-size: 6.5px; font-style: normal; letter-spacing: 0.8px; }
+.guide-toc li a::before { content: ''; position: absolute; left: 3px; top: 13px; width: 3px; height: 3px; border-radius: 50%; background: #b3aea5; }
 .guide-toc li a:hover { color: var(--accent-strong); background: rgba(255,255,255,0.72); }
-.guide-toc li a:hover::before { background: var(--accent); }
+.guide-toc li a:hover::before, .guide-toc li a.on::before { background: var(--accent); }
+.guide-toc li a.on { color: var(--accent-strong); background: rgba(255,255,255,0.78); font-weight: 700; }
 
-.guide-section { grid-column: 2; min-width: 0; margin-bottom: 14px; padding: 23px 25px; color: #48433a; background: rgba(255,255,255,0.84); border: 1px solid #e0d5c2; border-radius: var(--radius); box-shadow: 0 4px 18px rgba(70,55,35,0.025), inset 0 1px 0 rgba(255,255,255,0.9); }
+.guide-section { grid-column: 2; min-width: 0; margin-bottom: 16px; padding: 24px 26px; color: #48433a; background: rgba(255,255,255,0.84); border: 1px solid #e0d5c2; border-radius: var(--radius); box-shadow: 0 4px 18px rgba(70,55,35,0.025), inset 0 1px 0 rgba(255,255,255,0.9); scroll-margin-top: 12px; }
 .guide-section h3 { margin: 0 0 17px; padding-bottom: 13px; color: #3a3020; border-bottom: 1px solid #eaddca; font-size: 17px; line-height: 1.5; font-weight: 750; letter-spacing: -0.25px; }
 .guide-section h4 { position: relative; margin: 22px 0 9px; padding-left: 11px; color: var(--accent-strong); font-size: 13px; line-height: 1.6; font-weight: 750; }
 .guide-section h4::before { content: ''; position: absolute; left: 0; top: 0.42em; width: 3px; height: 1em; border-radius: 2px; background: var(--accent-light); }
@@ -1090,34 +490,67 @@ function isExpanded(key) {
 .guide-section li { margin-bottom: 5px; padding-left: 2px; color: #7d7261; font-size: 12.5px; line-height: 1.85; overflow-wrap: anywhere; }
 .guide-section li::marker { color: var(--accent); font-weight: 700; }
 .guide-section li strong, .guide-section p strong { color: #3a3020; font-weight: 700; }
-.guide-section code { padding: 2px 5px; color: var(--accent-strong); background: #f6f1e7; border: 1px solid #e6e3df; border-radius: 5px; font-family: var(--font-mono); font-size: 0.9em; overflow-wrap: anywhere; }
+.guide-section code { padding: 2px 5px; color: var(--accent-strong); background: #f6f1e7; border: 1px solid #e6e3df; border-radius: 5px; font-family: var(--font-mono); font-size: 0.88em; overflow-wrap: anywhere; }
+.muted { color: var(--text-tertiary) !important; font-size: 11.5px !important; }
+
+/* 截图 */
+.shot { margin: 14px 0 18px; padding: 10px; background: #f6f1e7; border: 1px solid #e6ddd0; border-radius: 12px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.8); }
+.shot img { display: block; width: 100%; height: auto; border-radius: 8px; border: 1px solid #e0d5c2; background: #fff; }
+.shot-sm { max-width: 460px; }
+.shot figcaption { margin-top: 9px; color: var(--text-tertiary); font-size: 10.5px; line-height: 1.6; text-align: center; }
+
+/* 流程图 */
+.flow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 14px 0 16px; }
+.flow-node { display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; color: #4a4234; background: rgba(255,255,255,0.82); border: 1px solid #e0d5c2; border-radius: 10px; font-size: 11.5px; font-weight: 650; box-shadow: inset 0 1px 0 rgba(255,255,255,0.8); }
+.flow-node b { display: grid; place-items: center; width: 18px; height: 18px; color: #fff; background: var(--accent); border-radius: 50%; font-size: 10px; font-weight: 800; }
+.flow-node.ok { border-color: #cfe0cd; background: var(--success-soft); } .flow-node.ok b { background: var(--success); }
+.flow-node.warn { border-color: #eaddca; background: var(--warning-soft); } .flow-node.warn b { background: var(--warning); }
+.flow-arrow { color: var(--accent-light); font-weight: 800; font-size: 14px; }
+.flow-branch { display: flex; flex-direction: column; gap: 6px; }
+
+/* 提示卡 */
+.callout { position: relative; margin: 14px 0; padding: 15px 16px 13px 16px; border-radius: 11px; border: 1px solid #e3ded6; background: #f6f5f2; }
+.callout p { margin: 0 !important; color: #5c5549; font-size: 12px; line-height: 1.85; }
+.callout-tag { display: inline-block; margin-bottom: 7px; padding: 2px 9px; border-radius: 6px; font-size: 10px; font-weight: 800; letter-spacing: 0.3px; }
+.callout-info { background: var(--info-soft); border-color: #d7e4ee; } .callout-info .callout-tag { color: #fff; background: var(--info); }
+.callout-warn { background: var(--warning-soft); border-color: #e6d6c0; } .callout-warn .callout-tag { color: #fff; background: var(--warning); }
+.callout-danger { background: var(--danger-soft); border-color: #f0d6cc; } .callout-danger .callout-tag { color: #fff; background: var(--danger); }
+
+/* 操作卡 */
+.op-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; margin: 12px 0 16px; }
+.op-card { padding: 14px 15px; background: rgba(255,255,255,0.7); border: 1px solid #e3dfd9; border-radius: 11px; }
+.op-card h5 { margin: 0 0 6px; color: #3a3020; font-size: 12.5px; font-weight: 750; }
+.op-card p { margin: 0 !important; font-size: 12px; line-height: 1.8; }
+
+/* 评级卡 */
+.grade-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; margin: 12px 0 16px; }
+.grade-card { padding: 13px 15px; border-radius: 11px; border: 1px solid #e3dfd9; background: rgba(255,255,255,0.72); }
+.grade-card b { display: inline-block; margin-bottom: 6px; padding: 2px 10px; border-radius: 6px; color: #fff; font-size: 12px; font-weight: 800; }
+.grade-card p { margin: 0 !important; color: #63533f; font-size: 11.5px; line-height: 1.75; }
+.g-a b { background: var(--success); } .g-a { border-color: #cfe0cd; }
+.g-b b { background: var(--info); } .g-b { border-color: #d7e4ee; }
+.g-c b { background: var(--warning); } .g-c { border-color: #eaddca; }
+.g-d b { background: var(--danger); } .g-d { border-color: #f0d6cc; }
+
+/* 归因标签（沿用系统归因配色） */
+.attr-legend { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 4px; }
+.attr-tag { padding: 4px 12px; border-radius: 7px; font-family: var(--font-mono); font-size: 11px; font-weight: 700; border: 1px solid transparent; }
+.attr-appflyer { color: #fff; background: var(--success); }
+.attr-adjust { color: #fff; background: var(--accent); }
+.attr-singular { color: #24475c; background: #bcd6e6; border-color: #a6c8dc; }
+.attr-tenjin { color: #fff; background: #7c5cbf; }
+
+/* 表格 */
 .guide-table-wrap { width: 100%; max-width: 100%; margin: 13px 0 17px; overflow-x: auto; overscroll-behavior-x: contain; border: 1px solid #e0d5c2; border-radius: 10px; }
-.guide-table { width: 100%; min-width: 540px; border-collapse: collapse; font-size: 11px; text-align: left; }
+.guide-table { width: 100%; min-width: 460px; border-collapse: collapse; font-size: 11px; text-align: left; }
 .guide-table th { padding: 11px 13px; color: #5c5549; background: #eaddca; border-bottom: 1px solid #e0d5c2; font-size: 10px; font-weight: 750; white-space: nowrap; }
 .guide-table td { padding: 10px 13px; color: #7d7261; border-bottom: 1px solid #f1f0ee; line-height: 1.65; overflow-wrap: anywhere; }
 .guide-table tbody tr:last-child td { border-bottom: 0; }
 .guide-table tbody tr:hover { background: #f6f1e7; }
 
-.rules-card { margin: 14px 0; padding: 18px 19px; background: #f6f5f2; border: 1px solid #e3ded6; border-radius: 11px; }
-.rules-card h4 { margin: 0 0 12px; padding: 0; color: var(--success); font-size: 14px; }
-.rules-card h4::before { display: none; }
-.rules-card-danger { background: #fff7ed; border-color: #eddbb7; }
-.rules-card-danger h4 { color: #a56217; }
-.rule-group { padding: 12px 0; border-bottom: 1px dashed #dad7d2; }
-.rule-group:first-child { padding-top: 0; }
-.rule-group:last-child { padding-bottom: 0; border-bottom: 0; }
-.rule-group h5 { margin: 0 0 6px; color: #3a3020; font-size: 12px; font-weight: 750; }
-.rule-group p { margin: 0; font-size: 12px; }
-.rule-warning { margin-top: 8px; padding: 12px 13px; background: var(--warning-soft); border: 1px solid #e6d6c0; border-radius: 8px; }
-.rule-warning h5 { color: var(--warning); }
-.freeze-intro { margin-bottom: 10px !important; }
-.freeze-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; list-style: none; padding: 0 !important; margin: 0 !important; }
-.freeze-list li { position: relative; display: flex; align-items: flex-start; gap: 8px; margin: 0; padding: 9px 10px; color: #63533f; background: rgba(255,255,255,0.62); border: 1px solid #eaddca; border-radius: 8px; font-size: 11px; line-height: 1.65; }
-.freeze-list li::before { content: ''; width: 5px; height: 5px; flex: 0 0 5px; margin-top: 0.65em; border-radius: 50%; background: #cf8a34; }
-
-.guide-divider { height: 1px; margin: 26px 0 8px; background: linear-gradient(90deg, transparent, #ddd0bb 20%, #ddd0bb 80%, transparent); }
-.guide-footer { margin-top: 8px; }
-.guide-footer-signature { padding: 19px 0 8px; color: var(--text-tertiary, #a99f8c); text-align: center; font-size: 10px; line-height: 1.8; }
+.guide-divider { grid-column: 2; height: 1px; margin: 26px 0 8px; background: linear-gradient(90deg, transparent, #ddd0bb 20%, #ddd0bb 80%, transparent); }
+.guide-footer { grid-column: 2; margin-top: 8px; }
+.guide-footer-signature { padding: 19px 0 8px; color: var(--text-tertiary); text-align: center; font-size: 10px; line-height: 1.8; }
 .guide-footer-signature p { margin: 0; }
 .guide-dev-name { margin: 4px 0 !important; color: var(--accent-strong); font-size: 18px; font-weight: 750; letter-spacing: -0.3px; }
 .guide-contact { margin-top: 10px; color: var(--text-secondary); font-size: 10px; }
@@ -1128,50 +561,32 @@ function isExpanded(key) {
 @keyframes guide-content-in { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
 @media (max-width: 900px) {
-  .guide-content { grid-template-columns: 165px minmax(0, 1fr); column-gap: 16px; }
+  .guide-content { grid-template-columns: 168px minmax(0, 1fr); column-gap: 16px; }
   .guide-section { padding: 20px; }
-  .guide-role-tab small { display: none; }
+  .op-grid, .grade-grid { grid-template-columns: 1fr; }
 }
-
 @media (max-width: 700px) {
   .guide-overlay { padding: 12px; }
   .guide-modal { height: calc(100vh - 24px); height: calc(100dvh - 24px); max-height: calc(100vh - 24px); max-height: calc(100dvh - 24px); border-radius: 19px; }
   .guide-header { padding: 16px 18px; }
-  .guide-header-icon { width: 40px; height: 40px; flex-basis: 40px; border-radius: 12px; }
-  .guide-header-icon svg { width: 23px; height: 23px; }
-  .guide-header h2 { font-size: 19px; }
   .guide-body { padding: 16px 18px 22px; scrollbar-gutter: auto; }
-  .guide-welcome { padding: 17px 18px; }
   .guide-content { display: block; }
   .guide-toc { position: static; max-height: none; margin-bottom: 16px; padding: 15px 14px; overflow: visible; }
   .guide-toc ul { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px 8px; }
-  .guide-section { padding: 20px; }
-  .freeze-list { grid-template-columns: 1fr; }
+  .guide-divider, .guide-footer { display: block; }
+  .shot-sm { max-width: 100%; }
 }
-
 @media (max-width: 390px) {
   .guide-overlay { padding: 8px; }
-  .guide-modal { height: calc(100vh - 16px); height: calc(100dvh - 16px); max-height: calc(100vh - 16px); max-height: calc(100dvh - 16px); border-radius: 16px; }
-  .guide-header { gap: 10px; padding: 13px 12px; }
-  .guide-header-left { gap: 9px; }
-  .guide-header-icon { width: 36px; height: 36px; flex-basis: 36px; }
-  .guide-header-kicker { display: none; }
+  .guide-modal { border-radius: 16px; }
   .guide-header h2 { font-size: 17px; }
-  .guide-header-sub { font-size: 9px; }
-  .guide-close-btn { width: 32px; height: 32px; flex-basis: 32px; }
   .guide-body { padding: 12px 11px 18px; }
-  .guide-welcome { padding: 15px 14px; font-size: 11px; }
-  .guide-role-tabs { gap: 5px; margin-bottom: 15px; }
-  .guide-role-tab { flex-direction: column; gap: 4px; min-height: 56px; padding: 8px 4px; font-size: 10px; }
-  .role-tab-icon, .role-tab-icon svg { width: 18px; height: 18px; }
   .guide-toc ul { grid-template-columns: 1fr; }
   .guide-section { margin-bottom: 11px; padding: 17px 15px; border-radius: 12px; }
   .guide-section h3 { font-size: 15px; }
-  .guide-section h4 { font-size: 12px; }
   .guide-section p, .guide-section li { font-size: 11.5px; line-height: 1.85; }
-  .guide-table { min-width: 500px; }
+  .guide-table { min-width: 420px; }
 }
-
 @media (prefers-reduced-motion: reduce) {
   .guide-overlay, .guide-modal, .guide-content { animation: none; }
   .guide-body { scroll-behavior: auto; }
